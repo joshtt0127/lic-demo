@@ -332,14 +332,14 @@ Une branche par slice, `tsc` + build + tests verts avant merge, push à chaque �
 | 3 | `feat/talent-onboarding` | account type, wizard talent, upload réel, profile completion | P0 | ✅ |
 | 4 | `feat/talent-profile` | profil talent 100 % connecté + édition persistée + media upload | P0 | ✅ |
 | 5 | `feat/production-onboarding` | profil production, create/join organization | P1 | ✅ |
-| 6 | `feat/projects` | CRUD projets + artwork + statuts | P1 |
-| 7 | `feat/casting-calls` | casting calls + rôles + publication (wizard branché) | P1 |
-| 8 | `feat/applications` | apply talent → candidatures studio (**North Star**) | P2 | ⏳ côté talent fait (apply réel), côté studio à brancher |
-| 9 | `feat/self-tapes` | upload privé + review player | P3 |
-| 10 | `feat/casting-console` | kanban/list/wall + statuts + reviews + notes persistés | P3 |
-| 11 | `feat/messaging` | conversations partagées talent ↔ production | P4 | ⏳ côté talent fait |
+| 6 | `feat/projects` | CRUD projets + artwork + statuts | P1 | ✅ |
+| 7 | `feat/casting-calls` | casting calls + rôles + publication | P1 | ✅ |
+| 8 | `feat/applications` | apply talent → candidatures studio (**North Star**) | P2 | ✅ E2E `north-star.spec.ts` |
+| 9 | `feat/self-tapes` | upload privé + review player | P3 | ⏳ lecture faite (URL signée), enregistrement webcam à brancher |
+| 10 | `feat/casting-console` | kanban/list/wall + statuts + reviews + notes persistés | P3 | ⏳ liste + statuts + votes + notes réels ; kanban/wall à reprendre de SelectionConsole |
+| 11 | `feat/messaging` | conversations partagées talent ↔ production | P4 | ✅ écran mutualisé |
 | 12 | `feat/notifications` | notifications persistantes + badges réels | P4 | ✅ triggers DB + badges réels |
-| 13 | `feat/search` | talent search serveur + saved searches DB | P5 |
+| 13 | `feat/search` | talent search serveur + saved searches DB | P5 | ⏳ recherche talent réelle ; saved searches à faire |
 | 14 | `feat/i18n` | EN/FR, extraction des textes, sélecteur persistant | transverse |
 | 15 | `feat/e2e` | Playwright : les 2 parcours + le test croisé du § 44 | transverse |
 
