@@ -6,17 +6,25 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview",
+    "db": "NODE_OPTIONS=--use-system-ca node scripts/db.mjs",
+    "db:status": "NODE_OPTIONS=--use-system-ca node scripts/db.mjs status",
+    "db:push": "NODE_OPTIONS=--use-system-ca node scripts/db.mjs push",
+    "db:types": "NODE_OPTIONS=--use-system-ca node scripts/db.mjs types"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.0.18",
     "@fontsource/ibm-plex-mono": "^5.0.10",
+    "@supabase/supabase-js": "^2.116.0",
+    "@tanstack/react-query": "^5.103.1",
     "framer-motion": "^11.3.19",
     "lucide-react": "^0.417.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.0",
-    "recharts": "^2.12.7"
+    "recharts": "^2.12.7",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",
