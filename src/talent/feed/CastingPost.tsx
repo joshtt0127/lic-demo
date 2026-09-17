@@ -15,6 +15,7 @@ import { Card, Tag } from '@/components/ui'
 import { useToast } from '@/components/Toast'
 import type { CastingCallWithContext } from '@/features/castings/queries'
 import type { MyApplication } from '@/features/applications/queries'
+import { applyGate, ROLE_STAGE_LABEL, ROLE_STATUS_TONE } from '@/features/castings/lifecycle'
 import {
   APPLICATION_STATUS_LABEL,
   APPLICATION_STATUS_TONE,
@@ -184,6 +185,8 @@ export function CastingPost({
         <ul className="flex flex-col divide-y divide-line border-b border-line">
           {visibleRoles.map((role) => {
             const application = applicationsByRole.get(role.id)
+            const gate = applyGate(role, casting)
+            const stage = ROLE_STAGE_LABEL[role.status]
             const age = [role.playing_age_min, role.playing_age_max].filter(
               (value) => value !== null,
             )
@@ -206,12 +209,18 @@ export function CastingPost({
                   >
                     {role.name}
                   </Link>
-                  <p className="truncate text-[12.5px] text-muted">{meta.join(' · ')}</p>
+                  <p className="truncate text-[12.5px] text-muted">
+                    {[stage, ...meta].filter(Boolean).join(' · ')}
+                  </p>
                 </div>
 
                 {application ? (
                   <Tag tone={APPLICATION_STATUS_TONE[application.status]}>
                     {APPLICATION_STATUS_LABEL[application.status]}
+                  </Tag>
+                ) : !gate.canApply ? (
+                  <Tag tone={ROLE_STATUS_TONE[role.status]} className="shrink-0">
+                    {gate.reason}
                   </Tag>
                 ) : canApply ? (
                   <button

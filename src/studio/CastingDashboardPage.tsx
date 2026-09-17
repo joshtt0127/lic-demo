@@ -28,6 +28,7 @@ import { useToast } from '@/components/Toast'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useCurrentOrganization, useOrgMembers } from '@/features/organizations/queries'
 import { MessageTalentModal } from '@/features/messaging/MessageTalentModal'
+import { ROLE_STATUS_LABEL, ROLE_STATUSES } from '@/features/castings/lifecycle'
 import {
   castingHealth,
   submissionsOverTime,
@@ -77,16 +78,6 @@ const TAB_LABEL: Record<Tab, string> = {
   callbacks: 'Callbacks',
   team: 'Team',
   activity: 'Activity',
-}
-
-const ROLE_STATUSES: RoleStatus[] = ['open', 'reviewing', 'callbacks', 'booked', 'closed']
-
-const ROLE_STATUS_LABEL: Record<RoleStatus, string> = {
-  open: 'Open',
-  reviewing: 'To review',
-  callbacks: 'Callbacks',
-  booked: 'Booked',
-  closed: 'Closed',
 }
 
 const SHORTLIST_STATUSES: ApplicationStatus[] = ['shortlisted', 'callback', 'offer', 'cast']

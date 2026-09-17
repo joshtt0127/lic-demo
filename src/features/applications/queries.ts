@@ -63,7 +63,10 @@ export function useTalentApplicationStats(talentId: string | undefined) {
 // ── Talent: my applications ──────────────────────────────────────────────────
 
 export type MyApplication = ApplicationRow & {
-  role: Pick<RoleRow, 'id' | 'name' | 'role_type' | 'selftape_instructions' | 'casting_call_id'> | null
+  role: Pick<
+    RoleRow,
+    'id' | 'name' | 'role_type' | 'status' | 'selftape_instructions' | 'casting_call_id'
+  > | null
   casting: Pick<CastingCallRow, 'id' | 'title' | 'deadline_at' | 'location' | 'status'> | null
   project: Pick<ProjectRow, 'id' | 'title' | 'poster_url' | 'production_type'> | null
   hasSelfTape: boolean
@@ -75,7 +78,7 @@ export async function listMyApplications(talentId: string): Promise<MyApplicatio
     .select(`
       *,
       roles (
-        id, name, role_type, selftape_instructions, casting_call_id,
+        id, name, role_type, status, selftape_instructions, casting_call_id,
         casting_calls (
           id, title, deadline_at, location, status,
           projects ( id, title, poster_url, production_type )
@@ -106,6 +109,7 @@ export async function listMyApplications(talentId: string): Promise<MyApplicatio
             id: roles.id,
             name: roles.name,
             role_type: roles.role_type,
+            status: roles.status,
             selftape_instructions: roles.selftape_instructions,
             casting_call_id: roles.casting_call_id,
           }

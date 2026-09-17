@@ -18,6 +18,11 @@ import {
   statusStepIndex,
 } from '@/lib/format'
 import { SelfTapePanel } from '@/components/upload/SelfTapePanel'
+import {
+  CASTING_STATUS_LABEL,
+  ROLE_STAGE_LABEL,
+  ROLE_STATUS_TONE,
+} from '@/features/castings/lifecycle'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 
@@ -105,6 +110,10 @@ function AuditionCard({
 
   const currentIndex = statusStepIndex(application.status)
   const terminal = ['withdrawn', 'not_selected'].includes(application.status)
+  const stage = application.role ? ROLE_STAGE_LABEL[application.role.status] : null
+  const submissionsClosed = application.casting
+    ? application.casting.status !== 'published'
+    : false
 
   return (
     <Card className={cn('flex flex-col gap-4', muted && 'opacity-75')}>
@@ -152,6 +161,14 @@ function AuditionCard({
           <Tag tone={APPLICATION_STATUS_TONE[application.status]}>
             {APPLICATION_STATUS_LABEL[application.status]}
           </Tag>
+          {stage && application.role && (
+            <Tag tone={ROLE_STATUS_TONE[application.role.status]}>{stage}</Tag>
+          )}
+          {submissionsClosed && application.casting && (
+            <Tag tone="neutral">
+              {CASTING_STATUS_LABEL[application.casting.status]} casting
+            </Tag>
+          )}
           {application.role?.casting_call_id && (
             <Link
               to={`/talent/casting/${application.role.casting_call_id}`}
@@ -208,7 +225,7 @@ function AuditionCard({
       <SelfTapePanel
         applicationId={application.id}
         instructions={application.role?.selftape_instructions}
-        locked={terminal}
+        locked={terminal || submissionsClosed}
       />
 
       {!terminal && application.status === 'submitted' && (

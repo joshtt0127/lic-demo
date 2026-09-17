@@ -19,6 +19,12 @@ import { useAuth } from '@/features/auth/AuthProvider'
 import { useCasting, useSaveCasting, useSavedCastings } from '@/features/castings/queries'
 import { useMyApplications } from '@/features/applications/queries'
 import { ApplyModal } from '@/features/applications/ApplyModal'
+import {
+  applyGate,
+  ROLE_STAGE_LABEL,
+  ROLE_STATUS_TONE,
+  CASTING_STATUS_LABEL,
+} from '@/features/castings/lifecycle'
 import { useLanguagesCatalog } from '@/features/talent/queries'
 import {
   APPLICATION_STATUS_LABEL,
@@ -79,7 +85,8 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
     (languages.data ?? []).find((language) => language.code === code)?.name ?? code
   const isSaved = (saved.data ?? []).includes(data.id)
   const myApplications = applications.data ?? []
-  const closed = data.status !== 'published' || (data.deadline_at && new Date(data.deadline_at) < new Date())
+  // One rule for both surfaces — see features/castings/lifecycle.ts.
+  const castingClosed = data.status !== 'published'
 
   return (
     <div className="flex flex-col gap-5 pb-10">
@@ -191,7 +198,7 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
             <Users className="h-4 w-4" />
             Roles ({data.roles.length})
           </h2>
-          {closed && <Tag tone="no">Closed</Tag>}
+          {castingClosed && <Tag tone="no">{CASTING_STATUS_LABEL[data.status]}</Tag>}
         </div>
 
         {data.roles.length === 0 ? (
@@ -204,6 +211,8 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
           <ul className="flex flex-col gap-3">
             {data.roles.map((role) => {
               const application = myApplications.find((item) => item.role_id === role.id)
+              const gate = applyGate(role, data)
+              const stage = ROLE_STAGE_LABEL[role.status]
               return (
                 <li key={role.id}>
                   <Card className="flex flex-col gap-4">
@@ -220,6 +229,7 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
                                 ? 'Contestant'
                                 : 'Supporting'}
                           </Tag>
+                          {stage && <Tag tone={ROLE_STATUS_TONE[role.status]}>{stage}</Tag>}
                         </div>
                         {role.description && (
                           <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink/90">
@@ -240,15 +250,13 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
                             See your audition
                           </Link>
                         </div>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="premium"
-                          disabled={Boolean(closed)}
-                          onClick={() => setApplyTo(role)}
-                        >
-                          {closed ? 'Closed' : 'Apply for this role'}
+                      ) : gate.canApply ? (
+                        <Button size="sm" variant="premium" onClick={() => setApplyTo(role)}>
+                          Apply for this role
                         </Button>
+                      ) : (
+                        // No dead button: say why instead.
+                        <Tag tone={ROLE_STATUS_TONE[role.status]}>{gate.reason}</Tag>
                       )}
                     </div>
 
