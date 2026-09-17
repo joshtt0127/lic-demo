@@ -17,6 +17,7 @@ import {
   relativeTime,
   statusStepIndex,
 } from '@/lib/format'
+import { SelfTapePanel } from '@/components/upload/SelfTapePanel'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 
@@ -203,6 +204,12 @@ function AuditionCard({
           {application.note}
         </p>
       )}
+
+      <SelfTapePanel
+        applicationId={application.id}
+        instructions={application.role?.selftape_instructions}
+        locked={terminal}
+      />
 
       {!terminal && application.status === 'submitted' && (
         <div className="flex justify-end">

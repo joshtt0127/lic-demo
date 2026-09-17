@@ -7,10 +7,11 @@ import { useAuth } from '@/features/auth/AuthProvider'
 import {
   useCandidateNotes,
   useCandidateReviews,
-  useSelfTape,
   useStudioMutations,
 } from '@/features/studio/queries'
+import { useSelfTapes } from '@/features/selftapes/queries'
 import { APPLICATION_STATUS_LABEL, relativeTime } from '@/lib/format'
+import { formatBytes } from '@/lib/storage'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 import type { ApplicationStatus, CandidateViewRow, ReviewVote } from '@/types/database'
@@ -53,7 +54,7 @@ export function CandidateReviewModal({
 }) {
   const { profile } = useAuth()
   const mutations = useStudioMutations(orgId, profile?.id)
-  const selfTape = useSelfTape(candidate.application_id)
+  const selfTapes = useSelfTapes(candidate.application_id)
   const reviews = useCandidateReviews(candidate.application_id)
   const notes = useCandidateNotes(candidate.application_id)
 
@@ -68,6 +69,13 @@ export function CandidateReviewModal({
   }, [candidate.application_id])
 
   const myVote = (reviews.data ?? []).find((review) => review.reviewer_id === profile?.id)?.vote
+
+  const tape = selfTapes.data?.[0] ?? null
+  const tapeSeconds = tape?.durationSeconds ?? null
+  const tapeDuration =
+    tapeSeconds && Number.isFinite(tapeSeconds)
+      ? `${Math.floor(Math.round(tapeSeconds) / 60)}:${`${Math.round(tapeSeconds) % 60}`.padStart(2, '0')}`
+      : null
 
   async function run(action: () => Promise<unknown>, message: string) {
     setError(null)
@@ -110,24 +118,51 @@ export function CandidateReviewModal({
 
       {/* ── Self-tape ── */}
       <FormField label="Self-tape" plainLabel>
-        {selfTape.isLoading ? (
+        {selfTapes.isLoading ? (
           <span className="flex items-center gap-2 text-[13px] text-muted">
             <Spinner />
             Opening the private tape…
           </span>
-        ) : selfTape.data ? (
-          <video
-            src={selfTape.data.url}
-            controls
-            className="w-full rounded-btn border border-line bg-black"
-          />
+        ) : selfTapes.error ? (
+          <FormError>
+            {errorMessage(selfTapes.error, 'Could not open this tape')}
+          </FormError>
+        ) : tape ? (
+          <div className="flex flex-col gap-2">
+            <video
+              src={tape.url}
+              controls
+              preload="metadata"
+              className="w-full rounded-btn border border-line bg-black"
+            />
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted">
+              <span>Sent {relativeTime(tape.submittedAt)}</span>
+              {tapeDuration && <span className="font-mono">{tapeDuration}</span>}
+              {tape.bytes && <span>{formatBytes(tape.bytes)}</span>}
+              {(selfTapes.data?.length ?? 0) > 1 && (
+                <span>{(selfTapes.data?.length ?? 0) - 1} earlier take(s) replaced</span>
+              )}
+            </div>
+          </div>
         ) : (
-          <EmptyState
-            compact
-            icon={<Film className="h-4 w-4" />}
-            title="No self-tape"
-            description="This talent applied without a tape."
-          />
+          <div className="flex flex-col gap-2.5">
+            <EmptyState
+              compact
+              icon={<Film className="h-4 w-4" />}
+              title="No self-tape yet"
+              description="They applied without a tape — you can ask them for one."
+            />
+            {onMessage && (
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<MessageSquare className="h-4 w-4" />}
+                onClick={onMessage}
+              >
+                Ask for a self-tape
+              </Button>
+            )}
+          </div>
         )}
       </FormField>
 
