@@ -425,7 +425,7 @@ function CastingRow({ item }: { item: CastingOverview }) {
         to={`/studio/casting/${casting.id}`}
         className="group flex items-center gap-4 py-3 first:pt-0"
       >
-        <span className="h-11 w-11 shrink-0 overflow-hidden rounded-[11px] bg-line">
+        <span className="h-11 w-11 shrink-0 overflow-hidden rounded-btn bg-line">
           {casting.project?.poster_url && (
             <img
               src={casting.project.poster_url}
@@ -468,7 +468,7 @@ function AttentionRow({ item }: { item: AttentionItem }) {
   return (
     <li>
       <Link to={item.href} className="group flex items-center gap-4 py-3 first:pt-0">
-        <span className="h-11 w-11 shrink-0 overflow-hidden rounded-[11px] bg-line">
+        <span className="h-11 w-11 shrink-0 overflow-hidden rounded-btn bg-line">
           {item.posterUrl && (
             <img src={item.posterUrl} alt="" className="h-full w-full object-cover object-top" />
           )}

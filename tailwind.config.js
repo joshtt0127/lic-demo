@@ -43,11 +43,14 @@ export default {
         mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
       },
       borderRadius: {
-        card: '18px',
-        btn: '12px',
-        // Auth / onboarding surfaces are softer than the app shell.
-        panel: '28px',
-        field: '14px',
+        // Softer, more current geometry. These four tokens carry the whole app,
+        // so the scale is tuned here rather than screen by screen.
+        card: '22px',
+        btn: '14px',
+        panel: '32px',
+        field: '16px',
+        /** Inner element of a rounded container (segmented controls, toggles). */
+        inner: '11px',
       },
       boxShadow: {
         card: '0 1px 2px rgba(21,20,15,0.04), 0 6px 20px rgba(21,20,15,0.05)',

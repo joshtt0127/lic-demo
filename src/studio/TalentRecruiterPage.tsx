@@ -327,7 +327,7 @@ export function TalentRecruiterPage() {
                     onClick={() => setView('list')}
                     aria-label="List view"
                     className={cn(
-                      'flex h-8 w-8 items-center justify-center rounded-[9px]',
+                      'flex h-8 w-8 items-center justify-center rounded-inner',
                       view === 'list' ? 'bg-ink text-white' : 'text-muted',
                     )}
                   >
@@ -337,7 +337,7 @@ export function TalentRecruiterPage() {
                     onClick={() => setView('grid')}
                     aria-label="Grid view"
                     className={cn(
-                      'flex h-8 w-8 items-center justify-center rounded-[9px]',
+                      'flex h-8 w-8 items-center justify-center rounded-inner',
                       view === 'grid' ? 'bg-ink text-white' : 'text-muted',
                     )}
                   >
@@ -525,7 +525,7 @@ export function TalentRecruiterPage() {
                   type="checkbox"
                   checked={filters.savedOnly}
                   onChange={(event) => update('savedOnly', event.target.checked)}
-                  className="h-4 w-4 rounded border-line accent-ink"
+                  className="h-4 w-4 rounded-[6px] border-line accent-ink"
                 />
                 Saved talents only
               </label>
@@ -801,7 +801,7 @@ function TalentRow({
         aria-label={`Select ${talent.name}`}
         checked={selected}
         onChange={(event) => onSelect(event.target.checked)}
-        className="h-4 w-4 shrink-0 rounded border-line accent-ink"
+        className="h-4 w-4 shrink-0 rounded-[6px] border-line accent-ink"
       />
 
       <span className="h-16 w-16 shrink-0 overflow-hidden rounded-card bg-line">

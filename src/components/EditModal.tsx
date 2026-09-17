@@ -35,7 +35,7 @@ export function EditModal({
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.16, ease: 'easeOut' }}
             onClick={(e) => e.stopPropagation()}
-            className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-card border border-line bg-card p-5 shadow-card-hover"
+            className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-[28px] border border-line bg-card p-5 shadow-card-hover"
           >
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-base font-bold tracking-tight text-ink">{title}</h2>

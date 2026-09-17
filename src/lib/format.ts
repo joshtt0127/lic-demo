@@ -30,13 +30,15 @@ export function formatTime(value: string | null | undefined): string {
 /** "just now", "3h ago", "2d ago", then a date. */
 export function relativeTime(value: string | null | undefined): string {
   if (!value) return ''
+  // Elapsed time floors: 30 seconds ago is "just now", not "1m ago", and
+  // 5h50 ago is "5h ago" — rounding up reads as the future.
   const diff = Date.now() - new Date(value).getTime()
-  const minutes = Math.round(diff / 60_000)
+  const minutes = Math.floor(diff / 60_000)
   if (minutes < 1) return 'just now'
   if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.round(minutes / 60)
+  const hours = Math.floor(minutes / 60)
   if (hours < 24) return `${hours}h ago`
-  const days = Math.round(hours / 24)
+  const days = Math.floor(hours / 24)
   if (days <= 7) return `${days}d ago`
   return formatDateShort(value)
 }
@@ -48,7 +50,8 @@ export function deadlineLabel(value: string | null | undefined): string {
   if (diff <= 0) return 'Closed'
   const hours = Math.round(diff / 3_600_000)
   if (hours < 24) return `Closes in ${hours}h`
-  return `Closes in ${Math.round(hours / 24)} days`
+  const days = Math.round(hours / 24)
+  return `Closes in ${days} ${days === 1 ? 'day' : 'days'}`
 }
 
 export function isClosingSoon(value: string | null | undefined): boolean {

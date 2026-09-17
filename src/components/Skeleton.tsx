@@ -3,7 +3,7 @@ import { cn } from '@/lib/cn'
 
 /** A single shimmering placeholder block. */
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn('animate-pulse rounded-md bg-line/70', className)} />
+  return <div className={cn('animate-pulse rounded-btn bg-line/70', className)} />
 }
 
 /**

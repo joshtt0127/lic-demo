@@ -56,7 +56,7 @@ export function SegmentedControl<T extends string>({
                       : 'bg-[#F1F0EB] text-ink hover:bg-[#E9E7E1]',
                   ]
                 : [
-                    'rounded-[9px]',
+                    'rounded-inner',
                     size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-sm',
                     active ? 'bg-ink text-white' : 'text-muted hover:bg-ink/5 hover:text-ink',
                   ],
