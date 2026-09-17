@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Button, FormError, PasswordField, Spinner } from '@/components/ui'
+import { ArrowRight, Lock } from 'lucide-react'
+import { Button, FormError, FormField, PasswordInput, Spinner } from '@/components/ui'
 import { fieldErrors, resetPasswordSchema } from '@/features/auth/validation'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { homeRouteFor } from '@/lib/access'
@@ -45,6 +46,7 @@ export function ResetPassword() {
   if (ready && !session) {
     return (
       <AuthLayout
+        compact
         title="This link has expired"
         subtitle="Reset links are valid for one hour and can only be used once."
         footer={
@@ -61,32 +63,55 @@ export function ResetPassword() {
   }
 
   return (
-    <AuthLayout title="Choose a new password" subtitle="You'll stay signed in on this device.">
+    <AuthLayout compact title="Choose a new password" subtitle="You'll stay signed in on this device.">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
         {formError && <FormError>{formError}</FormError>}
 
-        <PasswordField
+        <FormField
           label="New password"
-          autoComplete="new-password"
-          value={form.password}
-          onChange={set('password')}
+          htmlFor="reset-password"
+          plainLabel
           error={errors.password}
           hint="At least 8 characters."
-          autoFocus
-        />
+        >
+          <PasswordInput
+            id="reset-password"
+            fieldSize="lg"
+            autoComplete="new-password"
+            icon={<Lock className="h-[18px] w-[18px]" />}
+            invalid={Boolean(errors.password)}
+            value={form.password}
+            onChange={set('password')}
+            autoFocus
+          />
+        </FormField>
 
-        <PasswordField
+        <FormField
           label="Confirm password"
-          autoComplete="new-password"
-          value={form.confirm}
-          onChange={set('confirm')}
+          htmlFor="reset-confirm"
+          plainLabel
           error={errors.confirm}
-        />
+        >
+          <PasswordInput
+            id="reset-confirm"
+            fieldSize="lg"
+            autoComplete="new-password"
+            icon={<Lock className="h-[18px] w-[18px]" />}
+            invalid={Boolean(errors.confirm)}
+            value={form.confirm}
+            onChange={set('confirm')}
+          />
+        </FormField>
 
-        <Button type="submit" size="lg" disabled={pending} className="w-full">
-          {pending && <Spinner />}
+        <button
+          type="submit"
+          disabled={pending}
+          className="inline-flex h-14 w-full items-center justify-center gap-2.5 rounded-field bg-ink text-[15px] font-bold text-white transition-all hover:bg-ink/90 active:scale-[0.99] disabled:opacity-60"
+        >
+          {pending && <Spinner className="h-[18px] w-[18px]" />}
           Update password
-        </Button>
+          {!pending && <ArrowRight className="h-[18px] w-[18px]" />}
+        </button>
       </form>
     </AuthLayout>
   )

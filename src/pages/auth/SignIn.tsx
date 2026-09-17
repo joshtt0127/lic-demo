@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Button, FormError, PasswordField, Spinner, TextField } from '@/components/ui'
+import { ArrowRight, Lock, Mail } from 'lucide-react'
+import { Checkbox, FormError, FormField, Input, PasswordInput, Spinner } from '@/components/ui'
 import { fieldErrors, signInSchema } from '@/features/auth/validation'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { track } from '@/lib/analytics'
 import { AuthLayout } from './AuthLayout'
+import { SocialButtons } from './SocialButtons'
 
 export function SignIn() {
   const { signIn } = useAuth()
@@ -14,6 +16,7 @@ export function SignIn() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [keepSignedIn, setKeepSignedIn] = useState(true)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -28,7 +31,7 @@ export function SignIn() {
     if (!parsed.success) return
 
     setPending(true)
-    const { error } = await signIn(parsed.data)
+    const { error } = await signIn({ ...parsed.data, keepSignedIn })
     setPending(false)
 
     if (error) {
@@ -43,12 +46,20 @@ export function SignIn() {
   return (
     <AuthLayout
       title="Welcome back"
-      subtitle="Sign in to your Let It Cast account."
+      subtitle="Sign in to your account"
+      topRight={
+        <>
+          Don&apos;t have an account?{' '}
+          <Link to="/auth/sign-up" className="font-semibold text-link hover:underline">
+            Sign up
+          </Link>
+        </>
+      }
       footer={
         <>
-          New here?{' '}
+          Don&apos;t have an account?{' '}
           <Link to="/auth/sign-up" className="font-semibold text-link hover:underline">
-            Create an account
+            Sign up
           </Link>
         </>
       }
@@ -56,38 +67,67 @@ export function SignIn() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
         {formError && <FormError>{formError}</FormError>}
 
-        <TextField
-          label="Email"
-          type="email"
-          autoComplete="email"
-          placeholder="you@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          error={errors.email}
-          autoFocus
-        />
-
-        <div>
-          <PasswordField
-            label="Password"
-            autoComplete="current-password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            error={errors.password}
+        <FormField label="Email" htmlFor="signin-email" plainLabel error={errors.email}>
+          <Input
+            id="signin-email"
+            fieldSize="lg"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            icon={<Mail className="h-[18px] w-[18px]" />}
+            invalid={Boolean(errors.email)}
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoFocus
           />
-          <div className="mt-2 text-right">
-            <Link to="/auth/forgot-password" className="text-xs font-medium text-link hover:underline">
-              Forgot your password?
-            </Link>
-          </div>
+        </FormField>
+
+        <FormField label="Password" htmlFor="signin-password" plainLabel error={errors.password}>
+          <PasswordInput
+            id="signin-password"
+            fieldSize="lg"
+            autoComplete="current-password"
+            placeholder="Your password"
+            icon={<Lock className="h-[18px] w-[18px]" />}
+            invalid={Boolean(errors.password)}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+        </FormField>
+
+        <div className="flex items-center justify-between gap-3">
+          <Checkbox
+            id="keep-signed-in"
+            checked={keepSignedIn}
+            onChange={setKeepSignedIn}
+            label="Keep me signed in"
+          />
+          <Link
+            to="/auth/forgot-password"
+            className="text-sm font-semibold text-link hover:underline"
+          >
+            Forgot password?
+          </Link>
         </div>
 
-        <Button type="submit" size="lg" disabled={pending} className="mt-1 w-full">
-          {pending && <Spinner />}
+        <button
+          type="submit"
+          disabled={pending}
+          className="mt-1 inline-flex h-14 w-full items-center justify-center gap-2.5 rounded-field bg-ink text-[15px] font-bold text-white transition-all hover:bg-ink/90 active:scale-[0.99] disabled:opacity-60"
+        >
+          {pending && <Spinner className="h-[18px] w-[18px]" />}
           Sign in
-        </Button>
+          {!pending && <ArrowRight className="h-[18px] w-[18px]" />}
+        </button>
       </form>
+
+      <div className="my-6 flex items-center gap-3">
+        <span className="h-px flex-1 bg-line" />
+        <span className="text-[13px] text-muted">or continue with</span>
+        <span className="h-px flex-1 bg-line" />
+      </div>
+
+      <SocialButtons onError={(message) => setFormError(message || null)} />
     </AuthLayout>
   )
 }

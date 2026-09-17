@@ -1,9 +1,10 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/AuthProvider'
-import { currentStep, stepPosition } from '@/features/onboarding/steps'
+import { currentStep, stepPosition, useOnboardingNav } from '@/features/onboarding/steps'
 import { homeRouteFor, isOnboarded } from '@/lib/access'
 import { AccountTypeStep } from './AccountTypeStep'
 import { OnboardingShell } from './OnboardingShell'
+import type { StepperItem } from './VerticalStepper'
 import { TalentIdentityStep } from './talent/TalentIdentityStep'
 import { CastingProfileStep } from './talent/CastingProfileStep'
 import { SkillsStep } from './talent/SkillsStep'
@@ -18,17 +19,28 @@ import { ProductionIdentityStep } from './production/ProductionIdentityStep'
  *   account_type set     → the steps of that side, in order
  *   onboarding completed → out to /talent or /studio
  */
+
+const TALENT_STEPPER: StepperItem[] = [
+  { label: 'Your identity', hint: 'Basic information' },
+  { label: 'Casting profile', hint: 'Help us match you' },
+  { label: 'Your experience', hint: 'Skills and credits' },
+  { label: 'You’re all set', hint: 'Photos & showreel' },
+]
+
 export function Onboarding() {
   const { profile } = useAuth()
+  // Used only for the header's "Skip for now" on the split steps; each step
+  // owns its own navigation for Back / Continue.
+  const nav = useOnboardingNav()
 
   if (isOnboarded(profile)) return <Navigate to={homeRouteFor(profile)} replace />
 
+  // ── The fork: talent or production ──
   if (!profile?.account_type) {
     return (
       <OnboardingShell
+        variant="centered"
         wide
-        step={1}
-        totalSteps={2}
         eyebrow="Welcome to Let It Cast"
         title="How are you using Let It Cast?"
         subtitle="This shapes your whole experience — and it's the only thing we need up front."
@@ -41,31 +53,39 @@ export function Onboarding() {
   const step = currentStep(profile)
   const { index, total } = stepPosition(profile)
   const talent = profile.account_type === 'talent'
-  const eyebrow = talent ? 'Talent onboarding' : 'Production onboarding'
 
   if (!talent) {
     return (
       <OnboardingShell
-        step={index}
-        totalSteps={total}
-        eyebrow={eyebrow}
+        eyebrow="Production onboarding"
         title="Tell us who you are"
         subtitle="Your name and role are how talents and teammates will recognise you."
+        step={index - 1}
+        totalSteps={total - 1}
+        stepperItems={[
+          { label: 'Your profile', hint: 'Basic information' },
+        ]}
       >
         <ProductionIdentityStep />
       </OnboardingShell>
     )
   }
 
+  // The account-type choice is step 1 of the whole flow; inside the talent
+  // wizard the design numbers the four steps 1 → 4.
+  const talentStep = index - 1
+  const talentTotal = total - 1
+
   switch (step) {
     case 'casting':
       return (
         <OnboardingShell
-          step={index}
-          totalSteps={total}
-          eyebrow={eyebrow}
           title="Your casting profile"
           subtitle="What productions filter on. Everything here is optional and editable later."
+          step={talentStep}
+          totalSteps={talentTotal}
+          stepperItems={TALENT_STEPPER}
+          onSkip={() => void nav.next()}
         >
           <CastingProfileStep />
         </OnboardingShell>
@@ -73,11 +93,11 @@ export function Onboarding() {
     case 'skills':
       return (
         <OnboardingShell
-          step={index}
-          totalSteps={total}
-          eyebrow={eyebrow}
+          variant="centered"
           title="What can you do?"
           subtitle="Add your skills and how strong you are at each — this is how roles find you."
+          step={talentStep}
+          totalSteps={talentTotal}
         >
           <SkillsStep />
         </OnboardingShell>
@@ -85,11 +105,11 @@ export function Onboarding() {
     case 'media':
       return (
         <OnboardingShell
-          step={index}
-          totalSteps={total}
-          eyebrow={eyebrow}
-          title="Add your media"
-          subtitle="Headshots and a showreel. You can add more, and reorder them, any time."
+          variant="centered"
+          title="You’re all set"
+          subtitle="Add your photos and a showreel — this is what productions see first."
+          step={talentStep}
+          totalSteps={talentTotal}
         >
           <MediaStep />
         </OnboardingShell>
@@ -98,11 +118,11 @@ export function Onboarding() {
     default:
       return (
         <OnboardingShell
-          step={index}
-          totalSteps={total}
-          eyebrow={eyebrow}
           title="Tell us who you are"
           subtitle="Your name and photo are how productions will recognise you."
+          step={talentStep}
+          totalSteps={talentTotal}
+          stepperItems={TALENT_STEPPER}
         >
           <TalentIdentityStep />
         </OnboardingShell>

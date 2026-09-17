@@ -1,28 +1,29 @@
 import { useState } from 'react'
-import { Camera, Trash2 } from 'lucide-react'
-import { Avatar, Spinner } from '@/components/ui'
+import { Camera, Trash2, Upload } from 'lucide-react'
+import { Spinner } from '@/components/ui'
 import { FileDropzone, UploadProgress } from '@/components/upload/FileDropzone'
 import { useMediaMutations, useUpdateAccountProfile } from '@/features/talent/queries'
 import { track } from '@/lib/analytics'
 import { errorMessage } from '@/lib/supabase'
-import { cn } from '@/lib/cn'
+import { RULES } from '@/lib/storage'
 
 /**
- * Profile photo: uploads to storage, records a `media_assets` row, then points
- * `profiles.avatar_url` at it. Survives a refresh because nothing lives in React
- * state — the avatar is read back from the profile.
+ * Profile photo, as drawn in the onboarding design: the round preview on the
+ * left, the upload tile on the right.
+ *
+ * Uploads to storage, records a `media_assets` row, then points
+ * `profiles.avatar_url` at it — the avatar is read back from the profile, so it
+ * survives a refresh and shows up in the app shell straight away.
  */
 export function AvatarUpload({
   profileId,
   avatarUrl,
   name,
-  size = 'xl',
   onUploaded,
 }: {
   profileId: string
   avatarUrl: string | null
   name: string
-  size?: 'lg' | 'xl'
   onUploaded?: (url: string) => void
 }) {
   const media = useMediaMutations(profileId)
@@ -36,11 +37,7 @@ export function AvatarUpload({
     setError(null)
     setPercent(0)
     try {
-      const asset = await media.upload.mutateAsync({
-        kind: 'avatar',
-        file,
-        onProgress: setPercent,
-      })
+      const asset = await media.upload.mutateAsync({ kind: 'avatar', file, onProgress: setPercent })
       await updateProfile.mutateAsync({ avatar_url: asset.url })
       track('media_uploaded', { kind: 'avatar' })
       onUploaded?.(asset.url)
@@ -62,52 +59,51 @@ export function AvatarUpload({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-4">
-        <div className="relative">
-          <Avatar src={avatarUrl ?? undefined} name={name} size={size} ring />
+      <div className="flex flex-wrap items-center gap-5">
+        <span className="relative flex h-[104px] w-[104px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#E9E7E1] text-muted">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
+          ) : (
+            <Camera className="h-7 w-7" />
+          )}
           {busy && (
-            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-ink/50 text-white">
+            <span className="absolute inset-0 flex items-center justify-center bg-ink/50 text-white">
               <Spinner className="h-5 w-5" />
             </span>
           )}
-        </div>
+        </span>
 
-        <div className="flex flex-col gap-2">
-          <FileDropzone
-            kind="avatar"
-            onFile={handleFile}
-            onError={setError}
-            disabled={busy}
-            className="w-auto"
-            compact
-          >
-            <span
-              className={cn(
-                'inline-flex items-center gap-2 text-sm font-semibold text-ink',
-                busy && 'opacity-60',
-              )}
-            >
-              <Camera className="h-4 w-4" />
+        <FileDropzone
+          kind="avatar"
+          onFile={handleFile}
+          onError={setError}
+          disabled={busy}
+          bare
+          className="min-w-[240px] flex-1"
+        >
+          <span className="flex w-full flex-col items-center gap-1 rounded-field bg-[#F1F0EB] px-6 py-5 transition-colors hover:bg-[#EAE8E2]">
+            <span className="inline-flex items-center gap-2 text-[15px] font-bold text-ink">
+              <Upload className="h-[18px] w-[18px]" />
               {avatarUrl ? 'Replace photo' : 'Upload a photo'}
             </span>
-            <span className="text-xs text-muted">Drop an image or click · 5 MB max</span>
-          </FileDropzone>
-
-          {avatarUrl && !busy && (
-            <button
-              type="button"
-              onClick={handleRemove}
-              className="inline-flex items-center gap-1.5 self-start text-xs font-medium text-muted transition-colors hover:text-signal-no"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Remove
-            </button>
-          )}
-        </div>
+            <span className="text-[13px] text-muted">{RULES.avatar.label}</span>
+          </span>
+        </FileDropzone>
       </div>
 
       {percent !== null && <UploadProgress percent={percent} />}
       {error && <p className="text-xs font-medium text-signal-no">{error}</p>}
+
+      {avatarUrl && !busy && (
+        <button
+          type="button"
+          onClick={handleRemove}
+          className="inline-flex items-center gap-1.5 self-start text-xs font-medium text-muted transition-colors hover:text-signal-no"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          Remove photo
+        </button>
+      )}
     </div>
   )
 }

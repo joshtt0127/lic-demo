@@ -33,6 +33,7 @@ test.describe('Talent sign-up and onboarding', () => {
 
     // ── Identity ──
     await expect(page.getByRole('heading', { name: 'Tell us who you are' })).toBeVisible()
+    await expect(page.getByText('Step 1 of 4')).toBeVisible()
     await expect(page.getByLabel('First name')).toHaveValue('Nora')
     await page.getByPlaceholder('Actress · 2x lead · SAG-AFTRA').fill('Actress · stage & screen')
     await page.getByPlaceholder('Los Angeles').fill('Lisbon')
@@ -52,8 +53,9 @@ test.describe('Talent sign-up and onboarding', () => {
     await expect(page.getByText('Stage combat')).toBeVisible()
     await page.getByRole('button', { name: 'Continue' }).click()
 
-    // ── Media (skippable) ──
-    await expect(page.getByRole('heading', { name: 'Add your media' })).toBeVisible()
+    // ── Media / final step (skippable) ──
+    await expect(page.getByRole('heading', { name: /You.?re all set/ })).toBeVisible()
+    await expect(page.getByText(/Step 4 \/ 4/i)).toBeVisible()
     await page.getByRole('button', { name: /Enter Let It Cast/ }).click()
 
     // ── Landed in the talent space ──

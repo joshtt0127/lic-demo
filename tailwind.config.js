@@ -38,14 +38,20 @@ export default {
       },
       fontFamily: {
         sans: ['"Inter Variable"', 'Inter', 'system-ui', 'sans-serif'],
+        // Display face of the brand — headlines, wordmark, step titles.
+        display: ['"Plus Jakarta Sans Variable"', '"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
         mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
       },
       borderRadius: {
         card: '18px',
         btn: '12px',
+        // Auth / onboarding surfaces are softer than the app shell.
+        panel: '28px',
+        field: '14px',
       },
       boxShadow: {
         card: '0 1px 2px rgba(21,20,15,0.04), 0 6px 20px rgba(21,20,15,0.05)',
+        panel: '0 1px 3px rgba(21,20,15,0.04), 0 24px 60px -12px rgba(21,20,15,0.12)',
         'card-hover': '0 2px 4px rgba(21,20,15,0.06), 0 12px 32px rgba(21,20,15,0.09)',
         phone: '0 30px 80px rgba(21,20,15,0.22), 0 8px 24px rgba(21,20,15,0.12)',
       },

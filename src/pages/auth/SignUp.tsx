@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Button, FormError, PasswordField, Spinner, TextField } from '@/components/ui'
+import { ArrowRight, Lock, Mail } from 'lucide-react'
+import { FormError, FormField, Input, PasswordInput, Spinner, TextField } from '@/components/ui'
 import { fieldErrors, signUpSchema } from '@/features/auth/validation'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { track } from '@/lib/analytics'
 import { AuthLayout } from './AuthLayout'
+import { SocialButtons } from './SocialButtons'
 
 /**
  * Account creation. The account type is NOT asked here — the first onboarding
@@ -50,9 +52,7 @@ export function SignUp() {
     setPending(false)
 
     if (signInError) {
-      setFormError(
-        'Your account is created. Confirm your email address, then sign in to continue.',
-      )
+      setFormError('Your account is created. Confirm your email address, then sign in to continue.')
       return
     }
     navigate('/continue', { replace: true })
@@ -62,6 +62,14 @@ export function SignUp() {
     <AuthLayout
       title="Create your account"
       subtitle="One account, whether you cast or audition."
+      topRight={
+        <>
+          Already have an account?{' '}
+          <Link to="/auth/sign-in" className="font-semibold text-link hover:underline">
+            Sign in
+          </Link>
+        </>
+      }
       footer={
         <>
           Already have an account?{' '}
@@ -74,9 +82,11 @@ export function SignUp() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
         {formError && <FormError>{formError}</FormError>}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <TextField
             label="First name"
+            plainLabel
+            fieldSize="lg"
             autoComplete="given-name"
             value={form.firstName}
             onChange={set('firstName')}
@@ -85,6 +95,8 @@ export function SignUp() {
           />
           <TextField
             label="Last name"
+            plainLabel
+            fieldSize="lg"
             autoComplete="family-name"
             value={form.lastName}
             onChange={set('lastName')}
@@ -92,31 +104,57 @@ export function SignUp() {
           />
         </div>
 
-        <TextField
-          label="Email"
-          type="email"
-          autoComplete="email"
-          placeholder="you@example.com"
-          value={form.email}
-          onChange={set('email')}
-          error={errors.email}
-        />
+        <FormField label="Email" htmlFor="signup-email" plainLabel error={errors.email}>
+          <Input
+            id="signup-email"
+            fieldSize="lg"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            icon={<Mail className="h-[18px] w-[18px]" />}
+            invalid={Boolean(errors.email)}
+            value={form.email}
+            onChange={set('email')}
+          />
+        </FormField>
 
-        <PasswordField
+        <FormField
           label="Password"
-          autoComplete="new-password"
-          placeholder="At least 8 characters"
-          value={form.password}
-          onChange={set('password')}
+          htmlFor="signup-password"
+          plainLabel
           error={errors.password}
           hint="At least 8 characters."
-        />
+        >
+          <PasswordInput
+            id="signup-password"
+            fieldSize="lg"
+            autoComplete="new-password"
+            placeholder="Create a password"
+            icon={<Lock className="h-[18px] w-[18px]" />}
+            invalid={Boolean(errors.password)}
+            value={form.password}
+            onChange={set('password')}
+          />
+        </FormField>
 
-        <Button type="submit" size="lg" disabled={pending} className="mt-1 w-full">
-          {pending && <Spinner />}
+        <button
+          type="submit"
+          disabled={pending}
+          className="mt-1 inline-flex h-14 w-full items-center justify-center gap-2.5 rounded-field bg-ink text-[15px] font-bold text-white transition-all hover:bg-ink/90 active:scale-[0.99] disabled:opacity-60"
+        >
+          {pending && <Spinner className="h-[18px] w-[18px]" />}
           Create account
-        </Button>
+          {!pending && <ArrowRight className="h-[18px] w-[18px]" />}
+        </button>
       </form>
+
+      <div className="my-6 flex items-center gap-3">
+        <span className="h-px flex-1 bg-line" />
+        <span className="text-[13px] text-muted">or continue with</span>
+        <span className="h-px flex-1 bg-line" />
+      </div>
+
+      <SocialButtons onError={(message) => setFormError(message || null)} />
     </AuthLayout>
   )
 }

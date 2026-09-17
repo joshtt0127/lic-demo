@@ -24,10 +24,10 @@ export function Logo({ markOnly = false, size = 26, tone = 'dark', className }: 
       {!markOnly && (
         <span
           className={cn(
-            'font-sans font-extrabold lowercase tracking-tight',
+            'whitespace-nowrap font-display font-extrabold lowercase tracking-[-0.03em]',
             tone === 'light' ? 'text-white' : 'text-ink',
           )}
-          style={{ fontSize: size * 0.74, lineHeight: 1 }}
+          style={{ fontSize: size * 0.8, lineHeight: 1 }}
         >
           let it cast
         </span>

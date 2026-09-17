@@ -9,7 +9,13 @@ import {
 } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Session, User } from '@supabase/supabase-js'
-import { errorMessage, isSupabaseConfigured, supabase } from '@/lib/supabase'
+import type { Provider } from '@supabase/supabase-js'
+import {
+  errorMessage,
+  isSupabaseConfigured,
+  setSessionPersistence,
+  supabase,
+} from '@/lib/supabase'
 import type { AccountType, ProfileRow } from '@/types/database'
 
 /**
@@ -39,7 +45,9 @@ type AuthValue = {
   profileLoading: boolean
   profileError: string | null
   signUp: (input: SignUpInput) => Promise<Result>
-  signIn: (input: { email: string; password: string }) => Promise<Result>
+  signIn: (input: { email: string; password: string; keepSignedIn?: boolean }) => Promise<Result>
+  /** Apple / Google / LinkedIn — reports plainly when a provider is not enabled. */
+  signInWithProvider: (provider: Provider) => Promise<Result>
   signOut: () => Promise<void>
   requestPasswordReset: (email: string) => Promise<Result>
   updatePassword: (password: string) => Promise<Result>
@@ -130,10 +138,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: null }
   }, [])
 
-  const signIn = useCallback(async ({ email, password }: { email: string; password: string }): Promise<Result> => {
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
-    if (error) return { error: errorMessage(error, 'Could not sign you in') }
-    return { error: null }
+  const signIn = useCallback(
+    async ({
+      email,
+      password,
+      keepSignedIn = true,
+    }: {
+      email: string
+      password: string
+      keepSignedIn?: boolean
+    }): Promise<Result> => {
+      // Decided before the call so the session is written to the right store.
+      setSessionPersistence(keepSignedIn)
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+      if (error) return { error: errorMessage(error, 'Could not sign you in') }
+      return { error: null }
+    },
+    [],
+  )
+
+  const signInWithProvider = useCallback(async (provider: Provider): Promise<Result> => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}continue` },
+    })
+    if (!error) return { error: null }
+
+    // Supabase answers "Unsupported provider: provider is not enabled" when the
+    // OAuth app has not been configured on the project yet. Say so, rather than
+    // failing silently behind a button that looks functional.
+    const raw = errorMessage(error, 'Could not start that sign-in')
+    if (/not enabled|unsupported provider/i.test(raw)) {
+      const label = provider.charAt(0).toUpperCase() + provider.slice(1)
+      return {
+        error: `${label} sign-in is not enabled on this project yet — use your email and password.`,
+      }
+    }
+    return { error: raw }
   }, [])
 
   const signOut = useCallback(async () => {
@@ -192,6 +233,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profileError: profileQuery.error ? errorMessage(profileQuery.error) : null,
       signUp,
       signIn,
+      signInWithProvider,
       signOut,
       requestPasswordReset,
       updatePassword,
@@ -208,6 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       setAccountType,
       signIn,
+      signInWithProvider,
       signOut,
       signUp,
       updatePassword,

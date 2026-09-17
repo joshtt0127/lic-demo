@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { Check, Plus, Search, X } from 'lucide-react'
-import { Input } from '@/components/ui'
+import { Input, type FieldSize } from '@/components/ui'
 import { cn } from '@/lib/cn'
 
 export type Option = { value: string; label: string }
@@ -17,7 +17,8 @@ export function MultiSelect({
   placeholder = 'Search…',
   allowCreate,
   max,
-  emptyLabel = 'Nothing selected yet',
+  emptyLabel,
+  fieldSize = 'md',
 }: {
   options: Option[]
   values: string[]
@@ -26,6 +27,7 @@ export function MultiSelect({
   allowCreate?: boolean
   max?: number
   emptyLabel?: string
+  fieldSize?: FieldSize
 }) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
@@ -62,7 +64,8 @@ export function MultiSelect({
     <div ref={containerRef} className="flex flex-col gap-2">
       <div className="relative">
         <Input
-          icon={<Search className="h-4 w-4" />}
+          fieldSize={fieldSize}
+          icon={<Search className={fieldSize === 'lg' ? 'h-[18px] w-[18px]' : 'h-4 w-4'} />}
           value={query}
           onChange={(event) => {
             setQuery(event.target.value)
@@ -132,7 +135,7 @@ export function MultiSelect({
           ))}
         </div>
       ) : (
-        <p className="text-xs text-muted">{emptyLabel}</p>
+        emptyLabel && <p className="text-xs text-muted">{emptyLabel}</p>
       )}
     </div>
   )

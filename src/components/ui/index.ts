@@ -7,6 +7,16 @@ export { Tag } from './Tag'
 export type { TagProps } from './Tag'
 export { Avatar } from './Avatar'
 export type { AvatarProps } from './Avatar'
-export { Input, PasswordInput, TextField, PasswordField, FormField, FormError } from './Input'
-export type { InputProps } from './Input'
+export {
+  Input,
+  SelectInput,
+  PasswordInput,
+  TextField,
+  PasswordField,
+  FormField,
+  FormError,
+  Checkbox,
+  fieldClasses,
+} from './Input'
+export type { InputProps, SelectFieldProps, FieldSize } from './Input'
 export { Spinner, FullPageLoader } from './Spinner'

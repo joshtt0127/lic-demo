@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Card, FormError, FormField, TextField } from '@/components/ui'
-import { TextArea } from '@/components/EditModal'
+import { ArrowRight } from 'lucide-react'
+import { FormError, FormField, Input, Spinner, TextField } from '@/components/ui'
 import { Skeleton } from '@/components/Skeleton'
 import { AvatarUpload } from '@/components/upload/AvatarUpload'
 import { useAuth } from '@/features/auth/AuthProvider'
@@ -13,21 +13,21 @@ import {
 } from '@/features/talent/queries'
 import { displayName } from '@/lib/access'
 import { errorMessage } from '@/lib/supabase'
-import { StepActions } from '../StepActions'
+import { CountryField } from '../CountryField'
 
-/** Who you are: photo, name, stage name, location, headline. */
+/** Step 1 — photo, name, stage name, headline, location. */
 export function TalentIdentityStep() {
   const { profile } = useAuth()
   const { data, isLoading, error } = useTalentProfile(profile?.id)
 
   if (isLoading || (!data && !error)) {
     return (
-      <Card className="flex flex-col gap-4">
-        <Skeleton className="h-20 w-20 rounded-full" />
-        <Skeleton className="h-11 w-full" />
-        <Skeleton className="h-11 w-full" />
-        <Skeleton className="h-20 w-full" />
-      </Card>
+      <div className="flex flex-col gap-5">
+        <Skeleton className="h-[104px] w-[104px] rounded-full" />
+        <Skeleton className="h-[52px] w-full" />
+        <Skeleton className="h-[52px] w-full" />
+        <Skeleton className="h-[52px] w-full" />
+      </div>
     )
   }
 
@@ -35,7 +35,6 @@ export function TalentIdentityStep() {
     return <FormError>{errorMessage(error, 'Could not load your profile')}</FormError>
   }
 
-  // Keyed on the row so the form always initialises from real data, once.
   return <IdentityForm key={data.profile.id} data={data} />
 }
 
@@ -56,12 +55,11 @@ function IdentityForm({ data }: { data: TalentProfileFull }) {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
 
-  const set =
-    (key: keyof typeof form) =>
-    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setForm((current) => ({ ...current, [key]: event.target.value }))
+  const set = (key: keyof typeof form) => (event: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((current) => ({ ...current, [key]: event.target.value }))
 
-  async function handleContinue() {
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault()
     setFormError(null)
 
     const nextErrors: Record<string, string> = {}
@@ -82,88 +80,107 @@ function IdentityForm({ data }: { data: TalentProfileFull }) {
         headline: form.headline.trim() || null,
       })
       await nav.next()
-    } catch (error) {
-      setFormError(errorMessage(error, 'Could not save your details'))
+    } catch (saveError) {
+      setFormError(errorMessage(saveError, 'Could not save your details'))
     }
   }
 
   const busy = updateAccount.isPending || updateTalent.isPending || nav.pending
 
   return (
-    <div>
-      <Card className="flex flex-col gap-5">
-        {(formError || nav.error) && <FormError>{formError ?? nav.error}</FormError>}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-7" noValidate>
+      {(formError || nav.error) && <FormError>{formError ?? nav.error}</FormError>}
 
-        <FormField label="Profile photo" hint="Casting directors recognise faces before names.">
-          <AvatarUpload
-            profileId={profileId}
-            avatarUrl={data.profile.avatar_url}
-            name={displayName(data.profile)}
-          />
-        </FormField>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <TextField
-            label="First name"
-            autoComplete="given-name"
-            value={form.firstName}
-            onChange={set('firstName')}
-            error={errors.firstName}
-          />
-          <TextField
-            label="Last name"
-            autoComplete="family-name"
-            value={form.lastName}
-            onChange={set('lastName')}
-            error={errors.lastName}
-          />
+      <section className="flex flex-col gap-4">
+        <div>
+          <h2 className="font-display text-[19px] font-bold text-ink">Profile photo</h2>
+          <p className="mt-1 text-[14px] text-muted">
+            A clear photo helps casting directors remember you.
+          </p>
         </div>
-
-        <TextField
-          label="Professional name"
-          placeholder="The name you are credited under"
-          value={form.professionalName}
-          onChange={set('professionalName')}
-          optional
+        <AvatarUpload
+          profileId={profileId}
+          avatarUrl={data.profile.avatar_url}
+          name={displayName(data.profile)}
         />
+      </section>
 
-        <FormField
-          label="Headline"
-          hint="One line, shown under your name."
-          optional
-        >
-          <TextArea
-            rows={2}
-            maxLength={140}
-            placeholder="Actress · 2x lead · SAG-AFTRA"
-            value={form.headline}
-            onChange={set('headline')}
-          />
-        </FormField>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <TextField
+          label="First name"
+          plainLabel
+          fieldSize="lg"
+          autoComplete="given-name"
+          value={form.firstName}
+          onChange={set('firstName')}
+          error={errors.firstName}
+        />
+        <TextField
+          label="Last name"
+          plainLabel
+          fieldSize="lg"
+          autoComplete="family-name"
+          value={form.lastName}
+          onChange={set('lastName')}
+          error={errors.lastName}
+        />
+      </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <TextField
-            label="City"
-            placeholder="Los Angeles"
-            value={form.city}
-            onChange={set('city')}
-            optional
-          />
-          <TextField
-            label="Country"
-            placeholder="United States"
-            value={form.country}
-            onChange={set('country')}
-            optional
-          />
-        </div>
-      </Card>
-
-      <StepActions
-        onBack={nav.isFirst ? undefined : nav.back}
-        onContinue={handleContinue}
-        pending={busy}
+      <TextField
+        label="Professional name"
+        plainLabel
+        optional
+        fieldSize="lg"
+        placeholder="The name you are credited under"
+        value={form.professionalName}
+        onChange={set('professionalName')}
       />
-    </div>
+
+      <FormField
+        label="Headline"
+        htmlFor="onboarding-headline"
+        plainLabel
+        optional
+        hint="One line, shown under your name."
+      >
+        <Input
+          id="onboarding-headline"
+          fieldSize="lg"
+          maxLength={140}
+          placeholder="Actress · 2x lead · SAG-AFTRA"
+          value={form.headline}
+          onChange={set('headline')}
+        />
+      </FormField>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <TextField
+          label="City"
+          plainLabel
+          optional
+          fieldSize="lg"
+          placeholder="Los Angeles"
+          value={form.city}
+          onChange={set('city')}
+        />
+        <CountryField
+          optional
+          value={form.country}
+          onChange={(country) => setForm((current) => ({ ...current, country }))}
+        />
+      </div>
+
+      <div className="flex justify-end pt-2">
+        <button
+          type="submit"
+          disabled={busy}
+          className="inline-flex h-14 items-center justify-center gap-2.5 rounded-field bg-ink px-9 text-[15px] font-bold text-white transition-all hover:bg-ink/90 active:scale-[0.99] disabled:opacity-60"
+        >
+          {busy && <Spinner className="h-[18px] w-[18px]" />}
+          Continue
+          {!busy && <ArrowRight className="h-[18px] w-[18px]" />}
+        </button>
+      </div>
+    </form>
   )
 }

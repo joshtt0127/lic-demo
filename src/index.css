@@ -1,4 +1,5 @@
 @import '@fontsource-variable/inter';
+@import '@fontsource-variable/plus-jakarta-sans';
 @import '@fontsource/ibm-plex-mono/400.css';
 @import '@fontsource/ibm-plex-mono/500.css';
 @import '@fontsource/ibm-plex-mono/600.css';
@@ -21,6 +22,14 @@
 }
 
 @layer components {
+  /* Brand gradient used on the auth / onboarding headline accent */
+  .text-brand-gradient {
+    background-image: linear-gradient(95deg, #2563EB 0%, #7C3AED 32%, #E0483D 66%, #F2A100 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
   /* Small uppercase technical label — used everywhere (ROLES, SUBMISSIONS, …) */
   .tech-label {
     @apply font-sans text-label font-semibold uppercase tracking-label text-muted;

@@ -33,7 +33,7 @@ export function AccountTypeStep() {
     <div className="flex flex-col gap-4">
       {error && <FormError>{error}</FormError>}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-5 sm:grid-cols-2">
         <ChoiceCard
           icon={<UserSquare2 className="h-5 w-5" />}
           title="I'm a Talent"
@@ -52,7 +52,7 @@ export function AccountTypeStep() {
         />
       </div>
 
-      <p className="text-center text-xs text-muted">
+      <p className="text-center text-[13px] text-muted">
         You can only belong to one side of the marketplace per account.
       </p>
     </div>
@@ -82,18 +82,20 @@ function ChoiceCard({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'group flex flex-col items-start gap-4 rounded-card border border-line bg-card p-6 text-left shadow-card transition-shadow',
+        'group flex flex-col items-start gap-5 rounded-panel border border-white/70 bg-[#FBFAF7]/90 p-8 text-left shadow-panel backdrop-blur-sm transition-shadow',
         disabled ? 'opacity-60' : 'hover:shadow-card-hover',
       )}
     >
-      <span className="flex h-11 w-11 items-center justify-center rounded-btn bg-paper text-ink">
+      <span className="flex h-12 w-12 items-center justify-center rounded-field bg-[#F1F0EB] text-ink">
         {icon}
       </span>
       <div>
-        <h2 className="text-lg font-bold tracking-tight text-ink">{title}</h2>
-        <p className="mt-1 text-sm leading-relaxed text-muted">{description}</p>
+        <h2 className="font-display text-[22px] font-extrabold tracking-[-0.02em] text-ink">
+          {title}
+        </h2>
+        <p className="mt-1.5 text-[15px] leading-relaxed text-muted">{description}</p>
       </div>
-      <span className="mt-auto inline-flex items-center gap-1.5 text-sm font-semibold text-ink">
+      <span className="mt-auto inline-flex items-center gap-1.5 text-[15px] font-bold text-ink">
         {pending ? (
           <>
             <Spinner />

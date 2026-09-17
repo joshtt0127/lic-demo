@@ -68,7 +68,6 @@ export function ProductionIdentityStep() {
             profileId={profile?.id as string}
             avatarUrl={profile?.avatar_url ?? null}
             name={displayName(profile)}
-            size="lg"
           />
         </FormField>
 

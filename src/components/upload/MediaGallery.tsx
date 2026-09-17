@@ -3,7 +3,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import { Spinner } from '@/components/ui'
 import { FileDropzone, UploadProgress } from '@/components/upload/FileDropzone'
 import { useMediaMutations } from '@/features/talent/queries'
-import { publicUrl } from '@/lib/storage'
+import { publicUrl, RULES } from '@/lib/storage'
 import { track } from '@/lib/analytics'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
@@ -65,6 +65,30 @@ export function MediaGallery({
   }
 
   const isVideo = kind === 'showreel'
+
+  if (assets.length === 0 && editable) {
+    return (
+      <div className="flex flex-col gap-3">
+        <FileDropzone
+          kind={kind}
+          onFile={handleFile}
+          onError={setError}
+          disabled={percent !== null}
+          label={addLabel}
+        >
+          <span className="flex flex-col items-center gap-2">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-card text-ink shadow-card">
+              {percent !== null ? <Spinner /> : <Plus className="h-[18px] w-[18px]" />}
+            </span>
+            <span className="text-[15px] font-bold text-ink">{addLabel}</span>
+            <span className="text-[13px] text-muted">{emptyHint ?? RULES[kind].label}</span>
+          </span>
+        </FileDropzone>
+        {percent !== null && <UploadProgress percent={percent} />}
+        {error && <p className="text-xs font-medium text-signal-no">{error}</p>}
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -129,9 +153,6 @@ export function MediaGallery({
 
       {percent !== null && <UploadProgress percent={percent} />}
       {error && <p className="text-xs font-medium text-signal-no">{error}</p>}
-      {assets.length === 0 && emptyHint && !error && (
-        <p className="text-xs text-muted">{emptyHint}</p>
-      )}
     </div>
   )
 }

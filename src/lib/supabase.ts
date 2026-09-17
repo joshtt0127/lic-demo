@@ -16,6 +16,54 @@ import type { Database } from '@/types/database'
 const url = import.meta.env.VITE_SUPABASE_URL
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
+/**
+ * "Keep me signed in" is a real switch, not decoration: when it is off the
+ * session lives in `sessionStorage` and closing the browser signs the user out.
+ * The adapter reads from whichever store holds the session so toggling the
+ * preference never drops an active one.
+ */
+const PERSIST_KEY = 'lic-auth-persist'
+
+function safe<T>(action: () => T, fallback: T): T {
+  try {
+    return action()
+  } catch {
+    // Private mode / blocked storage — behave as if nothing was stored.
+    return fallback
+  }
+}
+
+export function setSessionPersistence(keepSignedIn: boolean): void {
+  safe(() => window.localStorage.setItem(PERSIST_KEY, keepSignedIn ? '1' : '0'), undefined)
+}
+
+export function sessionPersistence(): boolean {
+  return safe(() => window.localStorage.getItem(PERSIST_KEY) !== '0', true)
+}
+
+const authStorage = {
+  getItem: (key: string) =>
+    safe(
+      () => window.localStorage.getItem(key) ?? window.sessionStorage.getItem(key),
+      null,
+    ),
+  setItem: (key: string, value: string) =>
+    safe(() => {
+      if (sessionPersistence()) {
+        window.localStorage.setItem(key, value)
+        window.sessionStorage.removeItem(key)
+      } else {
+        window.sessionStorage.setItem(key, value)
+        window.localStorage.removeItem(key)
+      }
+    }, undefined),
+  removeItem: (key: string) =>
+    safe(() => {
+      window.localStorage.removeItem(key)
+      window.sessionStorage.removeItem(key)
+    }, undefined),
+}
+
 /** False when the app runs without a backend — the UI shows a setup notice instead of crashing. */
 export const isSupabaseConfigured = Boolean(url && anonKey)
 
@@ -28,6 +76,7 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       detectSessionInUrl: true,
       storageKey: 'lic-auth',
+      storage: authStorage,
     },
   },
 )

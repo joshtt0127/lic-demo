@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MailCheck } from 'lucide-react'
-import { Button, FormError, Spinner, TextField } from '@/components/ui'
+import { ArrowRight, Mail } from 'lucide-react'
+import { FormError, FormField, Input, Spinner } from '@/components/ui'
 import { fieldErrors, forgotPasswordSchema } from '@/features/auth/validation'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { AuthLayout } from './AuthLayout'
@@ -36,6 +37,7 @@ export function ForgotPassword() {
   if (sent) {
     return (
       <AuthLayout
+        compact
         title="Check your inbox"
         subtitle={`We sent a reset link to ${email}. It expires in one hour.`}
         footer={
@@ -66,6 +68,7 @@ export function ForgotPassword() {
 
   return (
     <AuthLayout
+      compact
       title="Reset your password"
       subtitle="We'll email you a link to choose a new one."
       footer={
@@ -77,21 +80,30 @@ export function ForgotPassword() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
         {formError && <FormError>{formError}</FormError>}
 
-        <TextField
-          label="Email"
-          type="email"
-          autoComplete="email"
-          placeholder="you@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          error={errors.email}
-          autoFocus
-        />
+        <FormField label="Email" htmlFor="forgot-email" plainLabel error={errors.email}>
+          <Input
+            id="forgot-email"
+            fieldSize="lg"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            icon={<Mail className="h-[18px] w-[18px]" />}
+            invalid={Boolean(errors.email)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoFocus
+          />
+        </FormField>
 
-        <Button type="submit" size="lg" disabled={pending} className="w-full">
-          {pending && <Spinner />}
+        <button
+          type="submit"
+          disabled={pending}
+          className="inline-flex h-14 w-full items-center justify-center gap-2.5 rounded-field bg-ink text-[15px] font-bold text-white transition-all hover:bg-ink/90 active:scale-[0.99] disabled:opacity-60"
+        >
+          {pending && <Spinner className="h-[18px] w-[18px]" />}
           Send reset link
-        </Button>
+          {!pending && <ArrowRight className="h-[18px] w-[18px]" />}
+        </button>
       </form>
     </AuthLayout>
   )

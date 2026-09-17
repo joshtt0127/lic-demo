@@ -31,8 +31,8 @@ const MB = 1024 * 1024
 
 /** Mirrors the bucket limits declared in the storage migration. */
 export const RULES: Record<MediaKind, { mimes: string[]; maxBytes: number; label: string }> = {
-  avatar: { mimes: IMAGE_MIMES, maxBytes: 5 * MB, label: 'JPG, PNG, WebP or AVIF up to 5 MB' },
-  cover: { mimes: IMAGE_MIMES, maxBytes: 5 * MB, label: 'JPG, PNG, WebP or AVIF up to 5 MB' },
+  avatar: { mimes: IMAGE_MIMES, maxBytes: 5 * MB, label: 'JPG, PNG · 5 MB max' },
+  cover: { mimes: IMAGE_MIMES, maxBytes: 5 * MB, label: 'JPG, PNG · 5 MB max' },
   logo: { mimes: IMAGE_MIMES, maxBytes: 5 * MB, label: 'JPG, PNG, WebP or AVIF up to 5 MB' },
   headshot: { mimes: IMAGE_MIMES, maxBytes: 20 * MB, label: 'JPG, PNG, WebP or AVIF up to 20 MB' },
   portfolio: { mimes: IMAGE_MIMES, maxBytes: 20 * MB, label: 'JPG, PNG, WebP or AVIF up to 20 MB' },
