@@ -21,7 +21,7 @@ import { useToast } from '@/components/Toast'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useCasting, useSaveCasting, useSavedCastings } from '@/features/castings/queries'
 import { useApplicationMutations, useMyApplications } from '@/features/applications/queries'
-import { useTalentProfile } from '@/features/talent/queries'
+import { useLanguagesCatalog, useTalentProfile } from '@/features/talent/queries'
 import {
   APPLICATION_STATUS_LABEL,
   APPLICATION_STATUS_TONE,
@@ -45,6 +45,7 @@ export function TalentCastingDetail() {
   const profileId = profile?.id
 
   const casting = useCasting(castingId)
+  const languages = useLanguagesCatalog()
   const applications = useMyApplications(profileId)
   const saved = useSavedCastings(profileId)
   const saveCasting = useSaveCasting(profileId)
@@ -74,6 +75,9 @@ export function TalentCastingDetail() {
   }
 
   const data = casting.data
+  // Roles store language codes; show the names productions and talents read.
+  const languageName = (code: string) =>
+    (languages.data ?? []).find((language) => language.code === code)?.name ?? code
   const isSaved = (saved.data ?? []).includes(data.id)
   const myApplications = applications.data ?? []
   const closed = data.status !== 'published' || (data.deadline_at && new Date(data.deadline_at) < new Date())
@@ -257,7 +261,11 @@ export function TalentCastingDetail() {
                       <Detail
                         icon={<Languages className="h-3.5 w-3.5" />}
                         label="Languages"
-                        value={role.languages.length > 0 ? role.languages.join(', ') : null}
+                        value={
+                          role.languages.length > 0
+                            ? role.languages.map(languageName).join(', ')
+                            : null
+                        }
                       />
                       <Detail
                         icon={<MapPin className="h-3.5 w-3.5" />}
