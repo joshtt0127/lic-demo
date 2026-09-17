@@ -9,7 +9,7 @@ import { Continue } from './pages/auth/Continue'
 import { Onboarding } from './pages/onboarding/Onboarding'
 import { RedirectIfSignedIn, RequireAuth, RequireSurface } from './features/auth/guards'
 import { StudioLayout } from './studio/StudioLayout'
-import { HomeFeed } from './studio/HomeFeed'
+import { TalentHome } from './talent/TalentHome'
 import { CommandCenter } from './studio/CommandCenter'
 import { Dashboard } from './studio/Dashboard'
 import { SearchScreen } from './studio/SearchScreen'
@@ -122,13 +122,13 @@ export const router = createBrowserRouter([
       {
         element: <TalentDesktopLayout />,
         children: [
-          { index: true, element: <HomeFeed /> },
+          { index: true, element: <TalentHome /> },
           { path: 'casting-calls', element: <CastingCalls /> },
           { path: 'auditions', element: <TalentAuditions /> },
           { path: 'messages', element: <Messages /> },
           { path: 'notifications', element: <Notifications /> },
           { path: 'profile', element: <TalentProfilePage /> },
-          { path: 'casting/:projectId', element: <TalentCastingDetail /> },
+          { path: 'casting/:castingId', element: <TalentCastingDetail /> },
         ],
       },
     ],

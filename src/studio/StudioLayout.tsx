@@ -26,7 +26,7 @@ export function StudioLayout() {
       <CommandPalette />
 
       <header className="sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur">
-        <div className="mx-auto flex h-16 w-full max-w-[1500px] items-center gap-6 px-6">
+        <div className="mx-auto flex h-16 w-full max-w-[1500px] items-center gap-3 px-4 sm:gap-6 sm:px-6">
           <Link to="/" className="shrink-0">
             <Logo size={24} />
           </Link>
@@ -67,7 +67,7 @@ export function StudioLayout() {
             </kbd>
           </button>
 
-          <div className="ml-auto flex items-center gap-3 md:ml-0">
+          <div className="ml-auto flex min-w-0 shrink-0 items-center gap-2 sm:gap-3 md:ml-0">
             <button
               onClick={() => toast('Langue : Français bientôt disponible')}
               className="hidden items-center gap-1 rounded-btn px-2 py-1.5 text-sm font-medium text-muted hover:text-ink sm:flex"

@@ -140,7 +140,7 @@ Légende : **KEEP** · **KEEP+CONNECT** (UI conservée, données réelles) · **
 | Self-tape | `app/SelfTape.tsx` | player + UI record | KEEP+CONNECT | upload Storage privé + `self_tapes` liée à l'application |
 | Messages | `talent/Messages.tsx` | fixtures, état local | KEEP+CONNECT | `conversations`/`messages` partagées avec le studio |
 | Notifications | `talent/Notifications.tsx` | fixtures | KEEP+CONNECT | table `notifications` + read/unread |
-| Feed social | `studio/HomeFeed.tsx`, `app/MobileFeed.tsx` | fixtures riches (vidéos, YouTube) | KEEP | P6 — reste en fixtures pour la démo, isolé derrière un repo |
+| Feed social | `studio/HomeFeed.tsx`, `app/MobileFeed.tsx` | fixtures riches (vidéos, YouTube) | KEEP (hors route) | P6 — `HomeFeed` n'est plus monté : `/talent` affiche désormais un vrai tableau de bord (`talent/TalentHome.tsx`). Le fichier reste comme base du futur feed |
 | Performance profile (carte sombre) | `TalentProfilePage.tsx` | barres de scores fixtures | **REPLACE** | remplacée par **Profile strength** (complétion réelle + ce qu'il manque). Le scoring de performance revient avec le slice matching (P5) quand il y aura des auditions à mesurer — afficher des barres sans données serait un faux |
 | Activity / posts (profil) | `TalentProfilePage.tsx` | posts fixtures + composer | **REMOVE (temporaire)** | le composer n'écrivait nulle part ; revient avec le feed (P6) et sa table |
 | Match IA / scene analysis | `sceneAnalysis.ts` | scores fixtures | KEEP | scoring déterministe côté serveur plus tard (P5) |
@@ -331,14 +331,14 @@ Une branche par slice, `tsc` + build + tests verts avant merge, push à chaque �
 | 2 | `feat/auth` | signup/login/logout/reset, session persistante, guards, states | P0 | ✅ |
 | 3 | `feat/talent-onboarding` | account type, wizard talent, upload réel, profile completion | P0 | ✅ |
 | 4 | `feat/talent-profile` | profil talent 100 % connecté + édition persistée + media upload | P0 | ✅ |
-| 5 | `feat/production-onboarding` | profil production, create/join organization | P1 |
+| 5 | `feat/production-onboarding` | profil production, create/join organization | P1 | ✅ |
 | 6 | `feat/projects` | CRUD projets + artwork + statuts | P1 |
 | 7 | `feat/casting-calls` | casting calls + rôles + publication (wizard branché) | P1 |
-| 8 | `feat/applications` | apply talent → candidatures studio (**North Star**) | P2 |
+| 8 | `feat/applications` | apply talent → candidatures studio (**North Star**) | P2 | ⏳ côté talent fait (apply réel), côté studio à brancher |
 | 9 | `feat/self-tapes` | upload privé + review player | P3 |
 | 10 | `feat/casting-console` | kanban/list/wall + statuts + reviews + notes persistés | P3 |
-| 11 | `feat/messaging` | conversations partagées talent ↔ production | P4 |
-| 12 | `feat/notifications` | notifications persistantes + badges réels | P4 |
+| 11 | `feat/messaging` | conversations partagées talent ↔ production | P4 | ⏳ côté talent fait |
+| 12 | `feat/notifications` | notifications persistantes + badges réels | P4 | ✅ triggers DB + badges réels |
 | 13 | `feat/search` | talent search serveur + saved searches DB | P5 |
 | 14 | `feat/i18n` | EN/FR, extraction des textes, sélecteur persistant | transverse |
 | 15 | `feat/e2e` | Playwright : les 2 parcours + le test croisé du § 44 | transverse |

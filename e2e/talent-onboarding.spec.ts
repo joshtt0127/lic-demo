@@ -29,7 +29,7 @@ test.describe('Talent sign-up and onboarding', () => {
 
     // ── Account type ──
     await expect(page.getByRole('heading', { name: /How are you using Let It Cast/i })).toBeVisible()
-    await page.getByRole('button', { name: /I'm a Talent/ }).click()
+    await page.getByRole('button', { name: /I.?m a Talent/ }).click()
 
     // ── Identity ──
     await expect(page.getByRole('heading', { name: 'Tell us who you are' })).toBeVisible()
@@ -84,7 +84,7 @@ test.describe('Talent sign-up and onboarding', () => {
     await page.getByLabel('Password', { exact: true }).fill(DEMO_PASSWORD)
     await page.getByRole('button', { name: 'Create account' }).click()
 
-    await page.getByRole('button', { name: /I'm a Talent/ }).click()
+    await page.getByRole('button', { name: /I.?m a Talent/ }).click()
     await expect(page.getByRole('heading', { name: 'Tell us who you are' })).toBeVisible()
     await page.getByRole('button', { name: 'Continue' }).click()
     await expect(page.getByRole('heading', { name: 'Your casting profile' })).toBeVisible()

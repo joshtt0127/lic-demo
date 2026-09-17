@@ -1,118 +1,223 @@
-import { useState } from 'react'
-import { Send } from 'lucide-react'
-import { Avatar } from '@/components/ui'
+import { useEffect, useRef, useState } from 'react'
+import { MessageCircle, Send } from 'lucide-react'
+import { Avatar, Card, FormError, Input, Spinner } from '@/components/ui'
+import { Skeleton } from '@/components/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
+import { useAuth } from '@/features/auth/AuthProvider'
+import {
+  participantName,
+  useConversations,
+  useMessages,
+  useMessagingMutations,
+} from '@/features/messaging/queries'
+import { formatTime, relativeTime } from '@/lib/format'
+import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
-import { conversations, mayaProfile, type Conversation } from '@/data'
 
-/** Talent desktop — internal Let It Cast messaging (inbox + thread). */
+/**
+ * Messaging — the same conversations the production side sees. Unread is read
+ * from `conversation_members.last_read_at`, and opening a thread marks it read
+ * for this account everywhere.
+ */
 export function Messages() {
-  const [activeId, setActiveId] = useState(conversations[0]?.id)
+  const { profile } = useAuth()
+  const profileId = profile?.id
+  const conversations = useConversations(profileId)
+  const { send, markRead } = useMessagingMutations(profileId)
+
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const items = conversations.data ?? []
+  const active = items.find((conversation) => conversation.id === activeId) ?? items[0] ?? null
+  const messages = useMessages(active?.id)
+
   const [draft, setDraft] = useState('')
-  const [localMessages, setLocalMessages] = useState<Record<string, { from: 'me' | string; text: string; time: string }[]>>(
-    Object.fromEntries(conversations.map((c) => [c.id, c.messages])),
-  )
+  const [error, setError] = useState<string | null>(null)
+  const threadRef = useRef<HTMLDivElement>(null)
 
-  const active = conversations.find((c) => c.id === activeId)
-  const thread = active ? localMessages[active.id] ?? [] : []
+  // Opening a conversation clears its badge.
+  useEffect(() => {
+    if (!active || active.unread === 0) return
+    markRead.mutate(active.id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active?.id])
 
-  const send = () => {
+  useEffect(() => {
+    threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight })
+  }, [messages.data?.length])
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault()
     if (!active || !draft.trim()) return
-    setLocalMessages((cur) => ({
-      ...cur,
-      [active.id]: [...cur[active.id], { from: 'me', text: draft.trim(), time: 'now' }],
-    }))
-    setDraft('')
+    setError(null)
+    try {
+      await send.mutateAsync({ conversationId: active.id, body: draft })
+      setDraft('')
+    } catch (sendError) {
+      setError(errorMessage(sendError, 'Could not send your message'))
+    }
+  }
+
+  if (conversations.isLoading) {
+    return (
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <Skeleton className="h-96" />
+        <Skeleton className="h-96" />
+      </div>
+    )
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="flex flex-col gap-5">
+        <h1 className="font-display text-[1.6rem] font-extrabold tracking-[-0.02em] text-ink sm:text-[1.9rem]">
+          Messages
+        </h1>
+        <EmptyState
+          icon={<MessageCircle className="h-5 w-5" />}
+          title="No conversation yet"
+          description="Productions can start a conversation with you once you apply to one of their roles."
+        />
+      </div>
+    )
   }
 
   return (
-    <div className="flex h-[calc(100vh-160px)] min-h-[420px] overflow-hidden rounded-card border border-line bg-card">
-      {/* conversation list */}
-      <div className="w-[280px] shrink-0 overflow-y-auto border-r border-line">
-        <div className="border-b border-line px-4 py-3">
-          <span className="tech-label">Messaging</span>
-        </div>
-        {conversations.map((c) => (
-          <ConversationRow key={c.id} conv={c} active={c.id === activeId} onClick={() => setActiveId(c.id)} />
-        ))}
-      </div>
+    <div className="flex flex-col gap-5">
+      <h1 className="font-display text-[1.6rem] font-extrabold tracking-[-0.02em] text-ink sm:text-[1.9rem]">
+        Messages
+      </h1>
 
-      {/* thread */}
-      {active ? (
-        <div className="flex flex-1 flex-col">
-          <div className="flex items-center gap-3 border-b border-line px-5 py-3">
-            <Avatar name={active.contactName} size="sm" />
-            <div className="leading-tight">
-              <p className="text-sm font-semibold text-ink">{active.contactName}</p>
-              <p className="text-xs text-muted">{active.contactMeta}</p>
-            </div>
-          </div>
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+        {/* ── Conversation list ── */}
+        <Card flush className="overflow-hidden">
+          <ul className="flex max-h-[70vh] flex-col divide-y divide-line overflow-y-auto">
+            {items.map((conversation) => {
+              const other = conversation.participants[0]
+              const isActive = conversation.id === active?.id
+              return (
+                <li key={conversation.id}>
+                  <button
+                    onClick={() => setActiveId(conversation.id)}
+                    className={cn(
+                      'flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors',
+                      isActive ? 'bg-paper' : 'hover:bg-paper/70',
+                    )}
+                  >
+                    <Avatar
+                      src={other?.avatar_url ?? undefined}
+                      name={participantName(other)}
+                      size="md"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-baseline justify-between gap-2">
+                        <span className="truncate text-[14px] font-bold text-ink">
+                          {participantName(other)}
+                        </span>
+                        <span className="shrink-0 text-[11px] text-muted">
+                          {relativeTime(conversation.lastMessageAt)}
+                        </span>
+                      </span>
+                      {conversation.subject && (
+                        <span className="block truncate text-[12px] text-muted">
+                          {conversation.subject}
+                        </span>
+                      )}
+                      <span className="mt-0.5 block truncate text-[13px] text-muted">
+                        {conversation.lastMessage?.body ?? 'No message yet'}
+                      </span>
+                    </span>
+                    {conversation.unread > 0 && (
+                      <span className="mt-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-signal-no px-1.5 font-mono text-[10px] font-bold text-white">
+                        {conversation.unread}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </Card>
 
-          <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 py-4">
-            {thread.map((m, i) => (
+        {/* ── Thread ── */}
+        <Card flush className="flex flex-col overflow-hidden">
+          {active && (
+            <>
+              <header className="flex items-center gap-3 border-b border-line px-5 py-4">
+                <Avatar
+                  src={active.participants[0]?.avatar_url ?? undefined}
+                  name={participantName(active.participants[0])}
+                  size="sm"
+                />
+                <div className="min-w-0">
+                  <p className="truncate text-[15px] font-bold text-ink">
+                    {participantName(active.participants[0])}
+                  </p>
+                  {active.subject && (
+                    <p className="truncate text-[12px] text-muted">{active.subject}</p>
+                  )}
+                </div>
+              </header>
+
               <div
-                key={i}
-                className={cn(
-                  'max-w-[70%] rounded-card px-3.5 py-2 text-sm leading-relaxed',
-                  m.from === 'me' ? 'self-end bg-ink text-white' : 'self-start bg-paper text-ink',
-                )}
+                ref={threadRef}
+                className="flex max-h-[52vh] min-h-[280px] flex-col gap-3 overflow-y-auto px-5 py-4"
               >
-                {m.text}
-                <div className={cn('mt-1 text-[10px]', m.from === 'me' ? 'text-white/60' : 'text-muted')}>{m.time}</div>
+                {messages.isLoading ? (
+                  <Skeleton className="h-20" />
+                ) : (
+                  (messages.data ?? []).map((message) => {
+                    const mine = message.sender_id === profileId
+                    return (
+                      <div
+                        key={message.id}
+                        className={cn('flex flex-col gap-1', mine ? 'items-end' : 'items-start')}
+                      >
+                        <div
+                          className={cn(
+                            'max-w-[80%] rounded-card px-3.5 py-2.5 text-[14px] leading-relaxed',
+                            mine
+                              ? 'bg-ink text-white'
+                              : 'border border-line bg-paper text-ink',
+                          )}
+                        >
+                          {message.body}
+                        </div>
+                        <span className="px-1 text-[11px] text-muted">
+                          {formatTime(message.created_at)}
+                        </span>
+                      </div>
+                    )
+                  })
+                )}
               </div>
-            ))}
-          </div>
 
-          <div className="flex items-center gap-2 border-t border-line p-3">
-            <input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && send()}
-              placeholder={`Message ${active.contactName.split(' ')[0]}…`}
-              className="flex-1 rounded-full border border-line bg-paper px-4 py-2.5 text-sm text-ink outline-none placeholder:text-muted/60 focus:border-ink/30"
-            />
-            <button
-              onClick={send}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-white disabled:opacity-40"
-              disabled={!draft.trim()}
-            >
-              <Send className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-1 items-center justify-center text-sm text-muted">No conversation selected</div>
-      )}
-    </div>
-  )
-}
-
-function ConversationRow({ conv, active, onClick }: { conv: Conversation; active: boolean; onClick: () => void }) {
-  const lastFromMe = conv.messages[conv.messages.length - 1]?.from === 'me'
-  const last = conv.messages[conv.messages.length - 1]
-  return (
-    <button
-      onClick={onClick}
-      className={cn('flex w-full items-start gap-2.5 border-b border-line px-4 py-3 text-left', active ? 'bg-paper' : 'hover:bg-paper/60')}
-    >
-      <span className="relative shrink-0">
-        <Avatar name={conv.contactName} size="md" />
-        {conv.online && <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-signal-good ring-2 ring-card" />}
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-2">
-          <span className="truncate text-sm font-semibold text-ink">{conv.contactName}</span>
-          <span className="shrink-0 text-[11px] text-muted">{conv.lastMessageTime}</span>
-        </div>
-        <p className="truncate text-xs text-muted">
-          {lastFromMe ? `${mayaProfile.name.split(' ')[0]}: ` : ''}
-          {last?.text}
-        </p>
+              <form onSubmit={submit} className="border-t border-line px-4 py-3">
+                {error && (
+                  <div className="mb-2">
+                    <FormError>{error}</FormError>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    placeholder="Write a message…"
+                    className="flex-1"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!draft.trim() || send.isPending}
+                    aria-label="Send"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-btn bg-ink text-white transition-colors hover:bg-ink/90 disabled:opacity-50"
+                  >
+                    {send.isPending ? <Spinner /> : <Send className="h-4 w-4" />}
+                  </button>
+                </div>
+              </form>
+            </>
+          )}
+        </Card>
       </div>
-      {conv.unread > 0 && (
-        <span className="mt-1 flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full bg-signal-no px-1 font-mono text-[10px] font-bold text-white">
-          {conv.unread}
-        </span>
-      )}
-    </button>
+    </div>
   )
 }

@@ -1,519 +1,475 @@
-import { useRef, useState } from 'react'
-import { useNavigate, useParams, Navigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
-  ArrowLeft, MapPin, Calendar, Clock, DollarSign,
-  Play, Zap, ChevronDown, ChevronUp, FileText, Sparkles,
-  Bookmark, Share2, CheckCircle2, Users, Video,
+  ArrowLeft,
+  Bookmark,
+  Calendar,
+  Check,
+  Clapperboard,
+  Film,
+  Globe,
+  Languages,
+  MapPin,
+  Sparkles,
+  Users,
 } from 'lucide-react'
-import { Tag } from '@/components/ui'
+import { Avatar, Button, Card, FormError, Spinner, Tag } from '@/components/ui'
+import { EditModal, Field, TextArea } from '@/components/EditModal'
+import { Skeleton } from '@/components/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
 import { useToast } from '@/components/Toast'
+import { useAuth } from '@/features/auth/AuthProvider'
+import { useCasting, useSaveCasting, useSavedCastings } from '@/features/castings/queries'
+import { useApplicationMutations, useMyApplications } from '@/features/applications/queries'
+import { useTalentProfile } from '@/features/talent/queries'
+import {
+  APPLICATION_STATUS_LABEL,
+  APPLICATION_STATUS_TONE,
+  deadlineLabel,
+  formatDate,
+  isClosingSoon,
+} from '@/lib/format'
+import { publicUrl } from '@/lib/storage'
+import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
-import { projectsById, rolesByProject, sidesById, roleBriefVideo, discoverCastingsById } from '@/data'
-import type { Role, Sides } from '@/data/types'
-import { asset } from '@/lib/asset'
+import type { RoleRow } from '@/types/database'
 
+/**
+ * A published casting call and its roles — and the place where a talent really
+ * applies: "Apply" writes the `applications` row the production will review.
+ */
 export function TalentCastingDetail() {
-  const { projectId = '' } = useParams()
+  const { castingId } = useParams()
   const navigate = useNavigate()
-  const toast = useToast()
+  const { profile } = useAuth()
+  const profileId = profile?.id
 
-  const project = projectsById[projectId]
-  if (!project) return <Navigate to="/talent" replace />
+  const casting = useCasting(castingId)
+  const applications = useMyApplications(profileId)
+  const saved = useSavedCastings(profileId)
+  const saveCasting = useSaveCasting(profileId)
 
-  const roles = rolesByProject(projectId)
-  const casting = discoverCastingsById[projectId]
-  const isClosed = casting?.status === 'closed'
+  const [applyTo, setApplyTo] = useState<RoleRow | null>(null)
+
+  if (casting.isLoading || (!casting.data && !casting.error)) {
+    return (
+      <div className="flex flex-col gap-4">
+        <Skeleton className="h-40" />
+        <Skeleton className="h-64" />
+      </div>
+    )
+  }
+
+  if (!casting.data) {
+    return (
+      <div className="flex flex-col gap-4">
+        <FormError>
+          {errorMessage(casting.error, 'This casting call is not available any more.')}
+        </FormError>
+        <Link to="/talent/casting-calls" className="text-sm font-semibold text-link hover:underline">
+          Back to casting calls
+        </Link>
+      </div>
+    )
+  }
+
+  const data = casting.data
+  const isSaved = (saved.data ?? []).includes(data.id)
+  const myApplications = applications.data ?? []
+  const closed = data.status !== 'published' || (data.deadline_at && new Date(data.deadline_at) < new Date())
 
   return (
-    <div className="flex flex-col gap-0">
-      {/* back */}
+    <div className="flex flex-col gap-5 pb-10">
       <button
-        onClick={() => navigate(-1)}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink"
+        onClick={() => navigate('/talent/casting-calls')}
+        className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-muted transition-colors hover:text-ink"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back
+        Casting calls
       </button>
 
-      {/* ── Hero ── */}
-      <div className="relative overflow-hidden rounded-card border border-line bg-card">
-        {project.poster && (
-          <div className="h-40 w-full overflow-hidden bg-ink/10">
-            <img src={asset(project.poster)} alt="" className="h-full w-full object-cover opacity-60" />
-            <div className="absolute inset-0 h-40 bg-gradient-to-b from-transparent to-card" />
+      {/* ── Project header ── */}
+      <Card flush className="overflow-hidden">
+        <div className="flex flex-col gap-5 p-5 sm:flex-row sm:gap-6">
+          <div className="h-56 w-full shrink-0 overflow-hidden rounded-card bg-line sm:h-64 sm:w-44">
+            {data.project?.poster_url && (
+              <img src={data.project.poster_url} alt="" className="h-full w-full object-cover" />
+            )}
           </div>
-        )}
 
-        <div className="flex flex-col gap-4 p-6 pt-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="tech-label">
-                  {project.type} · {project.company}
-                  {project.genre ? ` · ${project.genre}` : ''}
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-display text-[1.6rem] font-extrabold tracking-[-0.02em] text-ink sm:text-[2rem]">
+                {data.project?.title ?? data.title}
+              </h1>
+              {data.project?.production_type && <Tag>{data.project.production_type}</Tag>}
+              {data.project?.genre && <Tag tone="cream">{data.project.genre}</Tag>}
+            </div>
+
+            <p className="mt-1 text-[15px] text-muted">{data.title}</p>
+
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-muted">
+              {data.location && (
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" />
+                  {data.location}
                 </span>
-                {isClosed && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-signal-no/10 px-2 py-0.5 text-[11px] font-bold text-signal-no">
-                    Closed
-                  </span>
-                )}
-              </div>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-ink">{project.title}</h1>
+              )}
+              {data.project?.company_name && (
+                <span className="inline-flex items-center gap-1.5">
+                  <Clapperboard className="h-3.5 w-3.5" />
+                  {data.project.company_name}
+                </span>
+              )}
+              {(data.project?.shooting_start || data.project?.shooting_end) && (
+                <span className="inline-flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Shooting {formatDate(data.project.shooting_start)}
+                  {data.project.shooting_end ? ` → ${formatDate(data.project.shooting_end)}` : ''}
+                </span>
+              )}
+              {data.compensation && (
+                <span className="inline-flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {data.compensation}
+                </span>
+              )}
             </div>
-            <div className="flex shrink-0 gap-2">
-              <button
-                onClick={() => toast('Casting saved')}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-paper text-muted hover:text-ink"
-              >
-                <Bookmark className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => toast('Link copied')}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-paper text-muted hover:text-ink"
-              >
-                <Share2 className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
 
-          {/* key info chips */}
-          <div className="flex flex-wrap gap-3">
-            {project.location && (
-              <span className="inline-flex items-center gap-1.5 text-sm text-muted">
-                <MapPin className="h-3.5 w-3.5 shrink-0" />
-                {project.location}
-              </span>
-            )}
-            {project.shooting && (
-              <span className="inline-flex items-center gap-1.5 text-sm text-muted">
-                <Calendar className="h-3.5 w-3.5 shrink-0" />
-                Shooting {project.shooting}
-              </span>
-            )}
-            {project.castingCloses && !isClosed && (
-              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-signal-no">
-                <Clock className="h-3.5 w-3.5 shrink-0" />
-                Casting closes {project.castingCloses}
-              </span>
-            )}
-            {roles.length > 0 && (
-              <span className="inline-flex items-center gap-1.5 text-sm text-muted">
-                <Users className="h-3.5 w-3.5 shrink-0" />
-                {roles.length} role{roles.length > 1 ? 's' : ''}
-              </span>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <Tag tone={isClosingSoon(data.deadline_at) ? 'no' : 'neutral'}>
+                {deadlineLabel(data.deadline_at)}
+              </Tag>
+              <button
+                type="button"
+                onClick={() => saveCasting.mutate({ castingId: data.id, saved: isSaved })}
+                className={cn(
+                  'inline-flex h-9 items-center gap-2 rounded-field border px-3.5 text-[13px] font-semibold transition-colors',
+                  isSaved
+                    ? 'border-ink bg-ink text-white'
+                    : 'border-line bg-card text-ink hover:border-ink/30',
+                )}
+              >
+                <Bookmark className={cn('h-4 w-4', isSaved && 'fill-current')} />
+                {isSaved ? 'Saved' : 'Save'}
+              </button>
+            </div>
+
+            {data.project?.synopsis && (
+              <p className="mt-4 text-[14px] leading-relaxed text-ink/90">{data.project.synopsis}</p>
             )}
           </div>
         </div>
-      </div>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_320px]">
-        {/* ── Left column ── */}
-        <div className="flex flex-col gap-5">
+        {data.project?.director_brief && (
+          <div className="border-t border-line bg-paper px-5 py-4">
+            <span className="tech-label">Director’s brief</span>
+            <p className="mt-1.5 text-[14px] leading-relaxed text-ink/90">
+              {data.project.director_brief}
+            </p>
+          </div>
+        )}
+      </Card>
 
-          {/* Synopsis */}
-          {project.synopsis && (
-            <Section title="Synopsis">
-              <p className="text-sm leading-relaxed text-ink">{project.synopsis}</p>
-            </Section>
-          )}
+      {/* ── Roles ── */}
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="tech-label inline-flex items-center gap-1.5">
+            <Users className="h-4 w-4" />
+            Roles ({data.roles.length})
+          </h2>
+          {closed && <Tag tone="no">Closed</Tag>}
+        </div>
 
-          {/* Director's brief */}
-          <Section
-            title="Director's brief"
-            badge={<Tag tone="gold" icon={<Sparkles className="h-3 w-3" />}>Exclusive</Tag>}
-          >
-            <BriefPlayer poster={project.poster} />
-            {project.directorBrief && (
-              <blockquote className="mt-3 border-l-2 border-gold pl-4 text-sm italic leading-relaxed text-ink">
-                "{project.directorBrief}"
-              </blockquote>
-            )}
-          </Section>
-
-          {/* Roles */}
-          <div className="flex flex-col gap-3">
-            <h2 className="text-base font-bold tracking-tight text-ink">
-              {isClosed ? 'Roles' : 'Available roles'}
-              <span className="ml-2 text-sm font-normal text-muted">({roles.length})</span>
-            </h2>
-            {roles.length === 0 && (
-              <p className="text-sm text-muted">No roles available for this project right now.</p>
-            )}
-            {roles.map((role) => {
-              const sides = role.sidesId ? sidesById[role.sidesId] : undefined
+        {data.roles.length === 0 ? (
+          <EmptyState
+            icon={<Users className="h-5 w-5" />}
+            title="No role published yet"
+            description="The production has not opened a role on this casting call."
+          />
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {data.roles.map((role) => {
+              const application = myApplications.find((item) => item.role_id === role.id)
               return (
-                <RoleCard
-                  key={role.id}
-                  role={role}
-                  sides={sides}
-                  isCastingClosed={isClosed}
-                  onSubmit={() => navigate(`/app/selftape/${projectId}`)}
-                />
+                <li key={role.id}>
+                  <Card className="flex flex-col gap-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-display text-[18px] font-bold text-ink">
+                            {role.name}
+                          </h3>
+                          <Tag tone={role.role_type === 'lead' ? 'gold' : 'neutral'}>
+                            {role.role_type === 'lead'
+                              ? 'Lead'
+                              : role.role_type === 'contestant'
+                                ? 'Contestant'
+                                : 'Supporting'}
+                          </Tag>
+                        </div>
+                        {role.description && (
+                          <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink/90">
+                            {role.description}
+                          </p>
+                        )}
+                      </div>
+
+                      {application ? (
+                        <div className="flex flex-col items-end gap-1.5">
+                          <Tag tone={APPLICATION_STATUS_TONE[application.status]}>
+                            {APPLICATION_STATUS_LABEL[application.status]}
+                          </Tag>
+                          <Link
+                            to="/talent/auditions"
+                            className="text-[12px] font-semibold text-link hover:underline"
+                          >
+                            See your audition
+                          </Link>
+                        </div>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="premium"
+                          disabled={Boolean(closed)}
+                          onClick={() => setApplyTo(role)}
+                        >
+                          {closed ? 'Closed' : 'Apply for this role'}
+                        </Button>
+                      )}
+                    </div>
+
+                    <dl className="grid grid-cols-2 gap-3 border-t border-line pt-3 text-[13px] sm:grid-cols-4">
+                      <Detail
+                        icon={<Users className="h-3.5 w-3.5" />}
+                        label="Playing age"
+                        value={
+                          role.playing_age_min !== null && role.playing_age_max !== null
+                            ? `${role.playing_age_min}–${role.playing_age_max}`
+                            : null
+                        }
+                      />
+                      <Detail
+                        icon={<Sparkles className="h-3.5 w-3.5" />}
+                        label="Gender"
+                        value={role.gender_pref}
+                      />
+                      <Detail
+                        icon={<Languages className="h-3.5 w-3.5" />}
+                        label="Languages"
+                        value={role.languages.length > 0 ? role.languages.join(', ') : null}
+                      />
+                      <Detail
+                        icon={<MapPin className="h-3.5 w-3.5" />}
+                        label="Location"
+                        value={role.location ?? data.location}
+                      />
+                    </dl>
+
+                    {role.skills.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {role.skills.map((skill) => (
+                          <Tag key={skill} tone="neutral">
+                            {skill}
+                          </Tag>
+                        ))}
+                      </div>
+                    )}
+
+                    {role.selftape_instructions && (
+                      <div className="rounded-field bg-paper p-3.5">
+                        <span className="tech-label inline-flex items-center gap-1.5">
+                          <Film className="h-3.5 w-3.5" />
+                          Self-tape instructions
+                        </span>
+                        <p className="mt-1.5 text-[14px] leading-relaxed text-ink/90">
+                          {role.selftape_instructions}
+                        </p>
+                      </div>
+                    )}
+
+                    {role.sides_url && (
+                      <a
+                        href={role.sides_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex w-fit items-center gap-1.5 text-[13px] font-semibold text-link hover:underline"
+                      >
+                        <Globe className="h-3.5 w-3.5" />
+                        Download the sides
+                      </a>
+                    )}
+                  </Card>
+                </li>
               )
             })}
-          </div>
+          </ul>
+        )}
+      </section>
 
-          {/* Past self-tape — only for closed castings */}
-          {isClosed && (
-            <Section title="Your submission">
-              <PastSelfTape projectTitle={project.title} />
-            </Section>
-          )}
-        </div>
-
-        {/* ── Right sidebar ── */}
-        <div className="flex flex-col gap-4">
-          {/* Quick info */}
-          <div className="rounded-card border border-line bg-card p-5">
-            <h3 className="mb-3 text-sm font-bold text-ink">Project details</h3>
-            <dl className="flex flex-col gap-2.5">
-              <InfoRow label="Production co." value={project.company} />
-              <InfoRow label="Type" value={project.type} />
-              {project.genre && <InfoRow label="Genre" value={project.genre} />}
-              {project.location && <InfoRow label="Shooting location" value={project.location} icon={<MapPin className="h-3.5 w-3.5" />} />}
-              {project.shooting && <InfoRow label="Shooting dates" value={project.shooting} icon={<Calendar className="h-3.5 w-3.5" />} />}
-              {project.castingCloses && <InfoRow label="Casting closes" value={project.castingCloses} icon={<Clock className="h-3.5 w-3.5" />} />}
-            </dl>
-          </div>
-
-          {/* CTA */}
-          {isClosed ? (
-            <div className="rounded-card border border-line bg-card p-5">
-              <p className="mb-1 text-sm font-semibold text-ink">This casting is closed</p>
-              <p className="mb-3 text-xs text-muted">
-                Submissions are no longer accepted. Review your past self-tape below.
-              </p>
-              <button
-                disabled
-                className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-btn bg-ink/20 py-2.5 text-sm font-bold text-ink/40"
-              >
-                <Zap className="h-4 w-4" />
-                Submit my self-tape
-              </button>
-              <button
-                disabled
-                className="mt-2 flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-btn border border-line bg-paper/50 py-2.5 text-sm font-semibold text-muted/50"
-              >
-                <Bookmark className="h-4 w-4" />
-                Save this casting
-              </button>
-            </div>
-          ) : (
-            <div className="rounded-card border border-line bg-card p-5">
-              <p className="mb-3 text-sm text-muted">
-                {roles.filter((r) => r.status !== 'Callbacks').length} role(s) still open for applications.
-              </p>
-              <button
-                onClick={() => {
-                  const first = roles.find((r) => r.status !== 'Callbacks')
-                  if (first) navigate(`/app/selftape/${projectId}`)
-                  else toast("No more open roles right now")
-                }}
-                className="flex w-full items-center justify-center gap-2 rounded-btn bg-ink py-2.5 text-sm font-bold text-paper transition-opacity hover:opacity-90"
-              >
-                <Zap className="h-4 w-4" />
-                Submit my self-tape
-              </button>
-              <button
-                onClick={() => toast('Casting saved to your favourites')}
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-btn border border-line bg-paper py-2.5 text-sm font-semibold text-ink hover:bg-ink/5"
-              >
-                <Bookmark className="h-4 w-4" />
-                Save this casting
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      {applyTo && (
+        <ApplyModal
+          role={applyTo}
+          castingTitle={data.project?.title ?? data.title}
+          onClose={() => setApplyTo(null)}
+        />
+      )}
     </div>
   )
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function Section({
-  title,
-  badge,
-  children,
-}: {
-  title: string
-  badge?: React.ReactNode
-  children: React.ReactNode
-}) {
-  return (
-    <div className="rounded-card border border-line bg-card p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-bold tracking-tight text-ink">{title}</h2>
-        {badge}
-      </div>
-      {children}
-    </div>
-  )
-}
-
-function InfoRow({
+function Detail({
+  icon,
   label,
   value,
-  icon,
 }: {
+  icon: React.ReactNode
   label: string
-  value: string
-  icon?: React.ReactNode
+  value: string | null
 }) {
   return (
-    <div className="flex items-start justify-between gap-3 text-sm">
-      <span className="text-muted">{label}</span>
-      <span className="text-right font-medium text-ink flex items-center gap-1">
+    <div>
+      <dt className="flex items-center gap-1.5 text-label font-semibold uppercase tracking-label text-muted">
         {icon}
-        {value}
-      </span>
+        {label}
+      </dt>
+      <dd className="mt-0.5 text-ink">{value || '—'}</dd>
     </div>
   )
 }
 
-function BriefPlayer({ poster }: { poster?: string }) {
-  const ref = useRef<HTMLVideoElement>(null)
-  const [playing, setPlaying] = useState(false)
-
-  return (
-    <div className="relative aspect-video overflow-hidden rounded-btn border border-line bg-black">
-      <video
-        ref={ref}
-        src={asset(roleBriefVideo)}
-        poster={poster}
-        playsInline
-        preload="metadata"
-        className="h-full w-full object-cover"
-        onClick={() => (playing ? ref.current?.pause() : ref.current?.play())}
-        onPlay={() => setPlaying(true)}
-        onPause={() => setPlaying(false)}
-      />
-      {!playing && (
-        <button
-          onClick={() => ref.current?.play()}
-          className="absolute inset-0 flex items-center justify-center bg-black/25"
-        >
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 text-ink shadow-lg">
-            <Play className="ml-1 h-6 w-6" />
-          </span>
-        </button>
-      )}
-      <span className="absolute left-3 top-3 rounded bg-black/55 px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wider text-white">
-        DIRECTOR'S BRIEF
-      </span>
-    </div>
-  )
-}
-
-function PastSelfTape({ projectTitle }: { projectTitle: string }) {
-  const ref = useRef<HTMLVideoElement>(null)
-  const [playing, setPlaying] = useState(false)
-  const toast = useToast()
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between text-xs text-muted">
-        <span className="flex items-center gap-1.5">
-          <CheckCircle2 className="h-3.5 w-3.5 text-signal-good" />
-          Submitted · Feb 14, 2025
-        </span>
-        <span className="rounded-full bg-signal-good/10 px-2 py-0.5 text-[11px] font-semibold text-signal-good">
-          Under review
-        </span>
-      </div>
-
-      <div className="relative aspect-video overflow-hidden rounded-btn border border-line bg-black">
-        <video
-          ref={ref}
-          src={asset('/media/selftape.mp4')}
-          playsInline
-          preload="metadata"
-          className="h-full w-full object-cover"
-          onClick={() => (playing ? ref.current?.pause() : ref.current?.play())}
-          onPlay={() => setPlaying(true)}
-          onPause={() => setPlaying(false)}
-        />
-        {!playing && (
-          <button
-            onClick={() => ref.current?.play()}
-            className="absolute inset-0 flex items-center justify-center bg-black/25"
-          >
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 text-ink shadow-lg">
-              <Play className="ml-1 h-6 w-6" />
-            </span>
-          </button>
-        )}
-        <span className="absolute left-3 top-3 rounded bg-black/55 px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wider text-white">
-          MY SELF-TAPE · {projectTitle.toUpperCase()}
-        </span>
-      </div>
-
-      <div className="flex gap-2">
-        <button
-          onClick={() => toast('Downloading your self-tape…')}
-          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-btn border border-line bg-paper px-3 py-2 text-sm font-medium text-muted hover:text-ink"
-        >
-          <Video className="h-4 w-4" />
-          Download
-        </button>
-        <button
-          onClick={() => toast('Share link copied')}
-          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-btn border border-line bg-paper px-3 py-2 text-sm font-medium text-muted hover:text-ink"
-        >
-          <Share2 className="h-4 w-4" />
-          Share
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function RoleCard({
+/** The apply form: a note, a headshot and a showreel picked from your media. */
+function ApplyModal({
   role,
-  sides,
-  isCastingClosed,
-  onSubmit,
+  castingTitle,
+  onClose,
 }: {
-  role: Role
-  sides?: Sides
-  isCastingClosed?: boolean
-  onSubmit: () => void
+  role: RoleRow
+  castingTitle: string
+  onClose: () => void
 }) {
   const toast = useToast()
-  const [sidesOpen, setSidesOpen] = useState(false)
-  const [applied, setApplied] = useState(false)
-  const isClosed = isCastingClosed || role.status === 'Callbacks'
+  const { profile } = useAuth()
+  const profileId = profile?.id
+  const talent = useTalentProfile(profileId)
+  const { apply } = useApplicationMutations(profileId)
+
+  const media = talent.data?.media ?? []
+  const headshots = media.filter((asset) => asset.kind === 'headshot' || asset.kind === 'portfolio')
+  const showreels = media.filter((asset) => asset.kind === 'showreel')
+
+  const [note, setNote] = useState('')
+  const [headshotId, setHeadshotId] = useState<string | null>(headshots[0]?.id ?? null)
+  const [showreelId, setShowreelId] = useState<string | null>(showreels[0]?.id ?? null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function submit() {
+    setError(null)
+    try {
+      await apply.mutateAsync({ roleId: role.id, note, headshotId, showreelId })
+      toast(`Application sent for ${role.name}`)
+      onClose()
+    } catch (applyError) {
+      setError(errorMessage(applyError, 'Could not send your application'))
+    }
+  }
 
   return (
-    <div className={cn(
-      'rounded-card border bg-card transition-shadow hover:shadow-card-hover',
-      isClosed ? 'border-line opacity-70' : 'border-line',
-    )}>
-      {/* role header */}
-      <div className="flex items-start justify-between gap-4 p-5 pb-3">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-bold text-ink">{role.name}</h3>
-            <Tag tone={role.type === 'Lead' ? 'gold' : 'cream'}>{role.type}</Tag>
-            {isClosed && <Tag tone="neutral">Full</Tag>}
-          </div>
-          <div className="flex flex-wrap gap-3 text-sm text-muted">
-            {role.pay && (
-              <span className="inline-flex items-center gap-1">
-                <DollarSign className="h-3.5 w-3.5" />
-                {role.pay}
-              </span>
-            )}
-            {role.location && (
-              <span className="inline-flex items-center gap-1">
-                <MapPin className="h-3.5 w-3.5" />
-                {role.location}
-              </span>
-            )}
-            {role.deadline && (
-              <span className="inline-flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5" />
-                Deadline: {role.deadline}
-                {role.deadlineCountdown && (
-                  <span className="font-semibold text-signal-no">({role.deadlineCountdown})</span>
-                )}
-              </span>
-            )}
-            {role.auditionFlow && (
-              <span className="inline-flex items-center gap-1">
-                <Zap className="h-3.5 w-3.5" />
-                {role.auditionFlow}
-              </span>
-            )}
-          </div>
+    <EditModal
+      open
+      title={`Apply — ${role.name}`}
+      onClose={onClose}
+      onSave={submit}
+      saveLabel={apply.isPending ? 'Sending…' : 'Submit application'}
+    >
+      {error && <FormError>{error}</FormError>}
 
-          {/* selected talent chip — only on closed castings */}
-          {isClosed && role.selectedTalent && (
-            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-signal-good/30 bg-signal-good/8 px-2.5 py-1">
-              <img
-                src={asset(role.selectedTalent.avatar)}
-                alt={role.selectedTalent.name}
-                className="h-5 w-5 rounded-full object-cover ring-1 ring-signal-good/30"
-              />
-              <span className="text-xs font-semibold text-signal-good">{role.selectedTalent.name}</span>
-              <CheckCircle2 className="h-3.5 w-3.5 text-signal-good" />
-            </div>
-          )}
-        </div>
-      </div>
+      <p className="text-[13px] text-muted">
+        {castingTitle} · your profile is attached automatically. The production sees your name,
+        casting details, skills and credits.
+      </p>
 
-      {/* casting notes */}
-      {role.castingNotes && (
-        <div className="mx-5 mb-3 rounded-btn bg-paper p-3.5">
-          <div className="mb-1 flex items-center gap-1.5">
-            <Sparkles className="h-3.5 w-3.5 text-gold" />
-            <span className="text-xs font-semibold text-muted uppercase tracking-wide">Casting brief</span>
-          </div>
-          <p className="text-sm leading-relaxed text-ink">{role.castingNotes}</p>
-        </div>
-      )}
+      <Field label="Note to the casting director">
+        <TextArea
+          rows={3}
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          placeholder="Optional — anything they should know."
+        />
+      </Field>
 
-      {/* sides toggle */}
-      {sides && (
-        <div className="mx-5 mb-3">
-          <button
-            onClick={() => setSidesOpen((o) => !o)}
-            className="flex w-full items-center justify-between rounded-btn border border-line bg-paper px-3.5 py-2.5 text-sm font-semibold text-ink hover:bg-ink/5"
-          >
-            <span className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-muted" />
-              Script / Sides
-              <span className="font-normal text-muted">({sides.pages} pages)</span>
-            </span>
-            {sidesOpen ? <ChevronUp className="h-4 w-4 text-muted" /> : <ChevronDown className="h-4 w-4 text-muted" />}
-          </button>
-
-          {sidesOpen && (
-            <div className="mt-2 rounded-btn border border-line bg-paper p-4 font-mono text-xs leading-relaxed text-ink">
-              {sides.lines.map((l, i) => (
-                <p key={i} className={cn('mb-1.5', l.kind === 'heading' && 'mt-3 font-bold text-muted first:mt-0')}>
-                  {l.character
-                    ? <><span className="font-bold text-signal-no">{l.character}</span>: {l.text}</>
-                    : l.text
-                  }
-                </p>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* actions */}
-      <div className="flex items-center gap-2 border-t border-line p-4 pt-3">
-        {isClosed ? (
-          <span className="flex items-center gap-1.5 text-sm text-muted">
-            <CheckCircle2 className="h-4 w-4 text-signal-good" />
-            {isCastingClosed ? 'Submission sent' : 'Role filled'}
-          </span>
-        ) : applied ? (
-          <span className="flex items-center gap-1.5 text-sm font-semibold text-signal-good">
-            <CheckCircle2 className="h-4 w-4" />
-            Application sent
-          </span>
+      <Field label="Headshot">
+        {headshots.length === 0 ? (
+          <p className="text-[13px] text-muted">
+            No headshot on your profile yet — you can still apply and add one later.
+          </p>
         ) : (
-          <button
-            onClick={() => { setApplied(true); onSubmit() }}
-            className="inline-flex items-center gap-2 rounded-btn bg-ink px-4 py-2 text-sm font-bold text-paper transition-opacity hover:opacity-90"
-          >
-            <Zap className="h-4 w-4" />
-            Submit my self-tape
-          </button>
+          <div className="flex flex-wrap gap-2">
+            {headshots.map((asset) => (
+              <button
+                key={asset.id}
+                type="button"
+                onClick={() => setHeadshotId(asset.id)}
+                className={cn(
+                  'h-20 w-16 overflow-hidden rounded-btn border-2 transition-colors',
+                  headshotId === asset.id ? 'border-ink' : 'border-transparent opacity-70',
+                )}
+              >
+                <img
+                  src={publicUrl(asset.bucket, asset.path)}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              </button>
+            ))}
+          </div>
         )}
-        {!isClosed && (
-          <button
-            onClick={() => toast('Role saved')}
-            className="inline-flex items-center gap-1.5 rounded-btn border border-line bg-paper px-3 py-2 text-sm font-medium text-muted hover:text-ink"
-          >
-            <Bookmark className="h-4 w-4" />
-            Save
-          </button>
+      </Field>
+
+      <Field label="Showreel">
+        {showreels.length === 0 ? (
+          <p className="text-[13px] text-muted">No showreel on your profile yet.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {showreels.map((asset) => (
+              <button
+                key={asset.id}
+                type="button"
+                onClick={() => setShowreelId(asset.id === showreelId ? null : asset.id)}
+                className={cn(
+                  'flex items-center gap-2.5 rounded-btn border px-3 py-2 text-left text-[13px] transition-colors',
+                  showreelId === asset.id
+                    ? 'border-ink bg-paper text-ink'
+                    : 'border-line text-muted hover:border-ink/30',
+                )}
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-ink/5">
+                  {showreelId === asset.id ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : (
+                    <Film className="h-3.5 w-3.5" />
+                  )}
+                </span>
+                <span className="min-w-0 flex-1 truncate">
+                  {asset.caption ?? asset.path.split('/').pop()}
+                </span>
+              </button>
+            ))}
+          </div>
         )}
-      </div>
-    </div>
+      </Field>
+
+      {apply.isPending && (
+        <span className="flex items-center gap-2 text-[13px] text-muted">
+          <Spinner />
+          Sending your application…
+        </span>
+      )}
+
+      <p className="flex items-center gap-2 text-[12px] text-muted">
+        <Avatar src={profile?.avatar_url ?? undefined} name="You" size="xs" />
+        Submitted as {[profile?.first_name, profile?.last_name].filter(Boolean).join(' ')}
+      </p>
+    </EditModal>
   )
 }
