@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { CastingCallRow, ProjectRow, RoleRow } from '@/types/database'
+import type { CastingCallRow, OrganizationRow, ProjectRow, RoleRow } from '@/types/database'
 
 /**
  * Casting calls, talent side.
@@ -9,11 +9,19 @@ import type { CastingCallRow, ProjectRow, RoleRow } from '@/types/database'
  * organization's), so these queries carry no visibility logic of their own.
  */
 
+/** The production behind a casting call — the "author" of a feed post. */
+export type CastingAuthor = Pick<
+  OrganizationRow,
+  'id' | 'name' | 'logo_url' | 'company_type' | 'city' | 'country'
+>
+
 export type CastingCallWithContext = CastingCallRow & {
-  project: Pick<
-    ProjectRow,
-    'id' | 'title' | 'production_type' | 'genre' | 'company_name' | 'poster_url' | 'synopsis' | 'director_name' | 'shooting_location' | 'shooting_start' | 'shooting_end' | 'director_brief'
-  > | null
+  project:
+    | (Pick<
+        ProjectRow,
+        'id' | 'title' | 'production_type' | 'genre' | 'company_name' | 'poster_url' | 'synopsis' | 'director_name' | 'shooting_location' | 'shooting_start' | 'shooting_end' | 'director_brief'
+      > & { organization: CastingAuthor | null })
+    | null
   roles: RoleRow[]
 }
 
@@ -21,21 +29,29 @@ const CASTING_SELECT = `
   *,
   projects (
     id, title, production_type, genre, company_name, poster_url, synopsis,
-    director_name, shooting_location, shooting_start, shooting_end, director_brief
+    director_name, shooting_location, shooting_start, shooting_end, director_brief,
+    organizations ( id, name, logo_url, company_type, city, country )
   ),
   roles (*)
 `
 
+type ProjectJoin = NonNullable<CastingCallWithContext['project']> & {
+  organizations: CastingAuthor | null
+}
+
 type CastingJoin = CastingCallRow & {
-  projects: CastingCallWithContext['project']
+  projects: ProjectJoin | null
   roles: RoleRow[] | null
 }
 
 function shape(row: CastingJoin): CastingCallWithContext {
   const { projects, roles, ...casting } = row
+  const project = projects
+    ? { ...projects, organization: projects.organizations ?? null }
+    : null
   return {
     ...casting,
-    project: projects,
+    project,
     roles: [...(roles ?? [])].sort((a, b) => a.sort_order - b.sort_order),
   }
 }

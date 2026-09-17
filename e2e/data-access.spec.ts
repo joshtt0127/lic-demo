@@ -144,16 +144,22 @@ test('every embedded query the app relies on still resolves', async () => {
           .limit(5),
     ],
     [
-      'talent: published castings',
+      // The home feed reads the production behind each post through this embed.
+      'talent: published castings with their production',
       () =>
         talent
           .from('casting_calls')
           .select(
             `*, projects ( id, title, production_type, genre, company_name, poster_url, synopsis,
-             director_name, shooting_location, shooting_start, shooting_end, director_brief ),
+             director_name, shooting_location, shooting_start, shooting_end, director_brief,
+             organizations ( id, name, logo_url, company_type, city, country ) ),
              roles (*)`,
           )
           .eq('status', 'published'),
+    ],
+    [
+      'talent: saved castings',
+      () => talent.from('saved_castings').select('casting_call_id').limit(5),
     ],
     [
       'talent: skills and languages',

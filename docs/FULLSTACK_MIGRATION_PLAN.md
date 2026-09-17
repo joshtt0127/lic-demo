@@ -140,7 +140,7 @@ Légende : **KEEP** · **KEEP+CONNECT** (UI conservée, données réelles) · **
 | Self-tape | `app/SelfTape.tsx` | player + UI record | KEEP+CONNECT | upload Storage privé + `self_tapes` liée à l'application |
 | Messages | `talent/Messages.tsx` | fixtures, état local | KEEP+CONNECT | `conversations`/`messages` partagées avec le studio |
 | Notifications | `talent/Notifications.tsx` | fixtures | KEEP+CONNECT | table `notifications` + read/unread |
-| Feed social | `studio/HomeFeed.tsx`, `app/MobileFeed.tsx` | fixtures riches (vidéos, YouTube) | KEEP (hors route) | P6 — `HomeFeed` n'est plus monté : `/talent` affiche désormais un vrai tableau de bord (`talent/TalentHome.tsx`). Le fichier reste comme base du futur feed |
+| Feed social | `studio/HomeFeed.tsx`, `app/MobileFeed.tsx` | fixtures riches (vidéos, YouTube) | REPLACE | ✅ `/talent` est un vrai feed (`talent/TalentHome.tsx` + `talent/feed/*`) : un post par casting publié, l'organisation comme auteur, `Apply` / `Save` / `Share` dans le post, candidatures propres intercalées en posts d'activité. Les anciens feeds de fixtures ne sont plus montés |
 | Performance profile (carte sombre) | `TalentProfilePage.tsx` | barres de scores fixtures | **REPLACE** | remplacée par **Profile strength** (complétion réelle + ce qu'il manque). Le scoring de performance revient avec le slice matching (P5) quand il y aura des auditions à mesurer — afficher des barres sans données serait un faux |
 | Activity / posts (profil) | `TalentProfilePage.tsx` | posts fixtures + composer | **REMOVE (temporaire)** | le composer n'écrivait nulle part ; revient avec le feed (P6) et sa table |
 | Match IA / scene analysis | `sceneAnalysis.ts` | scores fixtures | KEEP | scoring déterministe côté serveur plus tard (P5) |

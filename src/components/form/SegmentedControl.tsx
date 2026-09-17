@@ -11,6 +11,7 @@ export function SegmentedControl<T extends string>({
   allowClear,
   size = 'md',
   variant = 'segmented',
+  wrap = true,
   className,
 }: {
   options: { value: T; label: string }[]
@@ -24,6 +25,8 @@ export function SegmentedControl<T extends string>({
    * `pills` — separate tiles, the onboarding treatment.
    */
   variant?: 'segmented' | 'pills'
+  /** `false` keeps every option on one line (put it in a scroll container). */
+  wrap?: boolean
   className?: string
 }) {
   const pills = variant === 'pills'
@@ -32,7 +35,8 @@ export function SegmentedControl<T extends string>({
     <div
       role="radiogroup"
       className={cn(
-        'flex flex-wrap',
+        'flex',
+        wrap ? 'flex-wrap' : 'flex-nowrap',
         pills ? 'gap-2.5' : 'inline-flex gap-1 rounded-btn bg-paper p-1',
         className,
       )}
@@ -47,7 +51,7 @@ export function SegmentedControl<T extends string>({
             aria-checked={active}
             onClick={() => onChange(active && allowClear ? null : option.value)}
             className={cn(
-              'font-semibold transition-colors',
+              'whitespace-nowrap font-semibold transition-colors',
               pills
                 ? [
                     'rounded-field px-5 py-3 text-[15px]',

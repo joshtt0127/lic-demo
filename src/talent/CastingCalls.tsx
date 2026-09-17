@@ -29,7 +29,10 @@ export function CastingCalls() {
   // The header search lands here with ?q=
   const [params, setParams] = useSearchParams()
   const [query, setQuery] = useState(params.get('q') ?? '')
-  const [scope, setScope] = useState<'all' | 'saved' | 'applied'>('all')
+  const initialScope = params.get('scope')
+  const [scope, setScope] = useState<'all' | 'saved' | 'applied'>(
+    initialScope === 'saved' || initialScope === 'applied' ? initialScope : 'all',
+  )
 
   function updateQuery(value: string) {
     setQuery(value)
@@ -99,7 +102,14 @@ export function CastingCalls() {
             { value: 'applied', label: 'Applied' },
           ]}
           value={scope}
-          onChange={(value) => value && setScope(value as typeof scope)}
+          onChange={(value) => {
+            if (!value) return
+            setScope(value as typeof scope)
+            const next = new URLSearchParams(params)
+            if (value === 'all') next.delete('scope')
+            else next.set('scope', value)
+            setParams(next, { replace: true })
+          }}
         />
       </div>
 
@@ -155,7 +165,7 @@ export function CastingCalls() {
                       <div className="flex flex-wrap items-center gap-2">
                         <Link
                           to={`/talent/casting/${casting.id}`}
-                          className="font-display text-[17px] font-bold text-ink hover:underline"
+                          className="-my-1 inline-flex items-center py-1 font-display text-[17px] font-bold text-ink hover:underline"
                         >
                           {casting.project?.title ?? casting.title}
                         </Link>

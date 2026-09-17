@@ -56,8 +56,9 @@ test('a fresh talent account sees only its own data', async ({ page }) => {
   await page.getByRole('button', { name: 'Sign in' }).click()
   await page.waitForURL('**/talent', { timeout: 30_000 })
 
-  // ── Her own identity ──
-  await expect(page.getByRole('heading', { name: /Nora/ })).toBeVisible()
+  // ── Her own identity, in the feed's own rail ──
+  await expect(page.getByRole('heading', { name: /Nora/, level: 1 })).toBeAttached()
+  await expect(page.getByRole('link', { name: 'Nora Bennett' }).first()).toBeVisible()
   await expect(page.getByText('Actress · stage & screen')).toBeVisible()
 
   // ── No fixture leakage anywhere on the home ──
@@ -68,8 +69,15 @@ test('a fresh talent account sees only its own data', async ({ page }) => {
 
   // ── Real counters: zero, and honest empty states ──
   await expect(page.getByText('Auditions sent')).toBeVisible()
-  await expect(page.getByText('No auditions yet')).toBeVisible()
-  await expect(page.getByText('No messages')).toBeVisible()
+  await expect(page.getByText('Apply from a post and the audition shows up here')).toBeVisible()
+  await expect(page.getByText('Productions can message you once you apply')).toBeVisible()
+
+  // ── The feed's own filters are real: nothing saved, nothing applied ──
+  await page.getByRole('radio', { name: 'Saved' }).click()
+  await expect(page.getByText('Nothing saved yet')).toBeVisible()
+  await page.getByRole('radio', { name: 'Applied' }).click()
+  await expect(page.getByText('You have not applied to a casting yet')).toBeVisible()
+  await page.getByRole('radio', { name: 'Recent' }).click()
 
   // ── Badges: nothing unread, so no badge at all ──
   await expect(page.locator('nav').getByText(/^[1-9]\d*$/)).toHaveCount(0)

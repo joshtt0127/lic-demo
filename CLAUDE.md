@@ -58,7 +58,17 @@ Trois surfaces dans une seule app (+ `/auth/*` et `/onboarding`) :
   Casting calls · Snap apply · Auditions · Profile.
 - **Talent desktop** (`/talent`) : espace complet avec nav du haut façon LinkedIn (Home · Casting calls ·
   Auditions · Messages · Notifications · My profile), badges non-lus sur Messages/Notifications.
-  - `/talent` (Home) : réutilise directement `studio/HomeFeed.tsx`.
+  - `/talent` (Home) : **feed façon LinkedIn** (`talent/TalentHome.tsx`) — colonne de gauche
+    (identité + complétion + « Your numbers »), colonne centrale = le feed, colonne de droite
+    (auditions / notifications / messages) à partir de `xl`. Chaque casting publié est un **post**
+    (`talent/feed/CastingPost.tsx`) : l'organisation de production est l'auteur (embed
+    `projects → organizations`), le corps porte titre + description + chips (lieu, rôles, cachet,
+    deadline), l'affiche est recadrée à hauteur fixe, puis **un rôle = une ligne actionnable**
+    (statut réel si déjà postulé, sinon `Apply` qui ouvre `features/applications/ApplyModal.tsx`
+    sans quitter le feed) et une barre d'actions View roles / Save (`saved_castings`) / Share
+    (copie du lien public `/casting/:id`). Les propres candidatures du compte s'intercalent comme
+    posts d'activité (`talent/feed/ActivityPost.tsx`) triés par date. Filtres réels :
+    Recent / Closing / Saved / Applied.
   - `/talent/casting-calls` : castings qui matchent Maya, CTA direct vers le self-tape (`/app/selftape/:id`).
   - `/talent/auditions` : avancement de chaque audition (stepper Self-tape → Submitted → Under review → Shortlisted).
   - `/talent/messages` : messagerie interne (liste de conversations + thread), état React local.

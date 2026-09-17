@@ -1,39 +1,57 @@
+import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  ArrowRight,
   Bell,
+  Bookmark,
   Clapperboard,
   Film,
   MapPin,
   MessageCircle,
   Pencil,
-  Sparkles,
+  Search,
 } from 'lucide-react'
 import { Avatar, Button, Card, FormError, Tag } from '@/components/ui'
 import { Skeleton } from '@/components/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
+import { SegmentedControl } from '@/components/form/SegmentedControl'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { profileCompletion } from '@/features/talent/completion'
 import { useTalentProfile } from '@/features/talent/queries'
-import { useMyApplications, useTalentApplicationStats } from '@/features/applications/queries'
-import { useOpenCastings } from '@/features/castings/queries'
+import {
+  useMyApplications,
+  useTalentApplicationStats,
+  type MyApplication,
+} from '@/features/applications/queries'
+import { ApplyModal } from '@/features/applications/ApplyModal'
+import {
+  useOpenCastings,
+  useSaveCasting,
+  useSavedCastings,
+  type CastingCallWithContext,
+} from '@/features/castings/queries'
 import { useConversations, participantName } from '@/features/messaging/queries'
 import { useNotifications } from '@/features/notifications/queries'
-import {
-  APPLICATION_STATUS_LABEL,
-  APPLICATION_STATUS_TONE,
-  deadlineLabel,
-  greeting,
-  isClosingSoon,
-  relativeTime,
-} from '@/lib/format'
+import { APPLICATION_STATUS_LABEL, APPLICATION_STATUS_TONE } from '@/lib/format'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
+import type { RoleRow } from '@/types/database'
+import { CastingPost } from './feed/CastingPost'
+import { ActivityPost } from './feed/ActivityPost'
+
+/** Statuses a production decided on — worth a line in the feed. */
+const DECIDED = new Set(['under_review', 'shortlisted', 'callback', 'offer', 'cast', 'not_selected'])
+
+type FeedItem =
+  | { key: string; at: string; kind: 'casting'; casting: CastingCallWithContext }
+  | { key: string; at: string; kind: 'activity'; application: MyApplication; event: 'applied' | 'decision' }
+
+type Scope = 'recent' | 'closing' | 'saved' | 'applied'
 
 /**
- * Talent home — everything on this screen comes from the database for the
- * signed-in account: your own profile, your own applications, the casting calls
- * that are actually published, your conversations and notifications.
+ * Talent home — a feed. Each published casting call is a post authored by the
+ * production that opened it, each of your own applications adds its own line.
+ * Everything comes from the database for the signed-in account: no sample post,
+ * no estimated number.
  */
 export function TalentHome() {
   const { profile, user } = useAuth()
@@ -44,18 +62,78 @@ export function TalentHome() {
   const stats = useTalentApplicationStats(profileId)
   const applications = useMyApplications(profileId)
   const castings = useOpenCastings()
+  const savedCastings = useSavedCastings(profileId)
+  const saveCasting = useSaveCasting(profileId)
   const conversations = useConversations(profileId)
   const notifications = useNotifications(profileId)
 
+  const [scope, setScope] = useState<Scope>('recent')
+  const [applyTo, setApplyTo] = useState<{ role: RoleRow; castingTitle: string } | null>(null)
+
+  const savedIds = useMemo(() => new Set(savedCastings.data ?? []), [savedCastings.data])
+
+  const applicationsByRole = useMemo(() => {
+    const map = new Map<string, MyApplication>()
+    for (const application of applications.data ?? []) map.set(application.role_id, application)
+    return map
+  }, [applications.data])
+
+  const feed = useMemo<FeedItem[]>(() => {
+    const allCastings = castings.data ?? []
+    const mine = applications.data ?? []
+
+    const castingItems: FeedItem[] = allCastings
+      .filter((casting) => {
+        if (scope === 'saved') return savedIds.has(casting.id)
+        if (scope === 'applied') return casting.roles.some((role) => applicationsByRole.has(role.id))
+        if (scope === 'closing') return Boolean(casting.deadline_at)
+        return true
+      })
+      .map((casting) => ({
+        key: `casting-${casting.id}`,
+        at: casting.published_at ?? casting.created_at,
+        kind: 'casting' as const,
+        casting,
+      }))
+
+    if (scope === 'saved' || scope === 'closing') return sortFeed(castingItems, scope)
+
+    const activityItems: FeedItem[] = mine.flatMap((application) => {
+      const items: FeedItem[] = []
+      if (application.submitted_at) {
+        items.push({
+          key: `applied-${application.id}`,
+          at: application.submitted_at,
+          kind: 'activity',
+          application,
+          event: 'applied',
+        })
+      }
+      if (DECIDED.has(application.status)) {
+        items.push({
+          key: `decision-${application.id}`,
+          at: application.decided_at ?? application.updated_at,
+          kind: 'activity',
+          application,
+          event: 'decision',
+        })
+      }
+      return items
+    })
+
+    return sortFeed([...castingItems, ...activityItems], scope)
+  }, [applications.data, applicationsByRole, castings.data, savedIds, scope])
+
   if (talent.isLoading || (!talent.data && !talent.error)) {
     return (
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
-        <Skeleton className="h-72" />
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[17rem_minmax(0,1fr)_19rem]">
+        <Skeleton className="hidden h-72 lg:block" />
         <div className="flex flex-col gap-4">
-          <Skeleton className="h-24" />
-          <Skeleton className="h-56" />
-          <Skeleton className="h-40" />
+          <Skeleton className="h-14" />
+          <Skeleton className="h-80" />
+          <Skeleton className="h-72" />
         </div>
+        <Skeleton className="hidden h-64 xl:block" />
       </div>
     )
   }
@@ -66,39 +144,25 @@ export function TalentHome() {
 
   const data = talent.data
   const completion = profileCompletion(data)
-  const name = data.talent.professional_name ||
+  const name =
+    data.talent.professional_name ||
     [data.profile.first_name, data.profile.last_name].filter(Boolean).join(' ') ||
     'there'
-  const firstName = data.profile.first_name || name
 
   const activeApplications = (applications.data ?? []).filter(
     (application) => !['withdrawn', 'not_selected'].includes(application.status),
   )
-  const appliedRoleIds = new Set((applications.data ?? []).map((application) => application.role_id))
-  const openCastings = (castings.data ?? []).filter((casting) =>
-    casting.roles.some((role) => !appliedRoleIds.has(role.id)),
-  )
   const unreadNotifications = (notifications.data ?? []).filter((item) => !item.read_at)
+  const isTalent = profile?.account_type === 'talent'
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* ── Greeting ── */}
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-[1.75rem] font-extrabold tracking-[-0.02em] text-ink sm:text-[2.1rem]">
-            {greeting()}, {firstName}
-          </h1>
-          <p className="mt-1 text-[15px] text-muted">
-            {activeApplications.length > 0
-              ? `${activeApplications.length} audition${activeApplications.length > 1 ? 's' : ''} in progress · ${openCastings.length} casting call${openCastings.length === 1 ? '' : 's'} open to you`
-              : `${openCastings.length} casting call${openCastings.length === 1 ? '' : 's'} open to you right now`}
-          </p>
-        </div>
-      </header>
+    <>
+      {/* The feed has no visible page title — screen readers still need one. */}
+      <h1 className="sr-only">Your feed, {name}</h1>
 
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
-        {/* ── Left: identity + strength ── */}
-        <aside className="flex min-w-0 flex-col gap-4">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[17rem_minmax(0,1fr)_19rem]">
+        {/* ── Left rail: who you are ── */}
+        <aside className="hidden min-w-0 flex-col gap-4 lg:sticky lg:top-[5.5rem] lg:flex">
           <Card flush className="overflow-hidden">
             <div className="h-20 bg-[#EDEBE5]">
               {data.talent.cover_url && (
@@ -107,14 +171,21 @@ export function TalentHome() {
             </div>
             <div className="px-5 pb-5">
               <div className="-mt-9 mb-3">
-                <Avatar
-                  src={data.profile.avatar_url ?? undefined}
-                  name={name}
-                  size="lg"
-                  className="border-4 border-card"
-                />
+                <Link to="/talent/profile">
+                  <Avatar
+                    src={data.profile.avatar_url ?? undefined}
+                    name={name}
+                    size="lg"
+                    className="border-4 border-card"
+                  />
+                </Link>
               </div>
-              <p className="font-display text-[17px] font-bold text-ink">{name}</p>
+              <Link
+                to="/talent/profile"
+                className="-my-2 inline-block py-2 font-display text-[17px] font-bold text-ink hover:underline"
+              >
+                {name}
+              </Link>
               <p className="mt-0.5 text-[13px] text-muted">
                 {data.talent.headline || 'Add a headline to your profile'}
               </p>
@@ -125,33 +196,29 @@ export function TalentHome() {
                 </p>
               )}
 
-              <div className="mt-4 rounded-field bg-paper p-3">
-                <div className="flex items-center justify-between text-[12px] font-semibold text-ink">
-                  <span className="uppercase tracking-[0.18em] text-muted">Profile</span>
-                  <span className="font-mono">{completion.percent}%</span>
-                </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-line">
-                  <div
-                    className="h-full rounded-full bg-ink transition-[width] duration-500"
-                    style={{ width: `${completion.percent}%` }}
-                  />
-                </div>
-                {completion.missing.length > 0 && (
-                  <p className="mt-2 text-[12px] text-muted">
-                    Next: {completion.missing[0].label.toLowerCase()}
-                  </p>
-                )}
-              </div>
+              <ProfileStrength percent={completion.percent} next={completion.missing[0]?.label} />
 
-              <Button
-                variant="secondary"
-                size="sm"
-                className="mt-4 w-full"
-                icon={<Pencil className="h-3.5 w-3.5" />}
-                onClick={() => navigate('/talent/profile')}
-              >
-                Edit profile
-              </Button>
+              <div className="mt-4 flex flex-col gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="w-full"
+                  icon={<Pencil className="h-3.5 w-3.5" />}
+                  onClick={() => navigate('/talent/profile')}
+                >
+                  Edit profile
+                </Button>
+                <Link
+                  to="/talent/casting-calls?scope=saved"
+                  className="inline-flex min-h-[36px] items-center justify-between rounded-btn px-1 text-[13px] font-semibold text-muted hover:text-ink"
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <Bookmark className="h-3.5 w-3.5" />
+                    Saved castings
+                  </span>
+                  <span className="font-mono text-[12px]">{savedIds.size}</span>
+                </Link>
+              </div>
             </div>
           </Card>
 
@@ -166,109 +233,164 @@ export function TalentHome() {
           </Card>
         </aside>
 
-        {/* ── Right: what to do now ── */}
-        <div className="flex min-w-0 flex-col gap-5">
-          <Card className="flex flex-col gap-4">
-            <SectionHead
-              icon={<Clapperboard className="h-4 w-4" />}
-              title="Casting calls open to you"
-              to="/talent/casting-calls"
-              count={openCastings.length}
-            />
-
-            {castings.isLoading ? (
-              <Skeleton className="h-24" />
-            ) : openCastings.length === 0 ? (
-              <EmptyState
-                compact
-                icon={<Clapperboard className="h-5 w-5" />}
-                title="No open casting calls right now"
-                description="As soon as a production publishes a casting, it lands here."
-              />
-            ) : (
-              <ul className="flex flex-col divide-y divide-line">
-                {openCastings.slice(0, 4).map((casting) => (
-                  <li key={casting.id}>
-                    <Link
-                      to={`/talent/casting/${casting.id}`}
-                      className="group flex items-center gap-4 py-3 first:pt-0"
-                    >
-                      <span className="h-14 w-11 shrink-0 overflow-hidden rounded-btn bg-line">
-                        {casting.project?.poster_url && (
-                          <img
-                            src={casting.project.poster_url}
-                            alt=""
-                            className="h-full w-full object-cover"
-                          />
-                        )}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[15px] font-bold text-ink">
-                          {casting.project?.title ?? casting.title}
-                        </span>
-                        <span className="block truncate text-[13px] text-muted">
-                          {[
-                            casting.project?.production_type,
-                            casting.location,
-                            `${casting.roles.length} role${casting.roles.length === 1 ? '' : 's'}`,
-                          ]
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </span>
-                      </span>
-                      <span className="hidden shrink-0 sm:block">
-                        <Tag tone={isClosingSoon(casting.deadline_at) ? 'no' : 'neutral'}>
-                          {deadlineLabel(casting.deadline_at)}
-                        </Tag>
-                      </span>
-                      <ArrowRight className="h-4 w-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
+        {/* ── Centre: the feed ── */}
+        <div className="flex min-w-0 flex-col gap-4">
+          {/* Phone/tablet identity strip — the left rail lives at ≥lg. */}
+          <Card className="flex items-center gap-3 lg:hidden">
+            <Link to="/talent/profile" className="shrink-0">
+              <Avatar src={data.profile.avatar_url ?? undefined} name={name} size="md" />
+            </Link>
+            <div className="min-w-0 flex-1">
+              <Link
+                to="/talent/profile"
+                className="-my-2 block truncate py-2 font-display text-[15px] font-bold text-ink"
+              >
+                {name}
+              </Link>
+              <div className="mt-1.5 flex items-center gap-2">
+                <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
+                  <span
+                    className="block h-full rounded-full bg-ink"
+                    style={{ width: `${completion.percent}%` }}
+                  />
+                </span>
+                <span className="shrink-0 font-mono text-[11px] text-muted">
+                  {completion.percent}%
+                </span>
+              </div>
+            </div>
+            <Link
+              to="/talent/profile"
+              className="inline-flex h-9 shrink-0 items-center rounded-btn px-2 text-[13px] font-semibold text-link hover:bg-link/5"
+            >
+              Edit
+            </Link>
           </Card>
 
-          <Card className="flex flex-col gap-4">
-            <SectionHead
+          {/* The feed's own controls: real filters over real castings. */}
+          <div className="flex items-center gap-2">
+            <div className="no-scrollbar min-w-0 flex-1 overflow-x-auto">
+              <SegmentedControl
+                wrap={false}
+                options={[
+                  { value: 'recent', label: 'Recent' },
+                  { value: 'closing', label: 'Closing' },
+                  { value: 'saved', label: 'Saved' },
+                  { value: 'applied', label: 'Applied' },
+                ]}
+                value={scope}
+                onChange={(value) => value && setScope(value as Scope)}
+              />
+            </div>
+            <Link
+              to="/talent/casting-calls"
+              className="hidden h-9 shrink-0 items-center gap-1.5 rounded-btn px-2 text-[13px] font-semibold text-link hover:bg-link/5 sm:inline-flex"
+            >
+              <Search className="h-3.5 w-3.5" />
+              Search all castings
+            </Link>
+          </div>
+
+          {castings.error && (
+            <FormError>{errorMessage(castings.error, 'Could not load the feed')}</FormError>
+          )}
+
+          {castings.isLoading ? (
+            <div className="flex flex-col gap-4">
+              <Skeleton className="h-80" />
+              <Skeleton className="h-72" />
+            </div>
+          ) : feed.length === 0 ? (
+            <EmptyState
+              icon={<Clapperboard className="h-5 w-5" />}
+              title={
+                scope === 'saved'
+                  ? 'Nothing saved yet'
+                  : scope === 'applied'
+                    ? 'You have not applied to a casting yet'
+                    : scope === 'closing'
+                      ? 'No casting call has a deadline right now'
+                      : 'Your feed is empty for now'
+              }
+              description={
+                scope === 'recent'
+                  ? 'As soon as a production publishes a casting call, it appears here as a post.'
+                  : scope === 'saved'
+                    ? 'Save a casting from its post and it lands here.'
+                    : undefined
+              }
+              action={
+                scope !== 'recent' ? (
+                  <Button size="sm" variant="secondary" onClick={() => setScope('recent')}>
+                    Back to the feed
+                  </Button>
+                ) : undefined
+              }
+            />
+          ) : (
+            <ul className="flex flex-col gap-4">
+              {feed.map((item) => (
+                <li key={item.key}>
+                  {item.kind === 'casting' ? (
+                    <CastingPost
+                      casting={item.casting}
+                      applicationsByRole={applicationsByRole}
+                      saved={savedIds.has(item.casting.id)}
+                      onToggleSave={() =>
+                        saveCasting.mutate({
+                          castingId: item.casting.id,
+                          saved: savedIds.has(item.casting.id),
+                        })
+                      }
+                      onApply={(role) =>
+                        setApplyTo({
+                          role,
+                          castingTitle: item.casting.project?.title ?? item.casting.title,
+                        })
+                      }
+                      canApply={isTalent}
+                    />
+                  ) : (
+                    <ActivityPost
+                      application={item.application}
+                      at={item.at}
+                      event={item.event}
+                    />
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <p className="pb-2 text-[12px] text-muted">
+            Signed in as {user?.email}. Every post above is a casting call published in the
+            database.
+          </p>
+        </div>
+
+        {/* ── Right rail: what needs you ── */}
+        <aside className="hidden min-w-0 flex-col gap-4 xl:sticky xl:top-[5.5rem] xl:flex">
+          <Card className="flex flex-col gap-3.5">
+            <RailHead
               icon={<Film className="h-4 w-4" />}
-              title="Your auditions"
+              title="Auditions"
               to="/talent/auditions"
               count={activeApplications.length}
             />
-
-            {applications.isLoading ? (
-              <Skeleton className="h-20" />
-            ) : activeApplications.length === 0 ? (
-              <EmptyState
-                compact
-                icon={<Film className="h-5 w-5" />}
-                title="No auditions yet"
-                description="Apply to a role and it will appear here with its status."
-                action={
-                  <Button size="sm" onClick={() => navigate('/talent/casting-calls')}>
-                    Browse casting calls
-                  </Button>
-                }
-              />
+            {activeApplications.length === 0 ? (
+              <p className="text-[13px] text-muted">
+                Apply from a post and the audition shows up here with its status.
+              </p>
             ) : (
-              <ul className="flex flex-col divide-y divide-line">
+              <ul className="flex flex-col gap-3">
                 {activeApplications.slice(0, 4).map((application) => (
-                  <li
-                    key={application.id}
-                    className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0"
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate text-[15px] font-bold text-ink">
+                  <li key={application.id} className="flex min-w-0 items-center gap-2.5">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13.5px] font-semibold text-ink">
                         {application.role?.name ?? 'Role'}
-                        <span className="font-normal text-muted">
-                          {' '}
-                          — {application.project?.title ?? 'Project'}
-                        </span>
                       </span>
-                      <span className="block text-[13px] text-muted">
-                        Applied {relativeTime(application.submitted_at ?? application.created_at)}
-                        {application.hasSelfTape ? ' · self-tape sent' : ''}
+                      <span className="block truncate text-[12px] text-muted">
+                        {application.project?.title ?? 'Project'}
                       </span>
                     </span>
                     <Tag tone={APPLICATION_STATUS_TONE[application.status]}>
@@ -280,97 +402,123 @@ export function TalentHome() {
             )}
           </Card>
 
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2">
-            <Card className="flex flex-col gap-4">
-              <SectionHead
-                icon={<MessageCircle className="h-4 w-4" />}
-                title="Messages"
-                to="/talent/messages"
-              />
-              {(conversations.data ?? []).length === 0 ? (
-                <EmptyState
-                  compact
-                  icon={<MessageCircle className="h-5 w-5" />}
-                  title="No messages"
-                  description="Productions can message you once you apply."
-                />
-              ) : (
-                <ul className="flex flex-col gap-3">
-                  {(conversations.data ?? []).slice(0, 3).map((conversation) => (
-                    <li key={conversation.id} className="min-w-0">
-                      <Link to="/talent/messages" className="flex min-w-0 items-center gap-3">
-                        <Avatar
-                          src={conversation.participants[0]?.avatar_url ?? undefined}
-                          name={participantName(conversation.participants[0])}
-                          size="sm"
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[14px] font-semibold text-ink">
-                            {participantName(conversation.participants[0])}
-                          </span>
-                          <span className="block truncate text-[13px] text-muted">
-                            {conversation.lastMessage?.body ?? 'No message yet'}
-                          </span>
-                        </span>
-                        {conversation.unread > 0 && (
-                          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-signal-no px-1.5 font-mono text-[10px] font-bold text-white">
-                            {conversation.unread}
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
+          <Card className="flex flex-col gap-3.5">
+            <RailHead
+              icon={<Bell className="h-4 w-4" />}
+              title="Notifications"
+              to="/talent/notifications"
+              count={unreadNotifications.length}
+            />
+            {(notifications.data ?? []).length === 0 ? (
+              <p className="text-[13px] text-muted">
+                Status changes and messages show up here.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {(notifications.data ?? []).slice(0, 4).map((item) => (
+                  <li key={item.id} className="flex min-w-0 items-start gap-2.5">
+                    <span
+                      className={cn(
+                        'mt-1.5 h-2 w-2 shrink-0 rounded-full',
+                        item.read_at ? 'bg-line' : 'bg-link',
+                      )}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13.5px] font-semibold text-ink">
+                        {item.title}
+                      </span>
+                      <span className="block truncate text-[12px] text-muted">{item.body}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
 
-            <Card className="flex flex-col gap-4">
-              <SectionHead
-                icon={<Bell className="h-4 w-4" />}
-                title="Notifications"
-                to="/talent/notifications"
-                count={unreadNotifications.length}
-              />
-              {(notifications.data ?? []).length === 0 ? (
-                <EmptyState
-                  compact
-                  icon={<Sparkles className="h-5 w-5" />}
-                  title="Nothing yet"
-                  description="Status changes and messages show up here."
-                />
-              ) : (
-                <ul className="flex flex-col gap-3">
-                  {(notifications.data ?? []).slice(0, 3).map((item) => (
-                    <li key={item.id} className="flex min-w-0 items-start gap-2.5">
-                      <span
-                        className={cn(
-                          'mt-1.5 h-2 w-2 shrink-0 rounded-full',
-                          item.read_at ? 'bg-line' : 'bg-link',
-                        )}
+          <Card className="flex flex-col gap-3.5">
+            <RailHead
+              icon={<MessageCircle className="h-4 w-4" />}
+              title="Messages"
+              to="/talent/messages"
+            />
+            {(conversations.data ?? []).length === 0 ? (
+              <p className="text-[13px] text-muted">
+                Productions can message you once you apply.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {(conversations.data ?? []).slice(0, 3).map((conversation) => (
+                  <li key={conversation.id} className="min-w-0">
+                    <Link to="/talent/messages" className="flex min-w-0 items-center gap-2.5">
+                      <Avatar
+                        src={conversation.participants[0]?.avatar_url ?? undefined}
+                        name={participantName(conversation.participants[0])}
+                        size="sm"
                       />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[14px] font-semibold text-ink">
-                          {item.title}
+                        <span className="block truncate text-[13.5px] font-semibold text-ink">
+                          {participantName(conversation.participants[0])}
                         </span>
-                        <span className="block truncate text-[13px] text-muted">{item.body}</span>
+                        <span className="block truncate text-[12px] text-muted">
+                          {conversation.lastMessage?.body ?? 'No message yet'}
+                        </span>
                       </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-          </div>
-
-          <p className="text-[12px] text-muted">
-            Signed in as {user?.email}. Everything on this page is read from your account.
-          </p>
-        </div>
+                      {conversation.unread > 0 && (
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-signal-no px-1.5 font-mono text-[10px] font-bold text-white">
+                          {conversation.unread}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </aside>
       </div>
+
+      {applyTo && (
+        <ApplyModal
+          role={applyTo.role}
+          castingTitle={applyTo.castingTitle}
+          onClose={() => setApplyTo(null)}
+        />
+      )}
+    </>
+  )
+}
+
+/** "Closing soon" orders by deadline; every other scope is reverse-chronological. */
+function sortFeed(items: FeedItem[], scope: Scope): FeedItem[] {
+  if (scope === 'closing') {
+    const deadline = (item: FeedItem) =>
+      item.kind === 'casting'
+        ? new Date(item.casting.deadline_at ?? '').getTime()
+        : Number.POSITIVE_INFINITY
+    return [...items].sort((a, b) => deadline(a) - deadline(b))
+  }
+  return [...items].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+}
+
+function ProfileStrength({ percent, next }: { percent: number; next?: string }) {
+  return (
+    <div className="mt-4 rounded-field bg-paper p-3">
+      <div className="flex items-center justify-between text-[12px] font-semibold text-ink">
+        <span className="uppercase tracking-[0.18em] text-muted">Profile</span>
+        <span className="font-mono">{percent}%</span>
+      </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-line">
+        <div
+          className="h-full rounded-full bg-ink transition-[width] duration-500"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      {next && <p className="mt-2 text-[12px] text-muted">Next: {next.toLowerCase()}</p>}
     </div>
   )
 }
 
-function SectionHead({
+function RailHead({
   icon,
   title,
   to,
@@ -382,17 +530,20 @@ function SectionHead({
   count?: number
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="tech-label inline-flex items-center gap-1.5">
+    <div className="flex min-w-0 items-center justify-between gap-2">
+      <span className="tech-label inline-flex min-w-0 items-center gap-1.5">
         {icon}
-        {title}
+        <span className="truncate">{title}</span>
         {count !== undefined && count > 0 && (
-          <span className="ml-1 rounded-full bg-paper px-2 py-0.5 font-mono text-[10px] text-muted">
+          <span className="shrink-0 rounded-full bg-paper px-2 py-0.5 font-mono text-[10px] text-muted">
             {count}
           </span>
         )}
       </span>
-      <Link to={to} className="text-[13px] font-semibold text-link hover:underline">
+      <Link
+        to={to}
+        className="inline-flex h-8 shrink-0 items-center rounded-btn px-1.5 text-[12.5px] font-semibold text-link hover:bg-link/5"
+      >
         See all
       </Link>
     </div>
