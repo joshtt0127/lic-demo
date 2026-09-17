@@ -1,11 +1,12 @@
-import { NavLink, Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
+import { NavLink, Outlet, Link, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { Search, Bell, ChevronDown } from 'lucide-react'
-import { Logo, Avatar } from '@/components/ui'
+import { Logo } from '@/components/ui'
 import { CommandPalette, openCommandPalette } from '@/components/CommandPalette'
 import { PageTransition } from '@/components/PageTransition'
+import { UserMenu } from '@/components/UserMenu'
 import { useToast } from '@/components/Toast'
-import { studioUser } from '@/data'
+import { useAuth } from '@/features/auth/AuthProvider'
 import { cn } from '@/lib/cn'
 
 const menu = [
@@ -16,9 +17,9 @@ const menu = [
 
 /** Production app shell — persistent desktop top nav + full-width content. */
 export function StudioLayout() {
-  const navigate = useNavigate()
   const location = useLocation()
   const toast = useToast()
+  const { profile } = useAuth()
 
   return (
     <div className="flex min-h-screen flex-col bg-paper">
@@ -83,18 +84,12 @@ export function StudioLayout() {
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-signal-no ring-2 ring-paper" />
             </button>
 
-            <button
-              onClick={() => navigate('/studio/search')}
-              className="flex items-center gap-2.5 border-l border-line pl-3 text-left"
-            >
-              <Avatar src={studioUser.avatar} name={studioUser.name} size="sm" />
-              <div className="hidden leading-tight lg:block">
-                <div className="text-sm font-semibold text-ink">{studioUser.name}</div>
-                <div className="text-xs text-muted">
-                  {studioUser.role} · {studioUser.company}
-                </div>
-              </div>
-            </button>
+            <div className="border-l border-line pl-3">
+              <UserMenu
+                meta={[profile?.city, profile?.country].filter(Boolean).join(', ') || 'Production'}
+                profileHref="/studio/search"
+              />
+            </div>
           </div>
         </div>
       </header>

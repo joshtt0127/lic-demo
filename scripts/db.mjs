@@ -9,6 +9,7 @@
  *   node scripts/db.mjs create-project [name]create the project + print the keys
  *   node scripts/db.mjs status               show which migrations are applied
  *   node scripts/db.mjs push                 apply every pending migration
+ *   node scripts/db.mjs configure-auth       POC auth settings (no email confirmation)
  *   node scripts/db.mjs types                write src/types/database.generated.ts
  *   node scripts/db.mjs query "select 1"     run ad-hoc SQL
  *
@@ -199,6 +200,30 @@ async function createProject(name = 'let-it-cast-poc') {
   console.log(`# database password (keep it somewhere safe): ${dbPass}\n`)
 }
 
+/**
+ * POC auth settings: sign-up must land straight in the onboarding, so email
+ * confirmation is off and the local dev origin is allowed to receive redirects
+ * (password reset).
+ */
+async function configureAuth() {
+  const siteUrl = env('SITE_URL') || 'http://localhost:5174'
+  await api(`/v1/projects/${projectRef()}/config/auth`, {
+    method: 'PATCH',
+    body: {
+      mailer_autoconfirm: true,
+      site_url: siteUrl,
+      uri_allow_list: [
+        `${siteUrl}/**`,
+        'http://localhost:5173/**',
+        'http://localhost:5174/**',
+        'http://localhost:4173/**',
+      ].join(','),
+      password_min_length: 8,
+    },
+  })
+  console.log(`✓ Auth configured (no email confirmation, site_url ${siteUrl})`)
+}
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 async function types() {
@@ -218,6 +243,9 @@ switch (command) {
     break
   case 'create-project':
     await createProject(rest[0])
+    break
+  case 'configure-auth':
+    await configureAuth()
     break
   case 'status':
     await status()

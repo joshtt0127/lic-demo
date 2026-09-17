@@ -1,6 +1,12 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Launcher } from './pages/Launcher'
 import { Pitch } from './pages/Pitch'
+import { SignIn } from './pages/auth/SignIn'
+import { SignUp } from './pages/auth/SignUp'
+import { ForgotPassword } from './pages/auth/ForgotPassword'
+import { ResetPassword } from './pages/auth/ResetPassword'
+import { Onboarding } from './pages/onboarding/Onboarding'
+import { RedirectIfSignedIn, RequireAuth, RequireSurface } from './features/auth/guards'
 import { StudioLayout } from './studio/StudioLayout'
 import { HomeFeed } from './studio/HomeFeed'
 import { CommandCenter } from './studio/CommandCenter'
@@ -34,52 +40,88 @@ export const router = createBrowserRouter([
   { path: '/', element: <Launcher /> },
   { path: '/pitch', element: <Pitch /> },
 
+  // Auth — signed-in users are bounced to their own space.
+  {
+    path: '/auth',
+    element: <RedirectIfSignedIn />,
+    children: [
+      { index: true, element: <Navigate to="/auth/sign-in" replace /> },
+      { path: 'sign-in', element: <SignIn /> },
+      { path: 'sign-up', element: <SignUp /> },
+      { path: 'forgot-password', element: <ForgotPassword /> },
+    ],
+  },
+  // Password recovery arrives with a live session, so it stays outside the guard.
+  { path: '/auth/reset-password', element: <ResetPassword /> },
+
+  // Common onboarding (account type → identity), resumed from the profile state.
+  {
+    path: '/onboarding',
+    element: <RequireAuth />,
+    children: [{ index: true, element: <Onboarding /> }],
+  },
+
   // Production (web / desktop)
   {
     path: '/studio',
-    element: <StudioLayout />,
+    element: <RequireSurface surface="studio" />,
     children: [
-      { index: true, element: <CommandCenter /> },
-      { path: 'dashboard', element: <Dashboard /> },
-      { path: 'search', element: <SearchScreen /> },
-      { path: 'review', element: <Review /> },
-      { path: 'new-casting',    element: <NewCasting /> },
-      { path: 'casting-recap',  element: <CastingRecap /> },
-      { path: 'agency-select',  element: <AgencySelect /> },
-      { path: 'casting-search', element: <CastingSearch /> },
-      { path: 'selection',      element: <SelectionConsole /> },
-      { path: 'talent/:candidateId', element: <StudioTalentProfile /> },
-      { path: 'wall',           element: <Wall /> },
+      {
+        element: <StudioLayout />,
+        children: [
+          { index: true, element: <CommandCenter /> },
+          { path: 'dashboard', element: <Dashboard /> },
+          { path: 'search', element: <SearchScreen /> },
+          { path: 'review', element: <Review /> },
+          { path: 'new-casting', element: <NewCasting /> },
+          { path: 'casting-recap', element: <CastingRecap /> },
+          { path: 'agency-select', element: <AgencySelect /> },
+          { path: 'casting-search', element: <CastingSearch /> },
+          { path: 'selection', element: <SelectionConsole /> },
+          { path: 'talent/:candidateId', element: <StudioTalentProfile /> },
+          { path: 'wall', element: <Wall /> },
+        ],
+      },
     ],
   },
 
   // Talent (mobile, inside phone frame)
   {
     path: '/app',
-    element: <AppLayout />,
+    element: <RequireSurface surface="talent" />,
     children: [
-      { index: true, element: <Discover /> },
-      { path: 'profile', element: <Profile /> },
-      { path: 'casting/:id', element: <CastingDetail /> },
-      { path: 'selftape/:id', element: <SelfTape /> },
-      { path: 'feed', element: <MobileFeed /> },
-      { path: 'auditions', element: <Auditions /> },
-      { path: 'tips', element: <SnapApplyTips /> },
+      {
+        element: <AppLayout />,
+        children: [
+          { index: true, element: <Discover /> },
+          { path: 'profile', element: <Profile /> },
+          { path: 'casting/:id', element: <CastingDetail /> },
+          { path: 'selftape/:id', element: <SelfTape /> },
+          { path: 'feed', element: <MobileFeed /> },
+          { path: 'auditions', element: <Auditions /> },
+          { path: 'tips', element: <SnapApplyTips /> },
+        ],
+      },
     ],
   },
 
   // Talent (web / desktop — LinkedIn-style space)
   {
     path: '/talent',
-    element: <TalentDesktopLayout />,
+    element: <RequireSurface surface="talent" />,
     children: [
-      { index: true, element: <HomeFeed /> },
-      { path: 'casting-calls', element: <CastingCalls /> },
-      { path: 'auditions', element: <TalentAuditions /> },
-      { path: 'messages', element: <Messages /> },
-      { path: 'notifications', element: <Notifications /> },
-      { path: 'profile', element: <TalentProfilePage /> },
-      { path: 'casting/:projectId', element: <TalentCastingDetail /> },
+      {
+        element: <TalentDesktopLayout />,
+        children: [
+          { index: true, element: <HomeFeed /> },
+          { path: 'casting-calls', element: <CastingCalls /> },
+          { path: 'auditions', element: <TalentAuditions /> },
+          { path: 'messages', element: <Messages /> },
+          { path: 'notifications', element: <Notifications /> },
+          { path: 'profile', element: <TalentProfilePage /> },
+          { path: 'casting/:projectId', element: <TalentCastingDetail /> },
+        ],
+      },
     ],
   },
 

@@ -6,10 +6,12 @@ type LogoProps = {
   markOnly?: boolean
   /** Pixel height of the mark; wordmark scales to match. */
   size?: number
+  /** Wordmark colour — `light` for dark surfaces. */
+  tone?: 'dark' | 'light'
   className?: string
 }
 
-export function Logo({ markOnly = false, size = 26, className }: LogoProps) {
+export function Logo({ markOnly = false, size = 26, tone = 'dark', className }: LogoProps) {
   return (
     <span className={cn('inline-flex items-center gap-2.5', className)}>
       <img
@@ -21,7 +23,10 @@ export function Logo({ markOnly = false, size = 26, className }: LogoProps) {
       />
       {!markOnly && (
         <span
-          className="font-sans font-extrabold lowercase tracking-tight text-ink"
+          className={cn(
+            'font-sans font-extrabold lowercase tracking-tight',
+            tone === 'light' ? 'text-white' : 'text-ink',
+          )}
           style={{ fontSize: size * 0.74, lineHeight: 1 }}
         >
           let it cast

@@ -1,8 +1,11 @@
 # Let It Cast — démo investisseur
 
-Webapp de démonstration (type « LinkedIn + Cast It Talent + TikTok pour acteurs »).
-**Démo front-only** : aucun backend, tout en fixtures + état React. Doit être
-réellement navigable (CTA qui naviguent), crédible, avec données factices.
+Webapp de casting (type « LinkedIn + Cast It Talent + TikTok pour acteurs »).
+**En migration vers un POC full-stack** : Supabase (Postgres + Auth + Storage + RLS)
+remplace progressivement les fixtures. Voir `docs/FULLSTACK_MIGRATION_PLAN.md` pour
+l'ordre des slices et `docs/DATABASE.md` pour le modèle de données.
+Règle absolue : pas de faux bouton — ce qui est visible doit fonctionner réellement
+et survivre à un refresh / une reconnexion.
 
 ## Stack
 
@@ -13,12 +16,32 @@ réellement navigable (CTA qui naviguent), crédible, avec données factices.
 - **lucide-react** (icônes)
 - **recharts** (graphiques — utiliser les couleurs de `src/styles/tokens.ts`)
 - Polices : **Inter** (variable) + **IBM Plex Mono** via `@fontsource` (importées dans `src/index.css`)
+- **Supabase** (`@supabase/supabase-js`) — client unique dans `src/lib/supabase.ts`
+- **@tanstack/react-query** — cache / loading / erreurs des données serveur
+- **zod** — validation des formulaires (`src/features/auth/validation.ts`)
+- **vitest** + @testing-library/react — tests unitaires et de rendu
 
-Commandes : `npm run dev` · `npm run build` · `npm run preview`.
+Commandes : `npm run dev` · `npm run build` · `npm run typecheck` · `npm test` ·
+`npm run db:push` (migrations) · `npm run db:types`.
+
+## Auth & access control
+
+- `src/features/auth/AuthProvider.tsx` — session Supabase persistée + profil (`profiles`),
+  `signUp` / `signIn` / `signOut` / reset de mot de passe / `setAccountType`.
+- `src/features/auth/guards.tsx` — `RequireAuth`, `RequireSurface` (talent vs studio),
+  `RedirectIfSignedIn`. Les guards attendent la restauration de session (`ready`) :
+  un refresh sur une page protégée ne doit jamais flasher l'écran de connexion.
+- `src/lib/access.ts` — **source unique** des règles d'accès : `homeRouteFor`,
+  `canAccessSurface`, capacités par rôle d'organisation (`can(role, capability)`).
+  Ne jamais écrire de `if (user.type === …)` dans un composant.
+- Onboarding commun : `/onboarding` (choix talent/production puis identité), reprise
+  automatique à l'étape en cours depuis l'état du profil.
+- `src/data/repositories/*` — accès aux tables. Les composants passent par un
+  repository ou un hook, jamais par `supabase` directement.
 
 ## Architecture / routing
 
-Trois surfaces dans une seule app :
+Trois surfaces dans une seule app (+ `/auth/*` et `/onboarding`) :
 
 | Route            | Surface                              | Layout |
 | ---------------- | ------------------------------------ | ------ |

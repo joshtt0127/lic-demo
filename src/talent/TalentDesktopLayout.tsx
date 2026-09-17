@@ -1,10 +1,11 @@
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Bell, Clapperboard, Film, Home, MessageCircle, Search, User } from 'lucide-react'
-import { Logo, Avatar } from '@/components/ui'
+import { Logo } from '@/components/ui'
 import { PageTransition } from '@/components/PageTransition'
+import { UserMenu } from '@/components/UserMenu'
 import { useToast } from '@/components/Toast'
-import { mayaProfile, unreadMessagesCount, unreadNotificationsCount } from '@/data'
+import { unreadMessagesCount, unreadNotificationsCount } from '@/data'
 import { cn } from '@/lib/cn'
 
 const nav = [
@@ -19,7 +20,6 @@ const nav = [
 /** Talent desktop app shell — LinkedIn-style top nav, full-width content. */
 export function TalentDesktopLayout() {
   const location = useLocation()
-  const navigate = useNavigate()
   const toast = useToast()
 
   return (
@@ -72,9 +72,9 @@ export function TalentDesktopLayout() {
             ))}
           </nav>
 
-          <button onClick={() => navigate('/talent/profile')} className="shrink-0 border-l border-line pl-3">
-            <Avatar src={mayaProfile.avatar} name={mayaProfile.name} size="sm" />
-          </button>
+          <div className="shrink-0 border-l border-line pl-3">
+            <UserMenu compact profileHref="/talent/profile" />
+          </div>
         </div>
       </header>
 

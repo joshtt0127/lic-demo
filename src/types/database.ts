@@ -8,6 +8,12 @@
  *
  * Keep it in sync with the migrations — it is the contract every repository in
  * `src/data/repositories/` relies on.
+ *
+ * Gotcha: every row type is a `type` alias, never an `interface`. TypeScript only
+ * gives implicit index signatures to aliases, and Supabase's `GenericSchema`
+ * constraint requires `Row extends Record<string, unknown>`. An interface here
+ * silently resolves the whole schema to `never`, and every `.insert()` /
+ * `.update()` payload then fails to typecheck.
  */
 
 export type AccountType = 'talent' | 'production'
@@ -47,7 +53,7 @@ export type Locale = 'en' | 'fr'
 
 // ── Rows ─────────────────────────────────────────────────────────────────────
 
-export interface ProfileRow {
+export type ProfileRow = {
   id: string
   account_type: AccountType | null
   first_name: string | null
@@ -62,7 +68,7 @@ export interface ProfileRow {
   updated_at: string
 }
 
-export interface TalentProfileRow {
+export type TalentProfileRow = {
   profile_id: string
   professional_name: string | null
   headline: string | null
@@ -87,7 +93,7 @@ export interface TalentProfileRow {
   updated_at: string
 }
 
-export interface ProductionProfileRow {
+export type ProductionProfileRow = {
   profile_id: string
   job_title: string | null
   phone: string | null
@@ -95,30 +101,30 @@ export interface ProductionProfileRow {
   updated_at: string
 }
 
-export interface SkillRow {
+export type SkillRow = {
   id: string
   name: string
   category: string | null
 }
 
-export interface LanguageRow {
+export type LanguageRow = {
   code: string
   name: string
 }
 
-export interface TalentSkillRow {
+export type TalentSkillRow = {
   talent_id: string
   skill_id: string
   level: 1 | 2 | 3
 }
 
-export interface TalentLanguageRow {
+export type TalentLanguageRow = {
   talent_id: string
   language: string
   fluency: string | null
 }
 
-export interface CreditRow {
+export type CreditRow = {
   id: string
   talent_id: string
   title: string
@@ -133,7 +139,7 @@ export interface CreditRow {
   created_at: string
 }
 
-export interface TrainingRow {
+export type TrainingRow = {
   id: string
   talent_id: string
   school: string
@@ -145,7 +151,7 @@ export interface TrainingRow {
   created_at: string
 }
 
-export interface MediaAssetRow {
+export type MediaAssetRow = {
   id: string
   owner_id: string
   kind: MediaKind
@@ -161,7 +167,7 @@ export interface MediaAssetRow {
   created_at: string
 }
 
-export interface OrganizationRow {
+export type OrganizationRow = {
   id: string
   name: string
   slug: string
@@ -176,7 +182,7 @@ export interface OrganizationRow {
   updated_at: string
 }
 
-export interface OrganizationMemberRow {
+export type OrganizationMemberRow = {
   org_id: string
   profile_id: string
   role: OrgRole
@@ -184,7 +190,7 @@ export interface OrganizationMemberRow {
   created_at: string
 }
 
-export interface OrganizationInviteRow {
+export type OrganizationInviteRow = {
   id: string
   org_id: string
   email: string
@@ -196,7 +202,7 @@ export interface OrganizationInviteRow {
   created_at: string
 }
 
-export interface ProjectRow {
+export type ProjectRow = {
   id: string
   org_id: string
   title: string
@@ -218,14 +224,14 @@ export interface ProjectRow {
   updated_at: string
 }
 
-export interface ProjectMemberRow {
+export type ProjectMemberRow = {
   project_id: string
   profile_id: string
   role: OrgRole
   created_at: string
 }
 
-export interface CastingCallRow {
+export type CastingCallRow = {
   id: string
   project_id: string
   title: string
@@ -242,7 +248,7 @@ export interface CastingCallRow {
   updated_at: string
 }
 
-export interface RoleRow {
+export type RoleRow = {
   id: string
   casting_call_id: string
   name: string
@@ -267,7 +273,7 @@ export interface RoleRow {
   updated_at: string
 }
 
-export interface ApplicationRow {
+export type ApplicationRow = {
   id: string
   role_id: string
   talent_id: string
@@ -283,7 +289,7 @@ export interface ApplicationRow {
   updated_at: string
 }
 
-export interface SelfTapeRow {
+export type SelfTapeRow = {
   id: string
   application_id: string
   media_asset_id: string
@@ -291,12 +297,12 @@ export interface SelfTapeRow {
   submitted_at: string
 }
 
-export interface ApplicationMediaRow {
+export type ApplicationMediaRow = {
   application_id: string
   media_asset_id: string
 }
 
-export interface CandidateReviewRow {
+export type CandidateReviewRow = {
   id: string
   application_id: string
   reviewer_id: string
@@ -306,7 +312,7 @@ export interface CandidateReviewRow {
   updated_at: string
 }
 
-export interface CandidateNoteRow {
+export type CandidateNoteRow = {
   id: string
   application_id: string
   author_id: string
@@ -315,7 +321,7 @@ export interface CandidateNoteRow {
   created_at: string
 }
 
-export interface SavedSearchRow {
+export type SavedSearchRow = {
   id: string
   owner_id: string
   project_id: string | null
@@ -324,13 +330,13 @@ export interface SavedSearchRow {
   created_at: string
 }
 
-export interface SavedCastingRow {
+export type SavedCastingRow = {
   talent_id: string
   casting_call_id: string
   created_at: string
 }
 
-export interface ConversationRow {
+export type ConversationRow = {
   id: string
   subject: string | null
   context_type: ConversationContext
@@ -341,14 +347,14 @@ export interface ConversationRow {
   created_at: string
 }
 
-export interface ConversationMemberRow {
+export type ConversationMemberRow = {
   conversation_id: string
   profile_id: string
   last_read_at: string | null
   created_at: string
 }
 
-export interface MessageRow {
+export type MessageRow = {
   id: string
   conversation_id: string
   sender_id: string
@@ -356,7 +362,7 @@ export interface MessageRow {
   created_at: string
 }
 
-export interface NotificationRow {
+export type NotificationRow = {
   id: string
   recipient_id: string
   type: string
@@ -368,7 +374,7 @@ export interface NotificationRow {
   created_at: string
 }
 
-export interface AnalyticsEventRow {
+export type AnalyticsEventRow = {
   id: number
   profile_id: string | null
   name: string
@@ -378,7 +384,7 @@ export interface AnalyticsEventRow {
 
 // ── Views ────────────────────────────────────────────────────────────────────
 
-export interface CandidateViewRow {
+export type CandidateViewRow = {
   application_id: string
   role_id: string
   talent_id: string
@@ -407,7 +413,7 @@ export interface CandidateViewRow {
   has_self_tape: boolean
 }
 
-export interface RoleStatsViewRow {
+export type RoleStatsViewRow = {
   role_id: string
   casting_call_id: string
   project_id: string
@@ -418,7 +424,7 @@ export interface RoleStatsViewRow {
   booked: number
 }
 
-export interface ProjectStatsViewRow {
+export type ProjectStatsViewRow = {
   project_id: string
   roles: number
   lead_roles: number
@@ -443,7 +449,7 @@ type Writable<Row, Required extends keyof Row = never> = {
 /** A view is read-only. */
 type ReadOnly<Row> = { Row: Row; Relationships: [] }
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       profiles: Writable<ProfileRow, 'id'>
@@ -481,7 +487,10 @@ export interface Database {
       v_role_stats: ReadOnly<RoleStatsViewRow>
       v_project_stats: ReadOnly<ProjectStatsViewRow>
     }
-    Functions: Record<string, never>
+    Functions: {
+      // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+      [_ in never]: never
+    }
     Enums: {
       account_type: AccountType
       org_role: OrgRole
@@ -499,6 +508,8 @@ export interface Database {
       conversation_context: ConversationContext
       availability_status: AvailabilityStatus
     }
-    CompositeTypes: Record<string, never>
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }

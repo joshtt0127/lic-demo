@@ -1,55 +1,58 @@
-import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Monitor, Smartphone, UserSquare2, ArrowRight, Play } from 'lucide-react'
-import { Logo } from '@/components/ui'
-import { PasswordGateModal, usePasswordGate } from '@/components/ui/PasswordGate'
+import { ArrowRight, Monitor, Play, Smartphone, UserSquare2 } from 'lucide-react'
+import { Button, Logo } from '@/components/ui'
+import { useAuth } from '@/features/auth/AuthProvider'
+import { displayName, homeRouteFor } from '@/lib/access'
 
-/** Demo home — sober launcher with the logo and two big entry points. */
+const animate = typeof document === 'undefined' || document.visibilityState === 'visible'
+
+/**
+ * Public landing. Signed out it sells the product and routes to auth; signed in
+ * it offers a single "continue" into the user's own space.
+ *
+ * The three surface cards stay: they navigate for real, and the route guards
+ * decide whether the visitor needs to sign in first.
+ */
 export function Launcher() {
   const navigate = useNavigate()
-  const { unlocked, unlock } = usePasswordGate()
-  const [pending, setPending] = useState<string | null>(null)
-
-  function handleEntry(path: string) {
-    if (unlocked) {
-      navigate(path)
-    } else {
-      setPending(path)
-    }
-  }
-
-  function handleSuccess() {
-    unlock()
-    if (pending) navigate(pending)
-    setPending(null)
-  }
+  const { session, profile } = useAuth()
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6 py-16">
-      {pending && (
-        <PasswordGateModal
-          onSuccess={handleSuccess}
-          onClose={() => setPending(null)}
-        />
-      )}
-
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
+        initial={animate ? { opacity: 0, y: 12 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="w-full max-w-3xl"
       >
         <div className="mb-10 flex flex-col items-center text-center">
           <Logo size={40} />
-          <span className="tech-label mt-8">Investor demo · 2026</span>
+          <span className="tech-label mt-8">Casting, end to end</span>
           <h1 className="mt-3 max-w-xl text-balance text-3xl font-bold tracking-tight text-ink sm:text-4xl">
             The performance layer of global casting
           </h1>
           <p className="mt-3 max-w-md text-sm leading-relaxed text-muted">
-            Choose a surface to explore the demo. Everything is navigable with realistic
-            sample data.
+            One platform for the people who cast and the people who audition — real projects,
+            real submissions, one shared source of truth.
           </p>
+
+          {session ? (
+            <div className="mt-7 flex flex-col items-center gap-2">
+              <Button size="lg" onClick={() => navigate(homeRouteFor(profile))} iconRight={<ArrowRight className="h-4 w-4" />}>
+                Continue as {displayName(profile)}
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+              <Button size="lg" onClick={() => navigate('/auth/sign-up')}>
+                Create your account
+              </Button>
+              <Button size="lg" variant="secondary" onClick={() => navigate('/auth/sign-in')}>
+                Sign in
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
@@ -58,21 +61,21 @@ export function Launcher() {
             tag="Web · desktop"
             title="Production side"
             desc="Dashboard, talent search, self-tape review & casting console."
-            onClick={() => handleEntry('/studio')}
+            onClick={() => navigate('/studio')}
+          />
+          <EntryCard
+            icon={<UserSquare2 className="h-5 w-5" />}
+            tag="Web · desktop"
+            title="Talent space"
+            desc="Casting calls, auditions, messages, notifications & professional profile."
+            onClick={() => navigate('/talent')}
           />
           <EntryCard
             icon={<Smartphone className="h-5 w-5" />}
             tag="Mobile · app"
             title="Talent mobile app"
             desc="Casting calls, self-tape recording, auditions & feed."
-            onClick={() => handleEntry('/app')}
-          />
-          <EntryCard
-            icon={<UserSquare2 className="h-5 w-5" />}
-            tag="Web · desktop"
-            title="Talent space"
-            desc="Casting calls, auditions, messages, notifications & LinkedIn-style profile."
-            onClick={() => handleEntry('/talent')}
+            onClick={() => navigate('/app')}
           />
         </div>
 
