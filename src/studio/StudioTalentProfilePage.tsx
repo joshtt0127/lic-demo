@@ -1,8 +1,12 @@
+import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Briefcase, GraduationCap, MapPin } from 'lucide-react'
-import { Avatar, Card, FormError, Tag } from '@/components/ui'
+import { ArrowLeft, Briefcase, GraduationCap, MapPin, MessageSquare } from 'lucide-react'
+import { Avatar, Button, Card, FormError, Tag } from '@/components/ui'
 import { Skeleton } from '@/components/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
+import { useAuth } from '@/features/auth/AuthProvider'
+import { MessageTalentModal } from '@/features/messaging/MessageTalentModal'
+import { useCurrentOrganization } from '@/features/organizations/queries'
 import { useTalentProfile } from '@/features/talent/queries'
 import { publicUrl } from '@/lib/storage'
 import { errorMessage } from '@/lib/supabase'
@@ -16,7 +20,10 @@ import { errorMessage } from '@/lib/supabase'
 export function StudioTalentProfilePage() {
   const { profileId } = useParams()
   const navigate = useNavigate()
+  const { profile: me } = useAuth()
+  const { organization } = useCurrentOrganization(me?.id)
   const talent = useTalentProfile(profileId)
+  const [messaging, setMessaging] = useState(false)
 
   if (talent.isLoading || (!talent.data && !talent.error)) {
     return (
@@ -87,7 +94,26 @@ export function StudioTalentProfilePage() {
             ))}
           </div>
         </div>
+
+        {/* Writing to an actor is allowed at any point — it opens a real thread. */}
+        <Button
+          variant="secondary"
+          size="sm"
+          className="shrink-0"
+          icon={<MessageSquare className="h-4 w-4" />}
+          onClick={() => setMessaging(true)}
+        >
+          Message
+        </Button>
       </Card>
+
+      {messaging && profileId && (
+        <MessageTalentModal
+          talent={{ id: profileId, name, avatarUrl: profile.avatar_url }}
+          orgId={organization?.id}
+          onClose={() => setMessaging(false)}
+        />
+      )}
 
       {details.bio && (
         <Card className="flex flex-col gap-2">

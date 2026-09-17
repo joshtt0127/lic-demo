@@ -27,6 +27,7 @@ import { EmptyState } from '@/components/EmptyState'
 import { useToast } from '@/components/Toast'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useCurrentOrganization, useOrgMembers } from '@/features/organizations/queries'
+import { MessageTalentModal } from '@/features/messaging/MessageTalentModal'
 import {
   castingHealth,
   submissionsOverTime,
@@ -115,6 +116,7 @@ export function CastingDashboardPage() {
   }
 
   const [reviewing, setReviewing] = useState<CandidateViewRow | null>(null)
+  const [messaging, setMessaging] = useState<CandidateViewRow | null>(null)
   const [addingRole, setAddingRole] = useState(false)
   const [editingRole, setEditingRole] = useState<RoleRow | null>(null)
   const [roleDraft, setRoleDraft] = useState<RoleInput>({ name: '', roleType: 'supporting' })
@@ -774,6 +776,25 @@ export function CastingDashboardPage() {
           candidate={reviewing}
           orgId={organization?.id}
           onClose={() => setReviewing(null)}
+          onMessage={() => {
+            setMessaging(reviewing)
+            setReviewing(null)
+          }}
+        />
+      )}
+
+      {messaging && (
+        <MessageTalentModal
+          talent={{
+            id: messaging.talent_id,
+            name: messaging.name,
+            avatarUrl: messaging.avatar_url,
+          }}
+          subject={`${casting.data?.project?.title ?? casting.data?.title ?? 'Casting'} — ${messaging.role_name}`}
+          contextType="application"
+          contextId={messaging.application_id}
+          orgId={organization?.id}
+          onClose={() => setMessaging(null)}
         />
       )}
     </div>

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { MessageRow, ProfileRow } from '@/types/database'
+import type { ConversationContext, MessageRow, ProfileRow } from '@/types/database'
 
 /**
  * Messaging — the same conversations for both sides of the marketplace.
@@ -127,6 +127,89 @@ export async function sendMessage(input: {
   return data
 }
 
+export type StartConversationInput = {
+  /** The person to talk to — a talent, seen from the production side. */
+  withProfileId: string
+  body: string
+  subject?: string | null
+  contextType?: ConversationContext
+  contextId?: string | null
+  orgId?: string | null
+}
+
+/**
+ * Opens a conversation with someone and sends the first message.
+ *
+ * A thread is reused only when it is about the same thing (same context, or
+ * both direct) — a note about one role must not land in the thread of another.
+ * Returns the conversation id so the caller can open it.
+ */
+export async function startConversation(
+  senderId: string,
+  input: StartConversationInput,
+): Promise<string> {
+  const contextType = input.contextType ?? 'direct'
+
+  const { data: mine, error: mineError } = await supabase
+    .from('conversation_members')
+    .select('conversation_id')
+    .eq('profile_id', senderId)
+  if (mineError) throw mineError
+
+  const myIds = (mine ?? []).map((row) => row.conversation_id)
+  let conversationId: string | null = null
+
+  if (myIds.length > 0) {
+    const { data: shared, error: sharedError } = await supabase
+      .from('conversation_members')
+      .select('conversation_id')
+      .eq('profile_id', input.withProfileId)
+      .in('conversation_id', myIds)
+    if (sharedError) throw sharedError
+
+    const sharedIds = (shared ?? []).map((row) => row.conversation_id)
+    if (sharedIds.length > 0) {
+      const { data: candidates, error: candidatesError } = await supabase
+        .from('conversations')
+        .select('id, context_type, context_id')
+        .in('id', sharedIds)
+      if (candidatesError) throw candidatesError
+
+      conversationId =
+        (candidates ?? []).find(
+          (conversation) =>
+            conversation.context_type === contextType &&
+            (conversation.context_id ?? null) === (input.contextId ?? null),
+        )?.id ?? null
+    }
+  }
+
+  if (!conversationId) {
+    const { data: conversation, error: conversationError } = await supabase
+      .from('conversations')
+      .insert({
+        subject: input.subject?.trim() || null,
+        context_type: contextType,
+        context_id: input.contextId ?? null,
+        org_id: input.orgId ?? null,
+        created_by: senderId,
+      })
+      .select('id')
+      .single()
+    if (conversationError) throw conversationError
+    conversationId = conversation.id
+
+    const { error: membersError } = await supabase.from('conversation_members').insert([
+      { conversation_id: conversationId, profile_id: senderId },
+      { conversation_id: conversationId, profile_id: input.withProfileId },
+    ])
+    if (membersError) throw membersError
+  }
+
+  await sendMessage({ conversationId, senderId, body: input.body })
+  return conversationId
+}
+
 export async function markConversationRead(conversationId: string, profileId: string): Promise<void> {
   const { error } = await supabase
     .from('conversation_members')
@@ -176,5 +259,11 @@ export function useMessagingMutations(profileId: string | undefined) {
     onSuccess: (_data, conversationId) => invalidate(conversationId),
   })
 
-  return { send, markRead }
+  const start = useMutation({
+    mutationFn: (input: StartConversationInput) =>
+      startConversation(profileId as string, input),
+    onSuccess: (conversationId) => invalidate(conversationId),
+  })
+
+  return { send, markRead, start }
 }

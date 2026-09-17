@@ -148,7 +148,7 @@ export function StudioLayout() {
                 aria-label="Search talent"
                 className="h-12 w-full rounded-field border border-line bg-card pl-12 pr-16 text-[15px] text-ink outline-none transition-colors placeholder:text-muted hover:border-ink/20 focus:border-ink/30"
               />
-              <kbd className="pointer-events-none absolute right-3 hidden rounded-md border border-line bg-paper px-1.5 py-1 font-mono text-[10px] text-muted sm:block">
+              <kbd className="pointer-events-none absolute right-3 hidden rounded-[9px] border border-line bg-paper px-1.5 py-1 font-mono text-[10px] text-muted sm:block">
                 ⌘K
               </kbd>
             </form>

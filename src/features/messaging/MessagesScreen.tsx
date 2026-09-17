@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ArrowLeft, MessageCircle, Send } from 'lucide-react'
 import { Avatar, Card, FormError, Input, Spinner } from '@/components/ui'
 import { Skeleton } from '@/components/Skeleton'
@@ -25,9 +26,11 @@ export function MessagesScreen() {
   const conversations = useConversations(profileId)
   const { send, markRead } = useMessagingMutations(profileId)
 
-  const [activeId, setActiveId] = useState<string | null>(null)
+  // Arriving from "Message <actor>" opens that thread straight away.
+  const [params, setParams] = useSearchParams()
+  const [activeId, setActiveId] = useState<string | null>(params.get('conversation'))
   // Below `lg` the two panes take turns: the list, then the thread.
-  const [showThread, setShowThread] = useState(false)
+  const [showThread, setShowThread] = useState(Boolean(params.get('conversation')))
   const items = conversations.data ?? []
   const active = items.find((conversation) => conversation.id === activeId) ?? items[0] ?? null
   const messages = useMessages(active?.id)
@@ -46,6 +49,15 @@ export function MessagesScreen() {
   useEffect(() => {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight })
   }, [messages.data?.length])
+
+  // The deep link has done its job once the thread is open.
+  useEffect(() => {
+    if (!params.get('conversation')) return
+    const next = new URLSearchParams(params)
+    next.delete('conversation')
+    setParams(next, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()

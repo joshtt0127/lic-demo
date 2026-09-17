@@ -266,7 +266,7 @@ export function Checkbox({
           type="checkbox"
           checked={checked}
           onChange={(event) => onChange(event.target.checked)}
-          className="peer h-5 w-5 cursor-pointer appearance-none rounded-[7px] border border-line bg-card transition-colors checked:border-ink checked:bg-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15"
+          className="peer h-5 w-5 cursor-pointer appearance-none rounded-[8px] border border-line bg-card transition-colors checked:border-ink checked:bg-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15"
         />
         <Check className="pointer-events-none absolute left-0.5 top-0.5 h-4 w-4 text-white opacity-0 peer-checked:opacity-100" />
       </span>

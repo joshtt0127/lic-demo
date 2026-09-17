@@ -45,12 +45,12 @@ export default {
       borderRadius: {
         // Softer, more current geometry. These four tokens carry the whole app,
         // so the scale is tuned here rather than screen by screen.
-        card: '22px',
-        btn: '14px',
-        panel: '32px',
-        field: '16px',
+        card: '24px',
+        btn: '16px',
+        panel: '36px',
+        field: '18px',
         /** Inner element of a rounded container (segmented controls, toggles). */
-        inner: '11px',
+        inner: '12px',
       },
       boxShadow: {
         card: '0 1px 2px rgba(21,20,15,0.04), 0 6px 20px rgba(21,20,15,0.05)',

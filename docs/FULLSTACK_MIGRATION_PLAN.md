@@ -337,7 +337,7 @@ Une branche par slice, `tsc` + build + tests verts avant merge, push à chaque �
 | 8 | `feat/applications` | apply talent → candidatures studio (**North Star**) | P2 | ✅ E2E `north-star.spec.ts` |
 | 9 | `feat/self-tapes` | upload privé + review player | P3 | ⏳ lecture faite (URL signée), enregistrement webcam à brancher |
 | 10 | `feat/casting-console` | kanban/list/wall + statuts + reviews + notes persistés | P3 | ⏳ liste + statuts + votes + notes réels ; kanban/wall à reprendre de SelectionConsole |
-| 11 | `feat/messaging` | conversations partagées talent ↔ production | P4 | ✅ écran mutualisé |
+| 11 | `feat/messaging` | conversations partagées talent ↔ production | P4 | ✅ écran mutualisé + **la production peut ouvrir une conversation** (`startConversation`, `MessageTalentModal`) depuis la fiche talent, le Talent Recruiter et la review d'un candidat ; le fil est réutilisé par contexte, la notification vient du trigger DB |
 | 12 | `feat/notifications` | notifications persistantes + badges réels | P4 | ✅ triggers DB + badges réels |
 | 13 | `feat/search` | talent search serveur + saved searches DB | P5 | ⏳ recherche talent réelle ; saved searches à faire |
 | 14 | `feat/i18n` | EN/FR, extraction des textes, sélecteur persistant | transverse |

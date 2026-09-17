@@ -43,10 +43,13 @@ export function CandidateReviewModal({
   candidate,
   orgId,
   onClose,
+  onMessage,
 }: {
   candidate: CandidateViewRow
   orgId: string | undefined
   onClose: () => void
+  /** Write to the actor — the parent owns the message modal. */
+  onMessage?: () => void
 }) {
   const { profile } = useAuth()
   const mutations = useStudioMutations(orgId, profile?.id)
@@ -262,7 +265,17 @@ export function CandidateReviewModal({
         )}
       </FormField>
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {onMessage && (
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<MessageSquare className="h-4 w-4" />}
+            onClick={onMessage}
+          >
+            Message {candidate.name.split(' ')[0]}
+          </Button>
+        )}
         <Button variant="secondary" size="sm" icon={<Check className="h-4 w-4" />} onClick={onClose}>
           Done
         </Button>

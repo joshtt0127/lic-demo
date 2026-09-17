@@ -37,8 +37,11 @@ export const colors = {
 } as const
 
 export const radii = {
-  card: 18,
-  btn: 12,
+  card: 24,
+  btn: 16,
+  field: 18,
+  panel: 36,
+  inner: 12,
   pill: 9999,
 } as const
 

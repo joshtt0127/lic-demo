@@ -52,6 +52,18 @@ Trois surfaces dans une seule app (+ `/auth/*` et `/onboarding`) :
 | `/talent/*`      | **Talent desktop** (fiche façon LinkedIn, pleine largeur) | `talent/TalentDesktopLayout.tsx` |
 
 - **Studio** sous-routes : `/studio` (feed), `/studio/dashboard`, `/studio/search`, `/studio/review`.
+- **Messagerie production → talent** : `features/messaging/startConversation()` ouvre (ou réutilise,
+  par contexte `application`/`role`/`direct`) un fil et envoie le premier message ;
+  `features/messaging/MessageTalentModal.tsx` est le point d'entrée, câblé sur la fiche talent
+  (`StudioTalentProfilePage`), chaque ligne du Talent Recruiter et la review d'un candidat
+  (`CandidateReviewModal` → `CastingDashboardPage`). Le talent reçoit le message dans son inbox et
+  la notification est écrite par le trigger `notify_new_message`. `/studio/messages?conversation=<id>`
+  ouvre directement le fil.
+- **`/studio/calendar`** : vraie vue mois (grille lundi→dimanche, Today/mois précédent/suivant),
+  KPI du mois, panneau du jour sélectionné et « Next up », + bascule **Agenda** groupée par mois.
+  Les entrées sont les colonnes existantes (`casting_calls.deadline_at`, `projects.shooting_start`
+  /`shooting_end`, les jours entre les deux = fenêtre de tournage) — et le calendrier **écrit** :
+  choisir un casting sans deadline pose `deadline_at` sur le jour sélectionné.
 - **App** sous-routes : `/app` (découverte), `/app/profile`, `/app/casting/:id`, `/app/selftape/:id`, `/app/auditions`.
 - L'app talent mobile s'affiche **à l'intérieur d'un cadre de téléphone** (`components/PhoneFrame.tsx`),
   centré sur fond neutre, avec une zone scrollable interne et une **tab bar en bas dans le cadre** :

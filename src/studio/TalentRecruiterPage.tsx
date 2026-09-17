@@ -7,6 +7,7 @@ import {
   LayoutGrid,
   List,
   MapPin,
+  MessageSquare,
   Play,
   Plus,
   Search,
@@ -29,6 +30,7 @@ import { EmptyState } from '@/components/EmptyState'
 import { useToast } from '@/components/Toast'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useCurrentOrganization } from '@/features/organizations/queries'
+import { MessageTalentModal } from '@/features/messaging/MessageTalentModal'
 import {
   matchTalentToRole,
   useCandidatesForRoles,
@@ -107,6 +109,9 @@ export function TalentRecruiterPage() {
   const [searchName, setSearchName] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [messageTo, setMessageTo] = useState<{ id: string; name: string; avatarUrl: string | null } | null>(
+    null,
+  )
 
   const skills = useSkillsCatalog()
   const languages = useLanguagesCatalog()
@@ -403,6 +408,13 @@ export function TalentRecruiterPage() {
                           saved: savedIds.has(talent.profileId),
                         })
                       }
+                      onMessage={() =>
+                        setMessageTo({
+                          id: talent.profileId,
+                          name: talent.name,
+                          avatarUrl: talent.avatarUrl ?? null,
+                        })
+                      }
                     />
                   </li>
                 ))}
@@ -547,7 +559,7 @@ export function TalentRecruiterPage() {
                   type="checkbox"
                   checked={filters.savedOnly}
                   onChange={(event) => update('savedOnly', event.target.checked)}
-                  className="h-4 w-4 rounded-[6px] border-line accent-ink"
+                  className="h-4 w-4 rounded-[8px] border-line accent-ink"
                 />
                 Saved talents only
               </label>
@@ -759,6 +771,14 @@ export function TalentRecruiterPage() {
           )}
         </Card>
       )}
+
+      {messageTo && (
+        <MessageTalentModal
+          talent={messageTo}
+          orgId={organization?.id}
+          onClose={() => setMessageTo(null)}
+        />
+      )}
     </div>
   )
 }
@@ -805,6 +825,7 @@ function TalentRow({
   selected,
   onSelect,
   onSave,
+  onMessage,
 }: {
   talent: TalentSearchResult
   match: ReturnType<typeof matchTalentToRole> | null
@@ -813,6 +834,7 @@ function TalentRow({
   selected: boolean
   onSelect: (checked: boolean) => void
   onSave: () => void
+  onMessage: () => void
 }) {
   const [open, setOpen] = useState(false)
 
@@ -823,7 +845,7 @@ function TalentRow({
         aria-label={`Select ${talent.name}`}
         checked={selected}
         onChange={(event) => onSelect(event.target.checked)}
-        className="hidden h-4 w-4 shrink-0 rounded-[6px] border-line accent-ink sm:block"
+        className="hidden h-4 w-4 shrink-0 rounded-[8px] border-line accent-ink sm:block"
       />
 
       <span className="h-16 w-16 shrink-0 overflow-hidden rounded-card bg-line">
@@ -917,6 +939,13 @@ function TalentRow({
           )}
         >
           <Bookmark className={cn('h-4 w-4', saved && 'fill-current')} />
+        </button>
+        <button
+          onClick={onMessage}
+          aria-label={`Message ${talent.name}`}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-card text-muted transition-colors hover:border-ink/30 hover:text-ink sm:h-9 sm:w-9"
+        >
+          <MessageSquare className="h-4 w-4" />
         </button>
         <Link
           to={`/studio/talent/${talent.profileId}`}
