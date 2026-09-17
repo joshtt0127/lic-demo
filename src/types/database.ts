@@ -25,6 +25,7 @@ export type CastingVisibility = 'public' | 'private'
 export type CastingFormat = 'scripted' | 'non_scripted'
 export type RoleTypeDb = 'lead' | 'supporting' | 'contestant'
 export type AuditionFlowDb = 'open_call' | 'invited' | 'in_house'
+export type RoleStatus = 'open' | 'reviewing' | 'callbacks' | 'booked' | 'closed'
 export type ApplicationStatus =
   | 'draft'
   | 'submitted'
@@ -268,6 +269,7 @@ export type RoleRow = {
   shooting_start: string | null
   shooting_end: string | null
   audition_flow: AuditionFlowDb
+  status: RoleStatus
   sort_order: number
   created_at: string
   updated_at: string
@@ -327,6 +329,13 @@ export type SavedSearchRow = {
   project_id: string | null
   name: string
   filters: Record<string, unknown>
+  created_at: string
+}
+
+export type SavedTalentRow = {
+  production_id: string
+  talent_id: string
+  note: string | null
   created_at: string
 }
 
@@ -476,6 +485,7 @@ export type Database = {
       candidate_notes: Writable<CandidateNoteRow, 'application_id' | 'author_id' | 'body'>
       saved_searches: Writable<SavedSearchRow, 'owner_id' | 'name'>
       saved_castings: Writable<SavedCastingRow, 'talent_id' | 'casting_call_id'>
+      saved_talents: Writable<SavedTalentRow, 'production_id' | 'talent_id'>
       conversations: Writable<ConversationRow>
       conversation_members: Writable<ConversationMemberRow, 'conversation_id' | 'profile_id'>
       messages: Writable<MessageRow, 'conversation_id' | 'sender_id' | 'body'>
@@ -501,6 +511,7 @@ export type Database = {
       casting_format: CastingFormat
       role_type: RoleTypeDb
       audition_flow: AuditionFlowDb
+      role_status: RoleStatus
       application_status: ApplicationStatus
       review_vote: ReviewVote
       media_kind: MediaKind

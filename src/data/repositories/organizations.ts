@@ -1,5 +1,11 @@
 import { supabase } from '@/lib/supabase'
-import type { OrganizationInviteRow, OrganizationMemberRow, OrganizationRow, OrgRole } from '@/types/database'
+import type {
+  OrganizationInviteRow,
+  OrganizationMemberRow,
+  OrganizationRow,
+  OrgRole,
+  ProfileRow,
+} from '@/types/database'
 
 /**
  * Organizations — the production side's team container. A production account
@@ -123,4 +129,118 @@ export async function updateOrganization(
     .single()
   if (error) throw error
   return data
+}
+
+// ── Members & invitations (production side, admin only by RLS) ───────────────
+
+export type OrganizationMemberWithProfile = OrganizationMemberRow & {
+  profile: Pick<ProfileRow, 'id' | 'first_name' | 'last_name' | 'avatar_url' | 'city'> | null
+  jobTitle: string | null
+}
+
+export async function listOrgMembers(orgId: string): Promise<OrganizationMemberWithProfile[]> {
+  const { data, error } = await supabase
+    .from('organization_members')
+    .select(`
+      *,
+      profiles ( id, first_name, last_name, avatar_url, city ),
+      production_profiles:profiles!inner ( production_profiles ( job_title ) )
+    `)
+    .eq('org_id', orgId)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    // The nested production_profiles join is a convenience; fall back to the
+    // plain member list rather than failing the page.
+    const plain = await supabase
+      .from('organization_members')
+      .select('*, profiles ( id, first_name, last_name, avatar_url, city )')
+      .eq('org_id', orgId)
+      .order('created_at', { ascending: true })
+    if (plain.error) throw plain.error
+    type PlainJoin = OrganizationMemberRow & {
+      profiles: OrganizationMemberWithProfile['profile']
+    }
+    return ((plain.data ?? []) as unknown as PlainJoin[]).map(({ profiles, ...member }) => ({
+      ...member,
+      profile: profiles,
+      jobTitle: null,
+    }))
+  }
+
+  type Joined = OrganizationMemberRow & {
+    profiles: OrganizationMemberWithProfile['profile']
+    production_profiles?: { production_profiles: { job_title: string | null } | null } | null
+  }
+
+  return ((data ?? []) as unknown as Joined[]).map(({ profiles, production_profiles, ...member }) => ({
+    ...member,
+    profile: profiles,
+    jobTitle: production_profiles?.production_profiles?.job_title ?? null,
+  }))
+}
+
+export async function listOrgInvites(orgId: string): Promise<OrganizationInviteRow[]> {
+  const { data, error } = await supabase
+    .from('organization_invites')
+    .select('*')
+    .eq('org_id', orgId)
+    .is('accepted_at', null)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data ?? []
+}
+
+/**
+ * Creates the invitation row. No email is sent from the browser: the caller
+ * gets the link to share, which is what a POC can honestly do.
+ */
+export async function createInvite(input: {
+  orgId: string
+  email: string
+  role: OrgRole
+  invitedBy: string
+}): Promise<OrganizationInviteRow> {
+  const { data, error } = await supabase
+    .from('organization_invites')
+    .upsert(
+      {
+        org_id: input.orgId,
+        email: input.email.trim().toLowerCase(),
+        role: input.role,
+        invited_by: input.invitedBy,
+      },
+      { onConflict: 'org_id,email' },
+    )
+    .select('*')
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function revokeInvite(id: string): Promise<void> {
+  const { error } = await supabase.from('organization_invites').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function updateMemberRole(
+  orgId: string,
+  profileId: string,
+  role: OrgRole,
+): Promise<void> {
+  const { error } = await supabase
+    .from('organization_members')
+    .update({ role })
+    .eq('org_id', orgId)
+    .eq('profile_id', profileId)
+  if (error) throw error
+}
+
+export async function removeMember(orgId: string, profileId: string): Promise<void> {
+  const { error } = await supabase
+    .from('organization_members')
+    .delete()
+    .eq('org_id', orgId)
+    .eq('profile_id', profileId)
+  if (error) throw error
 }

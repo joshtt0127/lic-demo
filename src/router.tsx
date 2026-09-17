@@ -19,6 +19,8 @@ import { ProjectsPage } from './studio/ProjectsPage'
 import { TalentSearchPage } from './studio/TalentSearchPage'
 import { StudioTalentProfilePage } from './studio/StudioTalentProfilePage'
 import { CalendarPage } from './studio/CalendarPage'
+import { TeamPage } from './studio/TeamPage'
+import { SettingsPage } from './studio/SettingsPage'
 import { TalentDesktopLayout } from './talent/TalentDesktopLayout'
 import { TalentHome } from './talent/TalentHome'
 import { TalentProfilePage } from './talent/TalentProfilePage'
@@ -86,7 +88,12 @@ export const router = createBrowserRouter([
           { path: 'calendar', element: <CalendarPage /> },
           { path: 'messages', element: <MessagesScreen /> },
           { path: 'notifications', element: <NotificationsScreen base="/studio" /> },
-          { path: 'team', element: <Navigate to="/studio/projects" replace /> },
+          { path: 'team', element: <TeamPage /> },
+          { path: 'settings', element: <SettingsPage /> },
+          // The old fixture dashboard lived here; the casting list is its real
+          // equivalent, and a casting call has its own dashboard.
+          { path: 'dashboard', element: <Navigate to="/studio/casting-calls" replace /> },
+          { path: 'search', element: <Navigate to="/studio/talent" replace /> },
           { path: '*', element: <Navigate to="/studio" replace /> },
         ],
       },

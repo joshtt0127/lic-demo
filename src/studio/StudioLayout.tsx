@@ -7,9 +7,11 @@ import {
   Clapperboard,
   FolderOpen,
   Home,
-  MessageCircle,
+  Inbox,
   Plus,
   Search,
+  Settings,
+  UserRound,
   Users,
 } from 'lucide-react'
 import { Logo } from '@/components/ui'
@@ -39,15 +41,17 @@ export function StudioLayout() {
   const nav = [
     { to: '/studio', label: 'Home', icon: Home, end: true, badge: 0 },
     { to: '/studio/casting-calls', label: 'Casting calls', icon: Clapperboard, badge: 0 },
-    { to: '/studio/talent', label: 'Talent', icon: Users, badge: 0 },
+    { to: '/studio/projects', label: 'Projects', icon: FolderOpen, badge: 0 },
+    { to: '/studio/talent', label: 'Talent Recruiter', icon: UserRound, badge: 0 },
     {
       to: '/studio/messages',
-      label: 'Messages',
-      icon: MessageCircle,
-      badge: unread.data?.messages ?? 0,
+      label: 'Inbox',
+      icon: Inbox,
+      badge: (unread.data?.messages ?? 0) + (unread.data?.notifications ?? 0),
     },
-    { to: '/studio/projects', label: 'Projects', icon: FolderOpen, badge: 0 },
     { to: '/studio/calendar', label: 'Calendar', icon: CalendarDays, badge: 0 },
+    { to: '/studio/team', label: 'Team', icon: Users, badge: 0 },
+    { to: '/studio/settings', label: 'Settings', icon: Settings, badge: 0 },
   ]
 
   const meta = [
@@ -93,14 +97,19 @@ export function StudioLayout() {
           </nav>
         </div>
 
-        <div className="px-2">
-          <span className="mb-3 block h-[2px] w-7 bg-ink/30" />
-          <span className="block text-[11px] font-semibold uppercase leading-[1.9] tracking-[0.26em] text-muted">
+        {/* Brand card, as in the design */}
+        <div className="relative overflow-hidden rounded-panel border border-line bg-card px-4 py-5">
+          <span className="relative block font-display text-[15px] font-bold leading-[1.35] text-ink">
             People
             <br />
             Stories
             <br />
             Anywhere
+          </span>
+          <span aria-hidden className="pointer-events-none mt-4 block h-24">
+            <span className="absolute -bottom-6 left-2 h-20 w-20 rotate-[-12deg] rounded-[1.4rem] bg-gradient-to-br from-[#FFD447] to-[#F6B63C]" />
+            <span className="absolute -bottom-2 left-16 h-10 w-10 rotate-[10deg] rounded-[0.9rem] bg-gradient-to-br from-[#FF6B60] to-[#E0483D]" />
+            <span className="absolute -bottom-7 left-20 h-20 w-20 rotate-[8deg] rounded-[1.4rem] bg-gradient-to-br from-[#5B8DEF] to-[#2563EB]" />
           </span>
         </div>
       </aside>
@@ -146,7 +155,7 @@ export function StudioLayout() {
             </Link>
 
             <div className="shrink-0">
-              <UserMenu meta={meta || 'Production'} profileHref="/studio/team" />
+              <UserMenu meta={meta || 'Production'} profileHref="/studio/settings" />
             </div>
           </div>
 

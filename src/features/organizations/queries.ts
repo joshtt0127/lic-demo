@@ -1,13 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   acceptInvite,
+  createInvite,
   createOrganization,
   listMyInvites,
   listMyOrganizations,
+  listOrgInvites,
+  listOrgMembers,
+  removeMember,
+  revokeInvite,
+  updateMemberRole,
   updateOrganization,
   type OrganizationInput,
 } from '@/data/repositories/organizations'
-import type { OrganizationInviteRow } from '@/types/database'
+import type { OrganizationInviteRow, OrgRole } from '@/types/database'
 
 /** Hooks for the production side's team. */
 
@@ -29,6 +35,51 @@ export function useCurrentOrganization(profileId: string | undefined) {
 
 export function useMyInvites(enabled = true) {
   return useQuery({ queryKey: ['my-invites'], queryFn: listMyInvites, enabled })
+}
+
+export function useOrgMembers(orgId: string | undefined) {
+  return useQuery({
+    queryKey: ['org-members', orgId],
+    queryFn: () => listOrgMembers(orgId as string),
+    enabled: Boolean(orgId),
+  })
+}
+
+export function useOrgInvites(orgId: string | undefined) {
+  return useQuery({
+    queryKey: ['org-invites', orgId],
+    queryFn: () => listOrgInvites(orgId as string),
+    enabled: Boolean(orgId),
+  })
+}
+
+export function useTeamMutations(orgId: string | undefined, profileId: string | undefined) {
+  const queryClient = useQueryClient()
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: ['org-members', orgId] })
+    void queryClient.invalidateQueries({ queryKey: ['org-invites', orgId] })
+  }
+
+  const invite = useMutation({
+    mutationFn: ({ email, role }: { email: string; role: OrgRole }) =>
+      createInvite({ orgId: orgId as string, email, role, invitedBy: profileId as string }),
+    onSuccess: invalidate,
+  })
+
+  const revoke = useMutation({ mutationFn: revokeInvite, onSuccess: invalidate })
+
+  const setRole = useMutation({
+    mutationFn: ({ memberId, role }: { memberId: string; role: OrgRole }) =>
+      updateMemberRole(orgId as string, memberId, role),
+    onSuccess: invalidate,
+  })
+
+  const remove = useMutation({
+    mutationFn: (memberId: string) => removeMember(orgId as string, memberId),
+    onSuccess: invalidate,
+  })
+
+  return { invite, revoke, setRole, remove }
 }
 
 export function useOrganizationMutations(profileId: string | undefined) {

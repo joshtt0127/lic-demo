@@ -1,11 +1,18 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, ChevronRight, Clapperboard, FileText, Play, Sparkles } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowRight, AudioLines, ChevronRight, Clapperboard, FileText, Play, Sparkles } from 'lucide-react'
 import { Card, FormError } from '@/components/ui'
+import { EditModal } from '@/components/EditModal'
 import { Skeleton } from '@/components/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useCurrentOrganization } from '@/features/organizations/queries'
-import { useStudioOverview, type AttentionItem, type CastingOverview } from '@/features/studio/queries'
+import {
+  useStudioOverview,
+  type AgendaItem,
+  type AttentionItem,
+  type CastingOverview,
+} from '@/features/studio/queries'
 import { formatDateShort, greeting } from '@/lib/format'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
@@ -19,6 +26,7 @@ import { NewCastingButton } from './StudioLayout'
  * the applications talents actually submitted.
  */
 export function StudioHome() {
+  const [sessionOpen, setSessionOpen] = useState(false)
   const { profile } = useAuth()
   const { organization, isLoading: orgLoading } = useCurrentOrganization(profile?.id)
   const overview = useStudioOverview(organization?.id)
@@ -64,10 +72,10 @@ export function StudioHome() {
       <header className="flex flex-wrap items-start justify-between gap-5">
         <div className="min-w-0">
           <span className="text-[13px] text-muted">{today}</span>
-          <h1 className="mt-1 font-display text-[2rem] font-extrabold leading-[1.05] tracking-[-0.03em] text-ink sm:text-[2.7rem]">
+          <h1 className="mt-1 font-display text-[2.1rem] font-extrabold leading-[1.02] tracking-[-0.035em] text-ink sm:text-[3.1rem]">
             {greeting()}, {profile?.first_name ?? 'there'}.
           </h1>
-          <p className="mt-2 text-[16px] text-muted sm:text-[18px]">
+          <p className="mt-2 text-[16px] text-muted sm:text-[19px]">
             {data && data.attention.length > 0
               ? 'Here’s what needs your attention today.'
               : 'Nothing is waiting on you right now.'}
@@ -92,6 +100,7 @@ export function StudioHome() {
         tapes={data?.tapesToReview ?? 0}
         callbacks={data?.callbacksWaiting ?? 0}
         newSubmissions={data?.newSubmissions ?? 0}
+        onPrepare={() => setSessionOpen(true)}
         reviewHref={
           data?.castings.find((item) => item.tapesToReview > 0)?.casting.id
             ? `/studio/casting/${data.castings.find((item) => item.tapesToReview > 0)!.casting.id}`
@@ -200,6 +209,14 @@ export function StudioHome() {
         </Card>
       )}
 
+      {sessionOpen && (
+        <SessionPanel
+          attention={data?.attention ?? []}
+          agenda={data?.agenda ?? []}
+          onClose={() => setSessionOpen(false)}
+        />
+      )}
+
       <footer className="flex flex-wrap items-center justify-between gap-3 pt-2">
         <p className="font-display text-[14px] italic text-muted">
           “Casting is how a story finds its people.”
@@ -219,23 +236,30 @@ function SessionCard({
   callbacks,
   newSubmissions,
   reviewHref,
+  onPrepare,
 }: {
   loading: boolean
   tapes: number
   callbacks: number
   newSubmissions: number
   reviewHref: string
+  onPrepare: () => void
 }) {
   const nothing = tapes === 0 && callbacks === 0 && newSubmissions === 0
 
   return (
     <div className="relative overflow-hidden rounded-panel border border-white/70 bg-[#FBFAF7] px-6 py-7 shadow-panel sm:px-8">
       {/* brand decoration, as in the design */}
-      <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 hidden w-[42%] sm:block">
-        <div className="absolute right-[18%] top-[14%] h-24 w-24 rotate-[12deg] rounded-[1.6rem] bg-gradient-to-br from-[#FFD447] to-[#F6B63C]" />
-        <div className="absolute right-[8%] top-[34%] h-14 w-14 rotate-[-8deg] rounded-[1.1rem] bg-gradient-to-br from-[#FF6B60] to-[#E0483D]" />
-        <div className="absolute bottom-0 right-[24%] h-36 w-36 rotate-[6deg] rounded-[2rem] bg-gradient-to-br from-[#5B8DEF] to-[#2563EB]" />
-        <div className="absolute inset-0 bg-gradient-to-l from-transparent via-[#FBFAF7]/10 to-[#FBFAF7]" />
+      <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 hidden w-[46%] sm:block">
+        <div className="absolute inset-0 opacity-70 blur-3xl">
+          <div className="absolute right-[26%] top-[8%] h-40 w-40 rounded-full bg-[#F7D98A]" />
+          <div className="absolute right-[10%] top-[38%] h-32 w-32 rounded-full bg-[#F7B3AE]" />
+          <div className="absolute bottom-0 right-[34%] h-44 w-44 rounded-full bg-[#AFC6F7]" />
+        </div>
+        <div className="absolute right-[20%] top-[12%] h-28 w-28 rotate-[12deg] rounded-[1.8rem] bg-gradient-to-br from-[#FFD447] to-[#F6B63C] shadow-[0_22px_50px_-22px_rgba(246,182,60,0.75)]" />
+        <div className="absolute right-[7%] top-[36%] h-16 w-16 rotate-[-10deg] rounded-[1.2rem] bg-gradient-to-br from-[#FF6B60] to-[#E0483D] shadow-[0_22px_50px_-24px_rgba(224,72,61,0.7)]" />
+        <div className="absolute -bottom-6 right-[26%] h-44 w-44 rotate-[6deg] rounded-[2.4rem] bg-gradient-to-br from-[#5B8DEF] to-[#2563EB] shadow-[0_26px_56px_-26px_rgba(37,99,235,0.7)]" />
+        <div className="absolute inset-0 bg-gradient-to-l from-transparent via-[#FBFAF7]/5 to-[#FBFAF7]" />
         <span className="absolute bottom-10 right-6 hidden text-right text-[10px] font-semibold uppercase leading-[1.8] tracking-[0.3em] text-muted lg:block">
           Act
           <br />
@@ -248,8 +272,8 @@ function SessionCard({
 
       <div className="relative max-w-2xl">
         <div className="flex items-center gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-field bg-ink text-white">
-            <Sparkles className="h-5 w-5" />
+          <span className="flex h-13 w-13 items-center justify-center rounded-field bg-ink p-3.5 text-white">
+            <AudioLines className="h-full w-full" />
           </span>
           <div>
             <div className="flex items-center gap-2">
@@ -298,13 +322,22 @@ function SessionCard({
             <Play className="h-4 w-4" />
             Review tapes
           </Link>
-          <Link
-            to="/studio/casting-calls"
+          <button
+            type="button"
+            onClick={onPrepare}
             className="inline-flex h-12 items-center gap-2 rounded-field border border-line bg-card px-5 text-[14px] font-bold text-ink transition-colors hover:bg-paper"
           >
             <FileText className="h-4 w-4" />
-            {newSubmissions > 0 ? `Open ${newSubmissions} new application${newSubmissions === 1 ? '' : 's'}` : 'My casting calls'}
-          </Link>
+            Prepare my session
+          </button>
+          {newSubmissions > 0 && (
+            <Link
+              to="/studio/casting-calls"
+              className="inline-flex h-12 items-center gap-2 rounded-field border border-line bg-card px-5 text-[14px] font-bold text-ink transition-colors hover:bg-paper"
+            >
+              Open {newSubmissions} new application{newSubmissions === 1 ? '' : 's'}
+            </Link>
+          )}
           <span
             title="The Cast Assistant needs the AI layer — not connected yet."
             className="inline-flex h-12 cursor-not-allowed items-center gap-2 rounded-field border border-dashed border-line bg-transparent px-5 text-[14px] font-semibold text-muted/70"
@@ -315,6 +348,70 @@ function SessionCard({
         </div>
       </div>
     </div>
+  )
+}
+
+/**
+ * "Prepare my session": the running order of what needs a decision, built from
+ * the same rows as the dashboard. No AI, no invention — a briefing.
+ */
+function SessionPanel({
+  attention,
+  agenda,
+  onClose,
+}: {
+  attention: AttentionItem[]
+  agenda: AgendaItem[]
+  onClose: () => void
+}) {
+  return (
+    <EditModal open title="Your session" onClose={onClose}>
+      {attention.length === 0 ? (
+        <EmptyState
+          compact
+          icon={<Sparkles className="h-5 w-5" />}
+          title="Nothing needs you"
+          description="No tape to review, no decision pending."
+        />
+      ) : (
+        <ol className="flex flex-col divide-y divide-line">
+          {attention.map((item, index) => (
+            <li key={item.id} className="flex items-center gap-3 py-3 first:pt-0">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-paper font-mono text-[12px] font-bold text-ink">
+                {index + 1}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[14px] font-bold text-ink">{item.title}</span>
+                <span className="block truncate text-[12px] text-muted">{item.subtitle}</span>
+              </span>
+              <Link
+                to={item.href}
+                onClick={onClose}
+                className="shrink-0 text-[13px] font-semibold text-link hover:underline"
+              >
+                Open
+              </Link>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {agenda.length > 0 && (
+        <div className="rounded-field bg-paper p-3">
+          <span className="tech-label">Next dates</span>
+          <ul className="mt-2 flex flex-col gap-1.5">
+            {agenda.slice(0, 4).map((item) => (
+              <li key={item.id} className="flex items-center gap-2 text-[13px] text-ink">
+                <span className="font-mono text-[11px] text-muted">
+                  {formatDateShort(item.date)}
+                </span>
+                {item.label} · {item.detail}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </EditModal>
   )
 }
 
