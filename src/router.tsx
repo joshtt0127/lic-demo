@@ -7,6 +7,7 @@ import { ForgotPassword } from './pages/auth/ForgotPassword'
 import { ResetPassword } from './pages/auth/ResetPassword'
 import { Continue } from './pages/auth/Continue'
 import { Onboarding } from './pages/onboarding/Onboarding'
+import { PublicCastingPage } from './pages/PublicCastingPage'
 import { RedirectIfSignedIn, RequireAuth, RequireSurface } from './features/auth/guards'
 import { MessagesScreen } from './features/messaging/MessagesScreen'
 import { NotificationsScreen } from './features/notifications/NotificationsScreen'
@@ -14,9 +15,9 @@ import { StudioLayout } from './studio/StudioLayout'
 import { StudioHome } from './studio/StudioHome'
 import { CastingCallsPage } from './studio/CastingCallsPage'
 import { NewCastingPage } from './studio/NewCastingPage'
-import { CastingDetailPage } from './studio/CastingDetailPage'
+import { CastingDashboardPage } from './studio/CastingDashboardPage'
 import { ProjectsPage } from './studio/ProjectsPage'
-import { TalentSearchPage } from './studio/TalentSearchPage'
+import { TalentRecruiterPage } from './studio/TalentRecruiterPage'
 import { StudioTalentProfilePage } from './studio/StudioTalentProfilePage'
 import { CalendarPage } from './studio/CalendarPage'
 import { TeamPage } from './studio/TeamPage'
@@ -63,6 +64,13 @@ export const router = createBrowserRouter([
     children: [{ index: true, element: <Continue /> }],
   },
 
+  // A casting call opened from a shared link — any signed-in account.
+  {
+    path: '/casting/:castingId',
+    element: <RequireAuth />,
+    children: [{ index: true, element: <PublicCastingPage /> }],
+  },
+
   // Common onboarding (account type → the steps of your side).
   {
     path: '/onboarding',
@@ -81,9 +89,9 @@ export const router = createBrowserRouter([
           { index: true, element: <StudioHome /> },
           { path: 'casting-calls', element: <CastingCallsPage /> },
           { path: 'casting-calls/new', element: <NewCastingPage /> },
-          { path: 'casting/:castingId', element: <CastingDetailPage /> },
+          { path: 'casting/:castingId', element: <CastingDashboardPage /> },
           { path: 'projects', element: <ProjectsPage /> },
-          { path: 'talent', element: <TalentSearchPage /> },
+          { path: 'talent', element: <TalentRecruiterPage /> },
           { path: 'talent/:profileId', element: <StudioTalentProfilePage /> },
           { path: 'calendar', element: <CalendarPage /> },
           { path: 'messages', element: <MessagesScreen /> },

@@ -39,11 +39,13 @@ import type { RoleRow } from '@/types/database'
  * A published casting call and its roles — and the place where a talent really
  * applies: "Apply" writes the `applications` row the production will review.
  */
-export function TalentCastingDetail() {
+export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
   const { castingId } = useParams()
   const navigate = useNavigate()
   const { profile } = useAuth()
   const profileId = profile?.id
+  // A production account can open the same page through a shared link.
+  const isTalent = !readOnly && profile?.account_type === 'talent'
 
   const casting = useCasting(castingId)
   const languages = useLanguagesCatalog()
@@ -85,13 +87,21 @@ export function TalentCastingDetail() {
 
   return (
     <div className="flex flex-col gap-5 pb-10">
-      <button
-        onClick={() => navigate('/talent/casting-calls')}
-        className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-muted transition-colors hover:text-ink"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Casting calls
-      </button>
+      {isTalent && (
+        <button
+          onClick={() => navigate('/talent/casting-calls')}
+          className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-muted transition-colors hover:text-ink"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Casting calls
+        </button>
+      )}
+
+      {!isTalent && (
+        <p className="rounded-field bg-paper px-4 py-3 text-[13px] text-muted">
+          This is the page talents see. Applying is only available from a talent account.
+        </p>
+      )}
 
       {/* ── Project header ── */}
       <Card flush className="overflow-hidden">
@@ -145,6 +155,7 @@ export function TalentCastingDetail() {
               <Tag tone={isClosingSoon(data.deadline_at) ? 'no' : 'neutral'}>
                 {deadlineLabel(data.deadline_at)}
               </Tag>
+              {isTalent && (
               <button
                 type="button"
                 onClick={() => saveCasting.mutate({ castingId: data.id, saved: isSaved })}
@@ -158,6 +169,7 @@ export function TalentCastingDetail() {
                 <Bookmark className={cn('h-4 w-4', isSaved && 'fill-current')} />
                 {isSaved ? 'Saved' : 'Save'}
               </button>
+              )}
             </div>
 
             {data.project?.synopsis && (
@@ -220,7 +232,7 @@ export function TalentCastingDetail() {
                         )}
                       </div>
 
-                      {application ? (
+                      {!isTalent ? null : application ? (
                         <div className="flex flex-col items-end gap-1.5">
                           <Tag tone={APPLICATION_STATUS_TONE[application.status]}>
                             {APPLICATION_STATUS_LABEL[application.status]}

@@ -7,6 +7,7 @@ import type {
   ProjectStatus,
   RoleRow,
   RoleStatsViewRow,
+  RoleStatus,
 } from '@/types/database'
 
 /**
@@ -109,13 +110,28 @@ export async function projectStats(orgId: string): Promise<ProjectStatsViewRow[]
 // ── Casting calls ────────────────────────────────────────────────────────────
 
 export type CastingWithProject = CastingCallRow & {
-  project: Pick<ProjectRow, 'id' | 'title' | 'production_type' | 'company_name' | 'poster_url'> | null
+  project: Pick<
+    ProjectRow,
+    | 'id'
+    | 'title'
+    | 'production_type'
+    | 'company_name'
+    | 'poster_url'
+    | 'genre'
+    | 'shooting_start'
+    | 'shooting_end'
+    | 'shooting_location'
+    | 'synopsis'
+  > | null
   roles: RoleRow[]
 }
 
 const CASTING_SELECT = `
   *,
-  projects ( id, title, production_type, company_name, poster_url ),
+  projects (
+    id, title, production_type, company_name, poster_url, genre,
+    shooting_start, shooting_end, shooting_location, synopsis
+  ),
   roles (*)
 `
 
@@ -287,6 +303,12 @@ export async function updateRole(id: string, input: RoleInput): Promise<RoleRow>
     .single()
   if (error) throw error
   return data
+}
+
+/** The one piece of a role's state a human decides. */
+export async function setRoleStatus(id: string, status: RoleStatus): Promise<void> {
+  const { error } = await supabase.from('roles').update({ status }).eq('id', id)
+  if (error) throw error
 }
 
 export async function deleteRole(id: string): Promise<void> {

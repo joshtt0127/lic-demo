@@ -98,18 +98,18 @@ export function StudioLayout() {
         </div>
 
         {/* Brand card, as in the design */}
-        <div className="relative overflow-hidden rounded-panel border border-line bg-card px-4 py-5">
-          <span className="relative block font-display text-[15px] font-bold leading-[1.35] text-ink">
+        <div className="relative h-[168px] overflow-hidden rounded-panel border border-line bg-card px-4 py-5">
+          <span className="relative z-10 block font-display text-[15px] font-bold leading-[1.35] text-ink">
             People
             <br />
             Stories
             <br />
             Anywhere
           </span>
-          <span aria-hidden className="pointer-events-none mt-4 block h-24">
-            <span className="absolute -bottom-6 left-2 h-20 w-20 rotate-[-12deg] rounded-[1.4rem] bg-gradient-to-br from-[#FFD447] to-[#F6B63C]" />
-            <span className="absolute -bottom-2 left-16 h-10 w-10 rotate-[10deg] rounded-[0.9rem] bg-gradient-to-br from-[#FF6B60] to-[#E0483D]" />
-            <span className="absolute -bottom-7 left-20 h-20 w-20 rotate-[8deg] rounded-[1.4rem] bg-gradient-to-br from-[#5B8DEF] to-[#2563EB]" />
+          <span aria-hidden className="pointer-events-none">
+            <span className="absolute bottom-4 left-3 h-[74px] w-[74px] rotate-[-14deg] rounded-[1.4rem] bg-gradient-to-br from-[#FFD447] to-[#F6B63C] shadow-[0_14px_30px_-14px_rgba(246,182,60,0.8)]" />
+            <span className="absolute bottom-[42px] left-[62px] h-9 w-9 rotate-[14deg] rounded-[0.8rem] bg-gradient-to-br from-[#FF6B60] to-[#E0483D] shadow-[0_14px_30px_-16px_rgba(224,72,61,0.8)]" />
+            <span className="absolute bottom-2 left-[78px] h-[74px] w-[74px] rotate-[9deg] rounded-[1.4rem] bg-gradient-to-br from-[#5B8DEF] to-[#2563EB] shadow-[0_16px_34px_-16px_rgba(37,99,235,0.8)]" />
           </span>
         </div>
       </aside>

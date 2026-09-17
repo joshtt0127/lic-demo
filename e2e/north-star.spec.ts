@@ -125,14 +125,19 @@ test('a casting reaches a talent, and their application reaches the production b
 
   // ── 3. Production: the same application, and a decision ──
   await production.reload()
-  await expect(production.getByText('Nora Bennett')).toBeVisible({ timeout: 20_000 })
+  // The candidates live on the casting console (Submissions tab).
+  await production.getByRole('button', { name: /^Submissions/ }).click()
+  await expect(production.getByText('Nora Bennett').first()).toBeVisible({ timeout: 20_000 })
   await production.getByRole('button', { name: 'Review' }).first().click()
 
   await expect(production.getByText('Tape shot in Marseille.')).toBeVisible()
   await production.getByRole('button', { name: 'Good match' }).click()
-  await production.getByLabel('Status').selectOption('shortlisted')
+  await production.getByLabel('Status', { exact: true }).selectOption('shortlisted')
   await production.getByRole('button', { name: 'Done' }).click()
-  await expect(production.getByText('Shortlisted').first()).toBeVisible({ timeout: 20_000 })
+  // The row's own status control is the production-side source of truth.
+  await expect(production.getByLabel('Status of Nora Bennett')).toHaveValue('shortlisted', {
+    timeout: 20_000,
+  })
 
   // ── 4. Talent: sees the new status, and the notification ──
   await talent.goto('/talent/auditions')
