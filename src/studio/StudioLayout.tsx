@@ -122,13 +122,23 @@ export function StudioLayout() {
               <Logo size={26} markOnly />
             </Link>
 
+            {/* On a phone the field would be a slit; the icon goes to the
+                search page instead. */}
+            <Link
+              to="/studio/talent"
+              aria-label="Search talent"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-field border border-line bg-card text-muted sm:hidden"
+            >
+              <Search className="h-[18px] w-[18px]" />
+            </Link>
+
             <form
               onSubmit={(event) => {
                 event.preventDefault()
                 const query = search.trim()
                 navigate(query ? `/studio/talent?q=${encodeURIComponent(query)}` : '/studio/talent')
               }}
-              className="relative mx-auto flex h-12 w-full min-w-0 max-w-[840px] items-center"
+              className="relative mx-auto hidden h-12 w-full min-w-0 max-w-[840px] items-center sm:flex"
             >
               <Search className="pointer-events-none absolute left-4 h-[18px] w-[18px] text-muted" />
               <input
@@ -160,7 +170,7 @@ export function StudioLayout() {
           </div>
 
           {/* Mobile navigation — the sidebar is desktop-only. */}
-          <nav className="no-scrollbar flex items-center gap-1 overflow-x-auto border-t border-line px-4 py-2 lg:hidden">
+          <nav className="no-scrollbar flex items-center gap-1.5 overflow-x-auto border-t border-line px-4 py-2.5 lg:hidden">
             {nav.map(({ to, label, icon: Icon, end, badge }) => (
               <NavLink
                 key={to}
@@ -168,7 +178,7 @@ export function StudioLayout() {
                 end={end}
                 className={({ isActive }) =>
                   cn(
-                    'flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold transition-colors',
+                    'flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold transition-colors',
                     isActive ? 'bg-ink text-white' : 'text-muted',
                   )
                 }
@@ -185,7 +195,7 @@ export function StudioLayout() {
           </nav>
         </header>
 
-        <main className="min-w-0 flex-1 px-4 pb-14 pt-6 sm:px-8">
+        <main className="min-w-0 flex-1 px-4 pb-16 pt-5 sm:px-8 sm:pt-6">
           <AnimatePresence mode="wait">
             <PageTransition key={location.pathname}>
               <Outlet />

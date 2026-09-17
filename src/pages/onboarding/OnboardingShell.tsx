@@ -166,7 +166,7 @@ export function OnboardingShell({
             )}
 
             {stepperItems && step && (
-              <div className="mt-10 max-w-xs">
+              <div className="mt-10 hidden max-w-xs lg:block">
                 <VerticalStepper items={stepperItems} current={step} />
               </div>
             )}

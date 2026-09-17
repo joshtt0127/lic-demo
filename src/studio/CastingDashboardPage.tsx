@@ -226,7 +226,7 @@ export function CastingDashboardPage() {
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-5">
       <button
         onClick={() => navigate('/studio/casting-calls')}
-        className="inline-flex w-fit items-center gap-2 text-[15px] font-medium text-muted transition-colors hover:text-ink"
+        className="-ml-2 inline-flex h-9 w-fit items-center gap-2 rounded-btn px-2 text-[15px] font-medium text-muted transition-colors hover:bg-ink/5 hover:text-ink"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to all castings
@@ -366,7 +366,7 @@ export function CastingDashboardPage() {
       {/* ── Overview ── */}
       {tab === 'overview' && (
         <>
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
             <Kpi
               icon={<Users className="h-4 w-4" />}
               label="Roles"

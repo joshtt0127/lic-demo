@@ -98,7 +98,7 @@ export function AvatarUpload({
         <button
           type="button"
           onClick={handleRemove}
-          className="inline-flex items-center gap-1.5 self-start text-xs font-medium text-muted transition-colors hover:text-signal-no"
+          className="inline-flex h-9 items-center gap-1.5 self-start rounded-btn px-2 text-[13px] font-medium text-muted transition-colors hover:bg-signal-no/10 hover:text-signal-no"
         >
           <Trash2 className="h-3.5 w-3.5" />
           Remove photo

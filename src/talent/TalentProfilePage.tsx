@@ -503,7 +503,7 @@ function ProfileView({ data }: { data: TalentProfileFull }) {
               {data.talent.agent_email && (
                 <a
                   href={`mailto:${data.talent.agent_email}`}
-                  className="mt-1 block font-medium text-link hover:underline"
+                  className="mt-1 inline-flex min-h-[32px] items-center font-medium text-link hover:underline"
                 >
                   {data.talent.agent_email}
                 </a>

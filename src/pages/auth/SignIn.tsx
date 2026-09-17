@@ -49,7 +49,7 @@ export function SignIn() {
       topRight={
         <>
           Don&apos;t have an account?{' '}
-          <Link to="/auth/sign-up" className="font-semibold text-link hover:underline">
+          <Link to="/auth/sign-up" className="inline-flex min-h-[34px] items-center font-semibold text-link hover:underline">
             Sign up
           </Link>
         </>
@@ -57,7 +57,7 @@ export function SignIn() {
       footer={
         <>
           Don&apos;t have an account?{' '}
-          <Link to="/auth/sign-up" className="font-semibold text-link hover:underline">
+          <Link to="/auth/sign-up" className="inline-flex min-h-[34px] items-center font-semibold text-link hover:underline">
             Sign up
           </Link>
         </>
@@ -103,7 +103,7 @@ export function SignIn() {
           />
           <Link
             to="/auth/forgot-password"
-            className="text-sm font-semibold text-link hover:underline"
+            className="inline-flex min-h-[34px] items-center font-semibold text-link hover:underline text-sm"
           >
             Forgot password?
           </Link>

@@ -231,7 +231,7 @@ export function NewCastingPage() {
       <div>
         <button
           onClick={() => navigate('/studio/casting-calls')}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-muted transition-colors hover:text-ink"
+          className="-ml-2 inline-flex h-9 items-center gap-1.5 rounded-btn px-2 text-sm font-medium text-muted transition-colors hover:bg-ink/5 hover:text-ink"
         >
           <ArrowLeft className="h-4 w-4" />
           Casting calls

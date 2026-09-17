@@ -83,7 +83,11 @@ export function AuthLayout({
           <Logo size={36} />
         </Link>
         {/* The card footer carries the same link, so this one can go on phones. */}
-        {topRight && <div className="hidden text-sm text-muted sm:block">{topRight}</div>}
+        {topRight && (
+          <div className="hidden flex-wrap items-center gap-1.5 text-sm text-muted sm:flex">
+            {topRight}
+          </div>
+        )}
       </header>
 
       <div className="relative z-10 mx-auto grid w-full max-w-[1500px] items-center gap-10 px-6 pb-16 sm:px-10 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.78fr)_minmax(540px,600px)] xl:gap-6">
@@ -196,7 +200,11 @@ export function AuthLayout({
 
             <div className="mt-7">{children}</div>
 
-            {footer && <div className="mt-7 text-center text-sm text-muted">{footer}</div>}
+            {footer && (
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-1.5 text-center text-sm text-muted">
+                {footer}
+              </div>
+            )}
           </div>
         </motion.section>
       </div>

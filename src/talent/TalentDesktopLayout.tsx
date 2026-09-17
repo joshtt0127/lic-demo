@@ -45,7 +45,7 @@ export function TalentDesktopLayout() {
           <Link to="/" className="inline-flex items-center text-muted hover:text-ink">
             <ArrowLeft className="h-4 w-4" />
           </Link>
-          <Link to="/talent" className="shrink-0">
+          <Link to="/talent" className="-my-1.5 flex shrink-0 items-center py-1.5">
             <Logo size={22} />
           </Link>
 
@@ -77,7 +77,7 @@ export function TalentDesktopLayout() {
                 end={end}
                 className={({ isActive }) =>
                   cn(
-                    'relative flex shrink-0 flex-col items-center gap-0.5 rounded-btn px-2 py-1.5 text-[11px] font-medium transition-colors sm:px-3',
+                    'relative flex min-h-[44px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-btn px-2 py-2 text-[11px] font-medium transition-colors sm:px-3',
                     isActive ? 'text-ink' : 'text-muted hover:text-ink',
                   )
                 }

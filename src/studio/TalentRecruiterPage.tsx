@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import {
   Bookmark,
   Download,
+  SlidersHorizontal,
   LayoutGrid,
   List,
   MapPin,
@@ -104,6 +105,7 @@ export function TalentRecruiterPage() {
   const [view, setView] = useState<'list' | 'grid'>('list')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [searchName, setSearchName] = useState('')
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const skills = useSkillsCatalog()
@@ -322,6 +324,21 @@ export function TalentRecruiterPage() {
                 {selected.size > 0 && (
                   <span className="text-[13px] text-muted">{selected.size} selected</span>
                 )}
+                <button
+                  onClick={() => setFiltersOpen((value) => !value)}
+                  className={cn(
+                    'inline-flex h-10 items-center gap-2 rounded-btn border px-3.5 text-[13px] font-semibold transition-colors xl:hidden',
+                    filtersOpen || activeFilterCount > 0
+                      ? 'border-ink bg-ink text-white'
+                      : 'border-line bg-card text-ink',
+                  )}
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <span className="font-mono text-[11px]">{activeFilterCount}</span>
+                  )}
+                </button>
                 <div className="flex items-center rounded-btn border border-line bg-card p-0.5">
                   <button
                     onClick={() => setView('list')}
@@ -433,14 +450,19 @@ export function TalentRecruiterPage() {
             )}
           </div>
 
-          {/* ── Filters rail ── */}
-          <aside className="flex min-w-0 flex-col gap-4">
+          {/* ── Filters rail: a column on desktop, a panel on demand below xl ── */}
+          <aside
+            className={cn(
+              'flex min-w-0 flex-col gap-4',
+              filtersOpen ? 'order-first' : 'hidden xl:flex',
+            )}
+          >
             <Card className="flex flex-col gap-5">
               <div className="flex items-center justify-between">
                 <span className="font-display text-[17px] font-bold text-ink">Filters</span>
                 <button
                   onClick={() => setFilters({ ...EMPTY_FILTERS, query: filters.query })}
-                  className="text-[13px] font-semibold text-link hover:underline"
+                  className="inline-flex h-9 shrink-0 items-center rounded-btn px-2 text-[13px] font-semibold text-link hover:bg-link/5"
                 >
                   Reset
                 </button>
@@ -801,7 +823,7 @@ function TalentRow({
         aria-label={`Select ${talent.name}`}
         checked={selected}
         onChange={(event) => onSelect(event.target.checked)}
-        className="h-4 w-4 shrink-0 rounded-[6px] border-line accent-ink"
+        className="hidden h-4 w-4 shrink-0 rounded-[6px] border-line accent-ink sm:block"
       />
 
       <span className="h-16 w-16 shrink-0 overflow-hidden rounded-card bg-line">
@@ -818,7 +840,7 @@ function TalentRow({
         <div className="flex flex-wrap items-center gap-2">
           <Link
             to={`/studio/talent/${talent.profileId}`}
-            className="font-display text-[16px] font-bold text-ink hover:underline"
+            className="-my-1 inline-flex items-center py-1 font-display text-[16px] font-bold text-ink hover:underline"
           >
             {talent.name}
           </Link>
@@ -883,12 +905,12 @@ function TalentRow({
         </button>
       )}
 
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto">
         <button
           onClick={onSave}
           aria-label={saved ? `Remove ${talent.name} from saved` : `Save ${talent.name}`}
           className={cn(
-            'flex h-9 w-9 items-center justify-center rounded-full border transition-colors',
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors sm:h-9 sm:w-9',
             saved
               ? 'border-ink bg-ink text-white'
               : 'border-line bg-card text-muted hover:border-ink/30 hover:text-ink',
@@ -898,7 +920,7 @@ function TalentRow({
         </button>
         <Link
           to={`/studio/talent/${talent.profileId}`}
-          className="inline-flex h-9 items-center gap-1.5 rounded-field border border-line bg-card px-3.5 text-[13px] font-bold text-ink transition-colors hover:bg-paper"
+          className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-field border border-line bg-card px-3.5 text-[13px] font-bold text-ink transition-colors hover:bg-paper sm:h-9 sm:flex-none"
         >
           <Play className="h-3.5 w-3.5" />
           View profile

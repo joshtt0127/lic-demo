@@ -115,7 +115,7 @@ export function StudioHome() {
             <h2 className="font-display text-[19px] font-bold text-ink">Your castings</h2>
             <Link
               to="/studio/casting-calls"
-              className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-muted transition-colors hover:text-ink"
+              className="inline-flex h-9 items-center gap-1.5 rounded-btn px-2 text-[13px] font-semibold text-muted transition-colors hover:bg-ink/5 hover:text-ink"
             >
               View all
               <ArrowRight className="h-3.5 w-3.5" />
@@ -153,7 +153,7 @@ export function StudioHome() {
             </h2>
             <Link
               to="/studio/casting-calls"
-              className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-muted transition-colors hover:text-ink"
+              className="inline-flex h-9 items-center gap-1.5 rounded-btn px-2 text-[13px] font-semibold text-muted transition-colors hover:bg-ink/5 hover:text-ink"
             >
               View all
               <ArrowRight className="h-3.5 w-3.5" />
@@ -186,7 +186,7 @@ export function StudioHome() {
             <h2 className="font-display text-[19px] font-bold text-ink">Coming up</h2>
             <Link
               to="/studio/calendar"
-              className="text-[13px] font-semibold text-muted hover:text-ink"
+              className="inline-flex h-9 items-center rounded-btn px-2 text-[13px] font-semibold text-muted hover:bg-ink/5 hover:text-ink"
             >
               Calendar
             </Link>
@@ -196,7 +196,7 @@ export function StudioHome() {
               <li key={item.id}>
                 <Link
                   to={item.href}
-                  className="inline-flex items-center gap-2 rounded-full bg-paper px-3 py-1.5 text-[13px] text-ink transition-colors hover:bg-line/60"
+                  className="inline-flex h-9 items-center gap-2 rounded-full bg-paper px-3.5 text-[13px] text-ink transition-colors hover:bg-line/60"
                 >
                   <span className="font-mono text-[11px] text-muted">
                     {formatDateShort(item.date)}

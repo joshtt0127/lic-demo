@@ -82,7 +82,7 @@ export function Launcher() {
         <div className="mt-8 flex justify-center">
           <Link
             to="/pitch"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-link hover:underline"
+            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-btn px-3 text-sm font-semibold text-link transition-colors hover:bg-link/5"
           >
             <Play className="h-4 w-4" />
             View pitch

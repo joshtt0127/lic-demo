@@ -19,12 +19,16 @@ export function PublicCastingPage() {
     <div className="min-h-screen bg-paper">
       <header className="border-b border-line bg-card">
         <div className="mx-auto flex h-16 w-full max-w-[1000px] items-center justify-between px-5 sm:px-8">
-          <Link to={homeRouteFor(profile)} aria-label="Let It Cast">
+          <Link
+            to={homeRouteFor(profile)}
+            aria-label="Let It Cast"
+            className="-my-1 flex items-center py-1"
+          >
             <Logo size={24} />
           </Link>
           <Link
             to={homeRouteFor(profile)}
-            className="text-sm font-semibold text-link hover:underline"
+            className="-mr-2 inline-flex h-9 items-center rounded-btn px-2 text-sm font-semibold text-link hover:bg-link/5"
           >
             Back to my space
           </Link>

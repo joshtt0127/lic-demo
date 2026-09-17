@@ -41,7 +41,7 @@ export function ForgotPassword() {
         title="Check your inbox"
         subtitle={`We sent a reset link to ${email}. It expires in one hour.`}
         footer={
-          <Link to="/auth/sign-in" className="font-semibold text-link hover:underline">
+          <Link to="/auth/sign-in" className="inline-flex min-h-[34px] items-center font-semibold text-link hover:underline">
             Back to sign in
           </Link>
         }
@@ -55,7 +55,7 @@ export function ForgotPassword() {
             <button
               type="button"
               onClick={() => setSent(false)}
-              className="font-semibold text-link hover:underline"
+              className="inline-flex min-h-[34px] items-center font-semibold text-link hover:underline"
             >
               try another address
             </button>
@@ -72,7 +72,7 @@ export function ForgotPassword() {
       title="Reset your password"
       subtitle="We'll email you a link to choose a new one."
       footer={
-        <Link to="/auth/sign-in" className="font-semibold text-link hover:underline">
+        <Link to="/auth/sign-in" className="inline-flex min-h-[34px] items-center font-semibold text-link hover:underline">
           Back to sign in
         </Link>
       }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { MessageCircle, Send } from 'lucide-react'
+import { ArrowLeft, MessageCircle, Send } from 'lucide-react'
 import { Avatar, Card, FormError, Input, Spinner } from '@/components/ui'
 import { Skeleton } from '@/components/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
@@ -26,6 +26,8 @@ export function MessagesScreen() {
   const { send, markRead } = useMessagingMutations(profileId)
 
   const [activeId, setActiveId] = useState<string | null>(null)
+  // Below `lg` the two panes take turns: the list, then the thread.
+  const [showThread, setShowThread] = useState(false)
   const items = conversations.data ?? []
   const active = items.find((conversation) => conversation.id === activeId) ?? items[0] ?? null
   const messages = useMessages(active?.id)
@@ -89,7 +91,7 @@ export function MessagesScreen() {
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
         {/* ── Conversation list ── */}
-        <Card flush className="overflow-hidden">
+        <Card flush className={cn('overflow-hidden', showThread && 'hidden lg:block')}>
           <ul className="flex max-h-[70vh] flex-col divide-y divide-line overflow-y-auto">
             {items.map((conversation) => {
               const other = conversation.participants[0]
@@ -97,7 +99,10 @@ export function MessagesScreen() {
               return (
                 <li key={conversation.id}>
                   <button
-                    onClick={() => setActiveId(conversation.id)}
+                    onClick={() => {
+                      setActiveId(conversation.id)
+                      setShowThread(true)
+                    }}
                     className={cn(
                       'flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors',
                       isActive ? 'bg-paper' : 'hover:bg-paper/70',
@@ -139,10 +144,17 @@ export function MessagesScreen() {
         </Card>
 
         {/* ── Thread ── */}
-        <Card flush className="flex flex-col overflow-hidden">
+        <Card flush className={cn('flex flex-col overflow-hidden', !showThread && 'hidden lg:flex')}>
           {active && (
             <>
               <header className="flex items-center gap-3 border-b border-line px-5 py-4">
+                <button
+                  onClick={() => setShowThread(false)}
+                  aria-label="Back to conversations"
+                  className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-ink/5 hover:text-ink lg:hidden"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
                 <Avatar
                   src={active.participants[0]?.avatar_url ?? undefined}
                   name={participantName(active.participants[0])}
@@ -160,7 +172,7 @@ export function MessagesScreen() {
 
               <div
                 ref={threadRef}
-                className="flex max-h-[52vh] min-h-[280px] flex-col gap-3 overflow-y-auto px-5 py-4"
+                className="flex max-h-[52vh] min-h-[320px] flex-col gap-3 overflow-y-auto px-4 py-4 sm:px-5"
               >
                 {messages.isLoading ? (
                   <Skeleton className="h-20" />

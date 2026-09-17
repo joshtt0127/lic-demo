@@ -107,7 +107,7 @@ function AuditionCard({
 
   return (
     <Card className={cn('flex flex-col gap-4', muted && 'opacity-75')}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <span className="h-16 w-12 shrink-0 overflow-hidden rounded-btn bg-line">
             {application.project?.poster_url && (
@@ -154,7 +154,7 @@ function AuditionCard({
           {application.role?.casting_call_id && (
             <Link
               to={`/talent/casting/${application.role.casting_call_id}`}
-              className="text-[12px] font-semibold text-link hover:underline"
+              className="inline-flex h-8 items-center rounded-btn px-2 text-[12px] font-semibold text-link hover:bg-link/5"
             >
               View casting
             </Link>

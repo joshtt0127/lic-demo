@@ -50,7 +50,7 @@ export function ResetPassword() {
         title="This link has expired"
         subtitle="Reset links are valid for one hour and can only be used once."
         footer={
-          <Link to="/auth/sign-in" className="font-semibold text-link hover:underline">
+          <Link to="/auth/sign-in" className="inline-flex min-h-[34px] items-center font-semibold text-link hover:underline">
             Back to sign in
           </Link>
         }
