@@ -79,6 +79,7 @@ export function AvatarUpload({
             onError={setError}
             disabled={busy}
             className="w-auto"
+            compact
           >
             <span
               className={cn(

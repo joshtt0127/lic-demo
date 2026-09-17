@@ -5,6 +5,7 @@ import { SignIn } from './pages/auth/SignIn'
 import { SignUp } from './pages/auth/SignUp'
 import { ForgotPassword } from './pages/auth/ForgotPassword'
 import { ResetPassword } from './pages/auth/ResetPassword'
+import { Continue } from './pages/auth/Continue'
 import { Onboarding } from './pages/onboarding/Onboarding'
 import { RedirectIfSignedIn, RequireAuth, RequireSurface } from './features/auth/guards'
 import { StudioLayout } from './studio/StudioLayout'
@@ -53,6 +54,14 @@ export const router = createBrowserRouter([
   },
   // Password recovery arrives with a live session, so it stays outside the guard.
   { path: '/auth/reset-password', element: <ResetPassword /> },
+
+  // Hand-off after sign-in / sign-up: resolves the right destination once the
+  // profile is loaded.
+  {
+    path: '/continue',
+    element: <RequireAuth />,
+    children: [{ index: true, element: <Continue /> }],
+  },
 
   // Common onboarding (account type → identity), resumed from the profile state.
   {

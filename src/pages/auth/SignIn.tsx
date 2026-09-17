@@ -36,8 +36,8 @@ export function SignIn() {
       return
     }
     track('signed_in')
-    // The guard on the target route resolves the final destination.
-    navigate(next || '/', { replace: true })
+    // /continue waits for the profile, then routes to the right space.
+    navigate(next || '/continue', { replace: true })
   }
 
   return (

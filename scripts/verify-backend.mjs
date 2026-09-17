@@ -293,6 +293,19 @@ check(
   JSON.stringify(stats),
 )
 
-console.log(`\n${failures === 0 ? '✓ ALL CHECKS PASSED' : `✗ ${failures} CHECK(S) FAILED`}`)
-console.log(`demo accounts: ${talent.email} / ${production.email} — password ${PASSWORD}\n`)
+console.log('\n11 · Cleanup')
+// The run created real accounts and a real org; remove them so the project only
+// ever holds the seeded demo data (needs the local service-role key).
+if (env.SUPABASE_SERVICE_ROLE_KEY) {
+  const admin = createClient(URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+  await admin.from('organizations').delete().eq('id', org.id)
+  for (const account of [talent, production]) {
+    await admin.auth.admin.deleteUser(account.id)
+  }
+  check('test accounts and org removed', true)
+} else {
+  console.log('  · no service-role key — left the test rows in place')
+}
+
+console.log(`\n${failures === 0 ? '✓ ALL CHECKS PASSED' : `✗ ${failures} CHECK(S) FAILED`}\n`)
 process.exit(failures === 0 ? 0 : 1)

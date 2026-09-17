@@ -115,6 +115,13 @@ describe('RequireSurface', () => {
     expect(screen.getByText('onboarding screen')).toBeInTheDocument()
   })
 
+  it('sends an unfinished onboarding back to the wizard', () => {
+    mockAuth.profile = { ...profile, onboarding_completed_at: null, onboarding_step: 'casting' }
+    renderAt('/talent')
+    expect(screen.queryByText('talent home')).not.toBeInTheDocument()
+    expect(screen.getByText('onboarding screen')).toBeInTheDocument()
+  })
+
   it('shows a recoverable error when the profile cannot be loaded', () => {
     mockAuth.profileError = 'network down'
     renderAt('/talent')

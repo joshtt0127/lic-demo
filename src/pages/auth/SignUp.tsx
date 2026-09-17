@@ -55,7 +55,7 @@ export function SignUp() {
       )
       return
     }
-    navigate('/onboarding', { replace: true })
+    navigate('/continue', { replace: true })
   }
 
   return (

@@ -15,6 +15,7 @@ export function FileDropzone({
   disabled,
   compact,
   fill,
+  bare,
   label,
   children,
   className,
@@ -26,6 +27,8 @@ export function FileDropzone({
   compact?: boolean
   /** Fill the parent box (used as a tile inside a media grid). */
   fill?: boolean
+  /** No frame and no padding — for a bare icon trigger (avatar, cover). */
+  bare?: boolean
   label?: string
   /** Custom inner content (used by the gallery "add" tile). */
   children?: ReactNode
@@ -59,7 +62,7 @@ export function FileDropzone({
         setDragging(false)
         handleFiles(event.dataTransfer.files)
       }}
-      className={cn('relative', className)}
+      className={className}
     >
       <input
         ref={inputRef}
@@ -78,9 +81,11 @@ export function FileDropzone({
         disabled={disabled}
         onClick={() => inputRef.current?.click()}
         className={cn(
-          'flex w-full flex-col items-center justify-center gap-2 rounded-card border border-dashed text-center transition-colors',
-          fill ? 'h-full px-3 py-3' : compact ? 'px-3 py-5' : 'px-6 py-9',
-          dragging ? 'border-ink bg-cream/40' : 'border-line bg-paper hover:border-ink/30',
+          'flex flex-col items-center justify-center text-center transition-colors',
+          !bare && 'w-full gap-2 rounded-card border border-dashed',
+          !bare && (fill ? 'h-full px-3 py-3' : compact ? 'px-3 py-5' : 'px-6 py-9'),
+          !bare && (dragging ? 'border-ink bg-cream/40' : 'border-line bg-paper hover:border-ink/30'),
+          bare && dragging && 'scale-110',
           disabled && 'opacity-60',
         )}
       >

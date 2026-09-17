@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { ConfigNotice } from '@/components/ConfigNotice'
 import { Button, Card, FullPageLoader, Logo } from '@/components/ui'
-import { canAccessSurface, homeRouteFor, type Surface } from '@/lib/access'
+import { canAccessSurface, homeRouteFor, isOnboarded, type Surface } from '@/lib/access'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { useAuth } from './AuthProvider'
 
@@ -73,7 +73,9 @@ function SurfaceGate({
   profile: ReturnType<typeof useAuth>['profile']
   children: ReactNode
 }) {
-  if (!profile?.account_type) return <Navigate to="/onboarding" replace />
+  // No account type, or a wizard left half-finished: back to the onboarding,
+  // which resumes at the stored step.
+  if (!isOnboarded(profile)) return <Navigate to="/onboarding" replace />
   if (!canAccessSurface(profile, surface)) return <Navigate to={homeRouteFor(profile)} replace />
   return <>{children}</>
 }
