@@ -12,9 +12,7 @@ import type { AccountType, ProfileRow } from '@/types/database'
  */
 
 export const TALENT_STEPS = ['identity', 'casting', 'skills', 'media'] as const
-// `organization` joins this list in the production-onboarding slice; keeping it
-// out until the step exists means no step can ever render a dead end.
-export const PRODUCTION_STEPS = ['identity'] as const
+export const PRODUCTION_STEPS = ['identity', 'organization'] as const
 
 export type TalentStep = (typeof TALENT_STEPS)[number]
 export type ProductionStep = (typeof PRODUCTION_STEPS)[number]

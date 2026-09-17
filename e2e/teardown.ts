@@ -9,6 +9,11 @@ export default async function teardown() {
   const admin = createClient(env.VITE_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false },
   })
+  const { data: orgs } = await admin.from('organizations').select('id, name').ilike('name', 'Studio E2E%')
+  for (const org of orgs ?? []) {
+    await admin.from('organizations').delete().eq('id', org.id)
+  }
+
   const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 })
   const created = (data?.users ?? []).filter(
     (user) => user.email?.startsWith('e2e.') && user.email.endsWith('@letitcast.dev'),

@@ -1,17 +1,15 @@
 import { useState } from 'react'
-import { Card, FormError, FormField, TextField } from '@/components/ui'
+import { ArrowRight } from 'lucide-react'
+import { FormError, Spinner, TextField } from '@/components/ui'
 import { AvatarUpload } from '@/components/upload/AvatarUpload'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useOnboardingNav } from '@/features/onboarding/steps'
 import { updateProfile, upsertProductionProfile } from '@/data/repositories/profiles'
 import { displayName } from '@/lib/access'
 import { errorMessage } from '@/lib/supabase'
-import { StepActions } from '../StepActions'
+import { CountryField } from '../CountryField'
 
-/**
- * Production identity. The organization step lands in the next slice
- * (`feat/production-onboarding`); until then this step completes the onboarding.
- */
+/** Production step 1 — who you are on the production side. */
 export function ProductionIdentityStep() {
   const { profile, refreshProfile } = useAuth()
   const nav = useOnboardingNav()
@@ -30,7 +28,8 @@ export function ProductionIdentityStep() {
   const set = (key: keyof typeof form) => (event: React.ChangeEvent<HTMLInputElement>) =>
     setForm((current) => ({ ...current, [key]: event.target.value }))
 
-  async function handleContinue() {
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault()
     if (!profile) return
     setFormError(null)
 
@@ -51,68 +50,92 @@ export function ProductionIdentityStep() {
       await upsertProductionProfile(profile.id, { job_title: form.jobTitle.trim() || null })
       await refreshProfile()
       await nav.next()
-    } catch (error) {
-      setFormError(errorMessage(error, 'Could not save your details'))
+    } catch (saveError) {
+      setFormError(errorMessage(saveError, 'Could not save your details'))
     } finally {
       setPending(false)
     }
   }
 
+  const busy = pending || nav.pending
+
   return (
-    <div>
-      <Card className="flex flex-col gap-5">
-        {(formError || nav.error) && <FormError>{formError ?? nav.error}</FormError>}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-7" noValidate>
+      {(formError || nav.error) && <FormError>{formError ?? nav.error}</FormError>}
 
-        <FormField label="Profile photo" optional>
-          <AvatarUpload
-            profileId={profile?.id as string}
-            avatarUrl={profile?.avatar_url ?? null}
-            name={displayName(profile)}
-          />
-        </FormField>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <TextField
-            label="First name"
-            autoComplete="given-name"
-            value={form.firstName}
-            onChange={set('firstName')}
-            error={errors.firstName}
-          />
-          <TextField
-            label="Last name"
-            autoComplete="family-name"
-            value={form.lastName}
-            onChange={set('lastName')}
-            error={errors.lastName}
-          />
+      <section className="flex flex-col gap-4">
+        <div>
+          <h2 className="font-display text-[19px] font-bold text-ink">Profile photo</h2>
+          <p className="mt-1 text-[14px] text-muted">
+            Talents and teammates see this next to your name and your notes.
+          </p>
         </div>
-
-        <TextField
-          label="Job title"
-          placeholder="Casting director, Producer, Assistant…"
-          value={form.jobTitle}
-          onChange={set('jobTitle')}
-          optional
+        <AvatarUpload
+          profileId={profile?.id as string}
+          avatarUrl={profile?.avatar_url ?? null}
+          name={displayName(profile)}
         />
+      </section>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <TextField label="City" placeholder="Paris" value={form.city} onChange={set('city')} optional />
-          <TextField
-            label="Country"
-            placeholder="France"
-            value={form.country}
-            onChange={set('country')}
-            optional
-          />
-        </div>
-      </Card>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <TextField
+          label="First name"
+          plainLabel
+          fieldSize="lg"
+          autoComplete="given-name"
+          value={form.firstName}
+          onChange={set('firstName')}
+          error={errors.firstName}
+        />
+        <TextField
+          label="Last name"
+          plainLabel
+          fieldSize="lg"
+          autoComplete="family-name"
+          value={form.lastName}
+          onChange={set('lastName')}
+          error={errors.lastName}
+        />
+      </div>
 
-      <StepActions
-        onContinue={handleContinue}
-        continueLabel="Enter Let It Cast"
-        pending={pending || nav.pending}
+      <TextField
+        label="Job title"
+        plainLabel
+        optional
+        fieldSize="lg"
+        placeholder="Casting director, Producer, Assistant…"
+        value={form.jobTitle}
+        onChange={set('jobTitle')}
       />
-    </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <TextField
+          label="City"
+          plainLabel
+          optional
+          fieldSize="lg"
+          placeholder="Paris"
+          value={form.city}
+          onChange={set('city')}
+        />
+        <CountryField
+          optional
+          value={form.country}
+          onChange={(country) => setForm((current) => ({ ...current, country }))}
+        />
+      </div>
+
+      <div className="flex justify-end pt-2">
+        <button
+          type="submit"
+          disabled={busy}
+          className="inline-flex h-14 items-center justify-center gap-2.5 rounded-field bg-ink px-9 text-[15px] font-bold text-white transition-all hover:bg-ink/90 active:scale-[0.99] disabled:opacity-60"
+        >
+          {busy && <Spinner className="h-[18px] w-[18px]" />}
+          Continue
+          {!busy && <ArrowRight className="h-[18px] w-[18px]" />}
+        </button>
+      </div>
+    </form>
   )
 }

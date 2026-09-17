@@ -31,6 +31,16 @@ describe('onboarding step machine', () => {
     expect(currentStep(production)).toBe('identity')
   })
 
+  it('walks the production side through identity then organization', () => {
+    const production = { ...profile, account_type: 'production' as const }
+    expect(currentStep({ ...production, onboarding_step: null })).toBe('identity')
+    expect(currentStep({ ...production, onboarding_step: 'organization' })).toBe('organization')
+    expect(stepPosition({ ...production, onboarding_step: 'organization' })).toEqual({
+      index: 3,
+      total: 3,
+    })
+  })
+
   it('numbers the steps after the account-type choice', () => {
     expect(stepPosition({ ...profile, onboarding_step: 'identity' })).toEqual({ index: 2, total: 5 })
     expect(stepPosition({ ...profile, onboarding_step: 'media' })).toEqual({ index: 5, total: 5 })
@@ -38,6 +48,6 @@ describe('onboarding step machine', () => {
 
   it('exposes only steps that have a screen', () => {
     expect(stepsFor('talent')).toEqual(TALENT_STEPS)
-    expect(stepsFor('production')).toEqual(['identity'])
+    expect(stepsFor('production')).toEqual(['identity', 'organization'])
   })
 })

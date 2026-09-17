@@ -10,6 +10,7 @@ import { CastingProfileStep } from './talent/CastingProfileStep'
 import { SkillsStep } from './talent/SkillsStep'
 import { MediaStep } from './talent/MediaStep'
 import { ProductionIdentityStep } from './production/ProductionIdentityStep'
+import { OrganizationStep } from './production/OrganizationStep'
 
 /**
  * Common onboarding entry point — one route, driven by the profile's own state
@@ -19,6 +20,11 @@ import { ProductionIdentityStep } from './production/ProductionIdentityStep'
  *   account_type set     → the steps of that side, in order
  *   onboarding completed → out to /talent or /studio
  */
+
+const PRODUCTION_STEPPER: StepperItem[] = [
+  { label: 'Your profile', hint: 'Name, role, photo' },
+  { label: 'Your organization', hint: 'Create or join a team' },
+]
 
 const TALENT_STEPPER: StepperItem[] = [
   { label: 'Your identity', hint: 'Basic information' },
@@ -39,11 +45,13 @@ export function Onboarding() {
   if (!profile?.account_type) {
     return (
       <OnboardingShell
-        variant="centered"
-        wide
         eyebrow="Welcome to Let It Cast"
         title="How are you using Let It Cast?"
-        subtitle="This shapes your whole experience — and it's the only thing we need up front."
+        subtitle="This shapes your whole experience — and it’s the only thing we need up front."
+        step={1}
+        totalSteps={2}
+        progressPlacement="header"
+        panel={false}
       >
         <AccountTypeStep />
       </OnboardingShell>
@@ -55,16 +63,32 @@ export function Onboarding() {
   const talent = profile.account_type === 'talent'
 
   if (!talent) {
+    const productionStep = index - 1
+    const productionTotal = total - 1
+
+    if (step === 'organization') {
+      return (
+        <OnboardingShell
+          eyebrow="Production onboarding"
+          title="Set up your organization"
+          subtitle="Projects, castings and candidates belong to a team. You can invite the rest of it right after."
+          step={productionStep}
+          totalSteps={productionTotal}
+          stepperItems={PRODUCTION_STEPPER}
+        >
+          <OrganizationStep />
+        </OnboardingShell>
+      )
+    }
+
     return (
       <OnboardingShell
         eyebrow="Production onboarding"
         title="Tell us who you are"
         subtitle="Your name and role are how talents and teammates will recognise you."
-        step={index - 1}
-        totalSteps={total - 1}
-        stepperItems={[
-          { label: 'Your profile', hint: 'Basic information' },
-        ]}
+        step={productionStep}
+        totalSteps={productionTotal}
+        stepperItems={PRODUCTION_STEPPER}
       >
         <ProductionIdentityStep />
       </OnboardingShell>

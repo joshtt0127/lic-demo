@@ -32,6 +32,8 @@ export function OnboardingShell({
   children,
   wide,
   onSkip,
+  panel = true,
+  progressPlacement,
 }: {
   variant?: 'split' | 'centered'
   eyebrow?: string
@@ -46,7 +48,12 @@ export function OnboardingShell({
   wide?: boolean
   /** Shows "Skip for now" in the top bar when the step is skippable. */
   onSkip?: () => void
+  /** `false` when the children provide their own surfaces (the account-type cards). */
+  panel?: boolean
+  /** Where the segmented progress goes. Defaults to the panel on `split`. */
+  progressPlacement?: 'header' | 'panel'
 }) {
+  const progressIn = progressPlacement ?? (variant === 'centered' ? 'header' : 'panel')
   const { signOut } = useAuth()
 
   const signOutButton = (
@@ -66,13 +73,18 @@ export function OnboardingShell({
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_20%_0%,#FFFDF8_0%,#F6F5F1_50%,#F3F3F6_100%)]"
       />
 
-      <header className="relative z-20 mx-auto flex w-full max-w-[1400px] items-center gap-6 px-6 py-7 sm:px-10">
+      <header className="relative z-20 mx-auto flex w-full max-w-[1340px] items-center gap-4 px-5 py-6 sm:px-8 lg:px-10">
         <Link to="/" aria-label="Let It Cast — home">
           <Logo size={32} />
         </Link>
 
-        {variant === 'centered' && step && totalSteps && (
-          <div className="mx-auto hidden md:block">
+        {progressIn === 'header' && step && totalSteps && (
+          <div
+            className={cn(
+              'hidden md:block',
+              variant === 'centered' ? 'mx-auto' : 'ml-6 mr-auto',
+            )}
+          >
             <StepProgress total={totalSteps} current={step} />
           </div>
         )}
@@ -86,7 +98,7 @@ export function OnboardingShell({
               Skip for now
             </button>
           )}
-          {variant === 'centered' && step && totalSteps && (
+          {progressIn === 'header' && step && totalSteps && (
             <>
               <span className="hidden text-[11px] font-semibold uppercase tracking-[0.22em] text-muted sm:inline">
                 Step {step} / {totalSteps}
@@ -99,7 +111,7 @@ export function OnboardingShell({
       </header>
 
       {variant === 'centered' ? (
-        <main className="relative z-10 mx-auto w-full max-w-[1400px] px-6 pb-20 sm:px-10">
+        <main className="relative z-10 mx-auto w-full max-w-[1340px] px-5 pb-16 sm:px-8 lg:px-10">
           <motion.div
             initial={animate ? { opacity: 0, y: 12 } : false}
             animate={{ opacity: 1, y: 0 }}
@@ -110,11 +122,11 @@ export function OnboardingShell({
               <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted">
                 {eyebrow}
               </span>
-              <h1 className="mt-4 font-display text-[2.5rem] font-extrabold leading-[1.08] tracking-[-0.03em] text-ink sm:text-[3rem]">
+              <h1 className="mt-4 font-display text-[2rem] font-extrabold leading-[1.08] tracking-[-0.03em] text-ink sm:text-[2.5rem] lg:text-[2.85rem]">
                 {title}
               </h1>
               {subtitle && (
-                <p className="mx-auto mt-4 max-w-xl text-[17px] leading-relaxed text-muted">
+                <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-muted sm:text-[16px]">
                   {subtitle}
                 </p>
               )}
@@ -124,24 +136,33 @@ export function OnboardingShell({
           </motion.div>
         </main>
       ) : (
-        <main className="relative z-10 mx-auto grid w-full max-w-[1400px] items-start gap-10 px-6 pb-20 sm:px-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.35fr)] lg:gap-14">
+        <main
+          className={cn(
+            'relative z-10 mx-auto grid w-full max-w-[1340px] items-start gap-8 px-5 pb-16 sm:px-8 lg:gap-12 lg:px-10',
+            panel
+              ? 'lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.3fr)]'
+              : 'lg:min-h-[calc(100vh-14rem)] lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.42fr)] lg:items-center',
+          )}
+        >
           {/* ── Intro column ── */}
           <motion.section
             initial={animate ? { opacity: 0, y: 12 } : false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, ease: 'easeOut' }}
-            className="lg:pt-16"
+            className={panel ? 'lg:pt-16' : ''}
           >
-            <span className="mb-5 block h-[2px] w-9 bg-ink/70" />
+            <span className="mb-4 block h-[2px] w-9 bg-ink/70" />
             <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted">
               {eyebrow}
             </span>
 
-            <h1 className="mt-5 max-w-[340px] font-display text-[2.5rem] font-extrabold leading-[1.06] tracking-[-0.03em] text-ink sm:text-[3.15rem]">
+            <h1 className="mt-4 max-w-[22ch] font-display text-[1.9rem] font-extrabold leading-[1.08] tracking-[-0.03em] text-ink sm:text-[2.3rem] lg:max-w-[12ch] lg:text-[2.6rem] xl:text-[3.1rem]">
               {title}
             </h1>
             {subtitle && (
-              <p className="mt-5 max-w-sm text-[17px] leading-relaxed text-muted">{subtitle}</p>
+              <p className="mt-4 max-w-md text-[15px] leading-relaxed text-muted sm:text-[16px] lg:max-w-sm">
+                {subtitle}
+              </p>
             )}
 
             {stepperItems && step && (
@@ -169,17 +190,21 @@ export function OnboardingShell({
             transition={{ duration: 0.45, ease: 'easeOut', delay: 0.05 }}
             className="w-full"
           >
-            <div className="rounded-panel border border-white/70 bg-[#FBFAF7]/90 px-6 py-8 shadow-panel backdrop-blur-sm sm:px-10 sm:py-10">
-              {step && totalSteps && (
-                <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">
-                    Step {step} of {totalSteps}
-                  </span>
-                  <StepProgress total={totalSteps} current={step} />
-                </div>
-              )}
-              {children}
-            </div>
+            {panel ? (
+              <div className="rounded-panel border border-white/70 bg-[#FBFAF7]/90 px-5 py-7 shadow-panel backdrop-blur-sm sm:px-8 sm:py-9 lg:px-10">
+                {progressIn === 'panel' && step && totalSteps && (
+                  <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">
+                      Step {step} of {totalSteps}
+                    </span>
+                    <StepProgress total={totalSteps} current={step} />
+                  </div>
+                )}
+                {children}
+              </div>
+            ) : (
+              children
+            )}
           </motion.section>
         </main>
       )}
