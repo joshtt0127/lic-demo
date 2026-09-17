@@ -1,106 +1,205 @@
-import { NavLink, Outlet, Link, useLocation } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
-import { Search, Bell, ChevronDown } from 'lucide-react'
+import {
+  Bell,
+  CalendarDays,
+  Clapperboard,
+  FolderOpen,
+  Home,
+  MessageCircle,
+  Plus,
+  Search,
+  Users,
+} from 'lucide-react'
 import { Logo } from '@/components/ui'
-import { CommandPalette, openCommandPalette } from '@/components/CommandPalette'
 import { PageTransition } from '@/components/PageTransition'
 import { UserMenu } from '@/components/UserMenu'
-import { useToast } from '@/components/Toast'
 import { useAuth } from '@/features/auth/AuthProvider'
+import { useCurrentOrganization } from '@/features/organizations/queries'
+import { useUnreadCounts } from '@/features/notifications/queries'
+import { ORG_ROLE_LABEL } from '@/lib/access'
 import { cn } from '@/lib/cn'
 
-const menu = [
-  { to: '/studio', label: 'Home', end: true },
-  { to: '/studio/dashboard', label: 'Casting calls' },
-  { to: '/studio/search', label: 'Actors' },
-]
-
-/** Production app shell — persistent desktop top nav + full-width content. */
+/**
+ * Production shell — the sidebar layout of the studio design: navigation on the
+ * left, search and account on top, content on the right.
+ *
+ * Every badge and every label here reads from the database (unread counts, the
+ * organization you belong to, your role in it).
+ */
 export function StudioLayout() {
   const location = useLocation()
-  const toast = useToast()
+  const navigate = useNavigate()
   const { profile } = useAuth()
+  const { organization } = useCurrentOrganization(profile?.id)
+  const unread = useUnreadCounts(profile?.id)
+  const [search, setSearch] = useState('')
+
+  const nav = [
+    { to: '/studio', label: 'Home', icon: Home, end: true, badge: 0 },
+    { to: '/studio/casting-calls', label: 'Casting calls', icon: Clapperboard, badge: 0 },
+    { to: '/studio/talent', label: 'Talent', icon: Users, badge: 0 },
+    {
+      to: '/studio/messages',
+      label: 'Messages',
+      icon: MessageCircle,
+      badge: unread.data?.messages ?? 0,
+    },
+    { to: '/studio/projects', label: 'Projects', icon: FolderOpen, badge: 0 },
+    { to: '/studio/calendar', label: 'Calendar', icon: CalendarDays, badge: 0 },
+  ]
+
+  const meta = [
+    organization?.name,
+    organization ? ORG_ROLE_LABEL[organization.role] : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
-    <div className="flex min-h-screen flex-col bg-paper">
-      <CommandPalette />
-
-      <header className="sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur">
-        <div className="mx-auto flex h-16 w-full max-w-[1500px] items-center gap-3 px-4 sm:gap-6 sm:px-6">
-          <Link to="/" className="shrink-0">
-            <Logo size={24} />
+    <div className="flex min-h-screen bg-paper">
+      {/* ── Sidebar ── */}
+      <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col justify-between border-r border-line bg-[#FBFAF7] px-5 py-7 lg:flex">
+        <div>
+          <Link to="/studio" aria-label="Let It Cast — studio home" className="block px-2">
+            <Logo size={30} />
           </Link>
 
-          <nav className="hidden items-center gap-1 lg:flex">
-            {menu.map(({ to, label, end }) => (
+          <nav className="mt-9 flex flex-col gap-1">
+            {nav.map(({ to, label, icon: Icon, end, badge }) => (
               <NavLink
-                key={label}
+                key={to}
                 to={to}
                 end={end}
                 className={({ isActive }) =>
                   cn(
-                    'rounded-btn px-3 py-2 text-sm font-medium transition-colors',
-                    isActive ? 'bg-ink text-white' : 'text-muted hover:bg-ink/5 hover:text-ink',
+                    'flex items-center gap-3 rounded-field px-3 py-2.5 text-[15px] font-semibold transition-colors',
+                    isActive
+                      ? 'bg-card text-ink shadow-card'
+                      : 'text-muted hover:bg-card/60 hover:text-ink',
                   )
                 }
               >
-                {label}
+                <Icon className="h-[18px] w-[18px]" />
+                <span className="flex-1">{label}</span>
+                {badge > 0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-signal-no px-1.5 font-mono text-[10px] font-bold text-white">
+                    {badge}
+                  </span>
+                )}
               </NavLink>
             ))}
-            <button
-              onClick={() => toast('Help center coming soon')}
-              className="rounded-btn px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-ink/5 hover:text-ink"
-            >
-              Help
-            </button>
           </nav>
+        </div>
 
-          {/* Global search → opens command palette */}
-          <button
-            onClick={openCommandPalette}
-            className="relative ml-auto hidden h-10 max-w-md flex-1 items-center gap-2 rounded-btn border border-line bg-card pl-9 pr-3 text-left text-sm text-muted transition-colors hover:border-ink/20 md:flex"
-          >
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-            Search talent, project, role…
-            <kbd className="ml-auto rounded border border-line bg-paper px-1.5 py-0.5 font-mono text-[10px] text-muted">
-              ⌘K
-            </kbd>
-          </button>
+        <div className="px-2">
+          <span className="mb-3 block h-[2px] w-7 bg-ink/30" />
+          <span className="block text-[11px] font-semibold uppercase leading-[1.9] tracking-[0.26em] text-muted">
+            People
+            <br />
+            Stories
+            <br />
+            Anywhere
+          </span>
+        </div>
+      </aside>
 
-          <div className="ml-auto flex min-w-0 shrink-0 items-center gap-2 sm:gap-3 md:ml-0">
-            <button
-              onClick={() => toast('Langue : Français bientôt disponible')}
-              className="hidden items-center gap-1 rounded-btn px-2 py-1.5 text-sm font-medium text-muted hover:text-ink sm:flex"
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* ── Top bar ── */}
+        <header className="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur">
+          <div className="flex h-[76px] items-center gap-3 px-4 sm:gap-5 sm:px-8">
+            <Link to="/studio" className="lg:hidden" aria-label="Studio home">
+              <Logo size={26} markOnly />
+            </Link>
+
+            <form
+              onSubmit={(event) => {
+                event.preventDefault()
+                const query = search.trim()
+                navigate(query ? `/studio/talent?q=${encodeURIComponent(query)}` : '/studio/talent')
+              }}
+              className="relative flex h-12 min-w-0 flex-1 items-center"
             >
-              EN <span className="text-muted/70">(FR)</span>
-              <ChevronDown className="h-3.5 w-3.5" />
-            </button>
-
-            <button
-              onClick={() => toast('Vous êtes à jour — aucune notification')}
-              className="relative flex h-9 w-9 items-center justify-center rounded-full text-muted hover:bg-ink/5 hover:text-ink"
-            >
-              <Bell className="h-[18px] w-[18px]" />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-signal-no ring-2 ring-paper" />
-            </button>
-
-            <div className="border-l border-line pl-3">
-              <UserMenu
-                meta={[profile?.city, profile?.country].filter(Boolean).join(', ') || 'Production'}
-                profileHref="/studio/search"
+              <Search className="pointer-events-none absolute left-4 h-[18px] w-[18px] text-muted" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search for talent, project, role…"
+                aria-label="Search talent"
+                className="h-12 w-full rounded-field border border-line bg-card pl-12 pr-16 text-[15px] text-ink outline-none transition-colors placeholder:text-muted hover:border-ink/20 focus:border-ink/30"
               />
+              <kbd className="pointer-events-none absolute right-3 hidden rounded-md border border-line bg-paper px-1.5 py-1 font-mono text-[10px] text-muted sm:block">
+                ⌘K
+              </kbd>
+            </form>
+
+            <Link
+              to="/studio/notifications"
+              aria-label="Notifications"
+              className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-ink/5 hover:text-ink"
+            >
+              <Bell className="h-[19px] w-[19px]" />
+              {(unread.data?.notifications ?? 0) > 0 && (
+                <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-signal-no ring-2 ring-paper" />
+              )}
+            </Link>
+
+            <div className="shrink-0">
+              <UserMenu meta={meta || 'Production'} profileHref="/studio/team" />
             </div>
           </div>
-        </div>
-      </header>
 
-      <main className="mx-auto w-full max-w-[1500px] flex-1 px-6 py-6">
-        <AnimatePresence mode="wait">
-          <PageTransition key={location.pathname}>
-            <Outlet />
-          </PageTransition>
-        </AnimatePresence>
-      </main>
+          {/* Mobile navigation — the sidebar is desktop-only. */}
+          <nav className="no-scrollbar flex items-center gap-1 overflow-x-auto border-t border-line px-4 py-2 lg:hidden">
+            {nav.map(({ to, label, icon: Icon, end, badge }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                className={({ isActive }) =>
+                  cn(
+                    'flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold transition-colors',
+                    isActive ? 'bg-ink text-white' : 'text-muted',
+                  )
+                }
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+                {badge > 0 && (
+                  <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-signal-no px-1 font-mono text-[9px] font-bold text-white">
+                    {badge}
+                  </span>
+                )}
+              </NavLink>
+            ))}
+          </nav>
+        </header>
+
+        <main className="min-w-0 flex-1 px-4 pb-14 pt-6 sm:px-8">
+          <AnimatePresence mode="wait">
+            <PageTransition key={location.pathname}>
+              <Outlet />
+            </PageTransition>
+          </AnimatePresence>
+        </main>
+      </div>
     </div>
+  )
+}
+
+/** Shared "New casting" call to action — used by the home and the casting list. */
+export function NewCastingButton({ className }: { className?: string }) {
+  return (
+    <Link
+      to="/studio/casting-calls/new"
+      className={cn(
+        'inline-flex h-12 items-center justify-center gap-2 rounded-field bg-ink px-6 text-[15px] font-bold text-white transition-all hover:bg-ink/90 active:scale-[0.99]',
+        className,
+      )}
+    >
+      <Plus className="h-[18px] w-[18px]" />
+      New casting
+    </Link>
   )
 }

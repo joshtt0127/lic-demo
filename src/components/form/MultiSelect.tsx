@@ -19,6 +19,7 @@ export function MultiSelect({
   max,
   emptyLabel,
   fieldSize = 'md',
+  inputId,
 }: {
   options: Option[]
   values: string[]
@@ -28,6 +29,8 @@ export function MultiSelect({
   max?: number
   emptyLabel?: string
   fieldSize?: FieldSize
+  /** Id of the search input, so a <label htmlFor> can point at it. */
+  inputId?: string
 }) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
@@ -64,6 +67,7 @@ export function MultiSelect({
     <div ref={containerRef} className="flex flex-col gap-2">
       <div className="relative">
         <Input
+          id={inputId}
           fieldSize={fieldSize}
           icon={<Search className={fieldSize === 'lg' ? 'h-[18px] w-[18px]' : 'h-4 w-4'} />}
           value={query}

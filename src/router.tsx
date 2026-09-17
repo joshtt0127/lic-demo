@@ -8,28 +8,19 @@ import { ResetPassword } from './pages/auth/ResetPassword'
 import { Continue } from './pages/auth/Continue'
 import { Onboarding } from './pages/onboarding/Onboarding'
 import { RedirectIfSignedIn, RequireAuth, RequireSurface } from './features/auth/guards'
+import { MessagesScreen } from './features/messaging/MessagesScreen'
+import { NotificationsScreen } from './features/notifications/NotificationsScreen'
 import { StudioLayout } from './studio/StudioLayout'
-import { TalentHome } from './talent/TalentHome'
-import { CommandCenter } from './studio/CommandCenter'
-import { Dashboard } from './studio/Dashboard'
-import { SearchScreen } from './studio/SearchScreen'
-import { Review } from './studio/Review'
-import { NewCasting } from './studio/NewCasting'
-import { CastingRecap } from './studio/CastingRecap'
-import { AgencySelect } from './studio/AgencySelect'
-import { CastingSearch } from './studio/CastingSearch'
-import { SelectionConsole } from './studio/SelectionConsole'
-import { StudioTalentProfile } from './studio/StudioTalentProfile'
-import { Wall } from './studio/Wall'
-import { AppLayout } from './app/AppLayout'
-import { Discover } from './app/Discover'
-import { Profile } from './app/Profile'
-import { CastingDetail } from './app/CastingDetail'
-import { SelfTape } from './app/SelfTape'
-import { Auditions } from './app/Auditions'
-import { SnapApplyTips } from './app/SnapApplyTips'
-import { MobileFeed } from './app/MobileFeed'
+import { StudioHome } from './studio/StudioHome'
+import { CastingCallsPage } from './studio/CastingCallsPage'
+import { NewCastingPage } from './studio/NewCastingPage'
+import { CastingDetailPage } from './studio/CastingDetailPage'
+import { ProjectsPage } from './studio/ProjectsPage'
+import { TalentSearchPage } from './studio/TalentSearchPage'
+import { StudioTalentProfilePage } from './studio/StudioTalentProfilePage'
+import { CalendarPage } from './studio/CalendarPage'
 import { TalentDesktopLayout } from './talent/TalentDesktopLayout'
+import { TalentHome } from './talent/TalentHome'
 import { TalentProfilePage } from './talent/TalentProfilePage'
 import { CastingCalls } from './talent/CastingCalls'
 import { TalentAuditions } from './talent/TalentAuditions'
@@ -37,6 +28,14 @@ import { Messages } from './talent/Messages'
 import { Notifications } from './talent/Notifications'
 import { TalentCastingDetail } from './talent/TalentCastingDetail'
 
+/**
+ * Routes.
+ *
+ * Only screens backed by real data are mounted. The former fixture screens
+ * (`studio/SelectionConsole`, `studio/Dashboard`, `app/*`…) stay in the repo as
+ * the base for the slices that will connect them, but they are not reachable —
+ * a route that shows invented numbers is worse than no route.
+ */
 export const router = createBrowserRouter([
   { path: '/', element: <Launcher /> },
   { path: '/pitch', element: <Pitch /> },
@@ -55,22 +54,21 @@ export const router = createBrowserRouter([
   // Password recovery arrives with a live session, so it stays outside the guard.
   { path: '/auth/reset-password', element: <ResetPassword /> },
 
-  // Hand-off after sign-in / sign-up: resolves the right destination once the
-  // profile is loaded.
+  // Hand-off after sign-in / sign-up.
   {
     path: '/continue',
     element: <RequireAuth />,
     children: [{ index: true, element: <Continue /> }],
   },
 
-  // Common onboarding (account type → identity), resumed from the profile state.
+  // Common onboarding (account type → the steps of your side).
   {
     path: '/onboarding',
     element: <RequireAuth />,
     children: [{ index: true, element: <Onboarding /> }],
   },
 
-  // Production (web / desktop)
+  // ── Production ──
   {
     path: '/studio',
     element: <RequireSurface surface="studio" />,
@@ -78,43 +76,24 @@ export const router = createBrowserRouter([
       {
         element: <StudioLayout />,
         children: [
-          { index: true, element: <CommandCenter /> },
-          { path: 'dashboard', element: <Dashboard /> },
-          { path: 'search', element: <SearchScreen /> },
-          { path: 'review', element: <Review /> },
-          { path: 'new-casting', element: <NewCasting /> },
-          { path: 'casting-recap', element: <CastingRecap /> },
-          { path: 'agency-select', element: <AgencySelect /> },
-          { path: 'casting-search', element: <CastingSearch /> },
-          { path: 'selection', element: <SelectionConsole /> },
-          { path: 'talent/:candidateId', element: <StudioTalentProfile /> },
-          { path: 'wall', element: <Wall /> },
+          { index: true, element: <StudioHome /> },
+          { path: 'casting-calls', element: <CastingCallsPage /> },
+          { path: 'casting-calls/new', element: <NewCastingPage /> },
+          { path: 'casting/:castingId', element: <CastingDetailPage /> },
+          { path: 'projects', element: <ProjectsPage /> },
+          { path: 'talent', element: <TalentSearchPage /> },
+          { path: 'talent/:profileId', element: <StudioTalentProfilePage /> },
+          { path: 'calendar', element: <CalendarPage /> },
+          { path: 'messages', element: <MessagesScreen /> },
+          { path: 'notifications', element: <NotificationsScreen base="/studio" /> },
+          { path: 'team', element: <Navigate to="/studio/projects" replace /> },
+          { path: '*', element: <Navigate to="/studio" replace /> },
         ],
       },
     ],
   },
 
-  // Talent (mobile, inside phone frame)
-  {
-    path: '/app',
-    element: <RequireSurface surface="talent" />,
-    children: [
-      {
-        element: <AppLayout />,
-        children: [
-          { index: true, element: <Discover /> },
-          { path: 'profile', element: <Profile /> },
-          { path: 'casting/:id', element: <CastingDetail /> },
-          { path: 'selftape/:id', element: <SelfTape /> },
-          { path: 'feed', element: <MobileFeed /> },
-          { path: 'auditions', element: <Auditions /> },
-          { path: 'tips', element: <SnapApplyTips /> },
-        ],
-      },
-    ],
-  },
-
-  // Talent (web / desktop — LinkedIn-style space)
+  // ── Talent ──
   {
     path: '/talent',
     element: <RequireSurface surface="talent" />,
@@ -129,6 +108,7 @@ export const router = createBrowserRouter([
           { path: 'notifications', element: <Notifications /> },
           { path: 'profile', element: <TalentProfilePage /> },
           { path: 'casting/:castingId', element: <TalentCastingDetail /> },
+          { path: '*', element: <Navigate to="/talent" replace /> },
         ],
       },
     ],

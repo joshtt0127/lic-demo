@@ -6,7 +6,6 @@ import { fieldErrors, signUpSchema } from '@/features/auth/validation'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { track } from '@/lib/analytics'
 import { AuthLayout } from './AuthLayout'
-import { SocialButtons } from './SocialButtons'
 
 /**
  * Account creation. The account type is NOT asked here — the first onboarding
@@ -148,13 +147,6 @@ export function SignUp() {
         </button>
       </form>
 
-      <div className="my-6 flex items-center gap-3">
-        <span className="h-px flex-1 bg-line" />
-        <span className="text-[13px] text-muted">or continue with</span>
-        <span className="h-px flex-1 bg-line" />
-      </div>
-
-      <SocialButtons onError={(message) => setFormError(message || null)} />
     </AuthLayout>
   )
 }

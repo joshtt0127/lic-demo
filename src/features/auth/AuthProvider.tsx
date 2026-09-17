@@ -9,7 +9,6 @@ import {
 } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Session, User } from '@supabase/supabase-js'
-import type { Provider } from '@supabase/supabase-js'
 import {
   errorMessage,
   isSupabaseConfigured,
@@ -46,8 +45,6 @@ type AuthValue = {
   profileError: string | null
   signUp: (input: SignUpInput) => Promise<Result>
   signIn: (input: { email: string; password: string; keepSignedIn?: boolean }) => Promise<Result>
-  /** Apple / Google / LinkedIn — reports plainly when a provider is not enabled. */
-  signInWithProvider: (provider: Provider) => Promise<Result>
   signOut: () => Promise<void>
   requestPasswordReset: (email: string) => Promise<Result>
   updatePassword: (password: string) => Promise<Result>
@@ -157,25 +154,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   )
 
-  const signInWithProvider = useCallback(async (provider: Provider): Promise<Result> => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}continue` },
-    })
-    if (!error) return { error: null }
-
-    // Supabase answers "Unsupported provider: provider is not enabled" when the
-    // OAuth app has not been configured on the project yet. Say so, rather than
-    // failing silently behind a button that looks functional.
-    const raw = errorMessage(error, 'Could not start that sign-in')
-    if (/not enabled|unsupported provider/i.test(raw)) {
-      const label = provider.charAt(0).toUpperCase() + provider.slice(1)
-      return {
-        error: `${label} sign-in is not enabled on this project yet — use your email and password.`,
-      }
-    }
-    return { error: raw }
-  }, [])
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut()
@@ -233,7 +211,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profileError: profileQuery.error ? errorMessage(profileQuery.error) : null,
       signUp,
       signIn,
-      signInWithProvider,
       signOut,
       requestPasswordReset,
       updatePassword,
@@ -250,7 +227,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       setAccountType,
       signIn,
-      signInWithProvider,
       signOut,
       signUp,
       updatePassword,

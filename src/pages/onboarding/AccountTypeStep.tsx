@@ -104,7 +104,7 @@ function ChoiceCard({
   return (
     <motion.button
       type="button"
-      aria-label={`Continue — ${title}`}
+      aria-label={title}
       initial={animate ? { opacity: 0, y: 14 } : false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.05 * index, duration: 0.4, ease: 'easeOut' }}

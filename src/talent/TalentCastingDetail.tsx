@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { Avatar, Button, Card, FormError, Spinner, Tag } from '@/components/ui'
 import { EditModal, Field, TextArea } from '@/components/EditModal'
+import { FormField } from '@/components/ui'
 import { Skeleton } from '@/components/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
 import { useToast } from '@/components/Toast'
@@ -406,7 +407,7 @@ function ApplyModal({
         />
       </Field>
 
-      <Field label="Headshot">
+      <FormField label="Headshot" plainLabel>
         {headshots.length === 0 ? (
           <p className="text-[13px] text-muted">
             No headshot on your profile yet — you can still apply and add one later.
@@ -432,9 +433,9 @@ function ApplyModal({
             ))}
           </div>
         )}
-      </Field>
+      </FormField>
 
-      <Field label="Showreel">
+      <FormField label="Showreel" plainLabel>
         {showreels.length === 0 ? (
           <p className="text-[13px] text-muted">No showreel on your profile yet.</p>
         ) : (
@@ -465,7 +466,7 @@ function ApplyModal({
             ))}
           </div>
         )}
-      </Field>
+      </FormField>
 
       {apply.isPending && (
         <span className="flex items-center gap-2 text-[13px] text-muted">

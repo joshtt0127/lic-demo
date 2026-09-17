@@ -6,7 +6,6 @@ import { fieldErrors, signInSchema } from '@/features/auth/validation'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { track } from '@/lib/analytics'
 import { AuthLayout } from './AuthLayout'
-import { SocialButtons } from './SocialButtons'
 
 export function SignIn() {
   const { signIn } = useAuth()
@@ -121,13 +120,6 @@ export function SignIn() {
         </button>
       </form>
 
-      <div className="my-6 flex items-center gap-3">
-        <span className="h-px flex-1 bg-line" />
-        <span className="text-[13px] text-muted">or continue with</span>
-        <span className="h-px flex-1 bg-line" />
-      </div>
-
-      <SocialButtons onError={(message) => setFormError(message || null)} />
     </AuthLayout>
   )
 }
