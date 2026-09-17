@@ -117,7 +117,7 @@ export function StudioLayout() {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* ── Top bar ── */}
         <header className="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur">
-          <div className="flex h-[76px] items-center gap-3 px-4 sm:gap-5 sm:px-8">
+          <div className="flex h-[88px] items-center gap-3 px-4 sm:gap-5 sm:px-8">
             <Link to="/studio" className="lg:hidden" aria-label="Studio home">
               <Logo size={26} markOnly />
             </Link>
@@ -128,7 +128,7 @@ export function StudioLayout() {
                 const query = search.trim()
                 navigate(query ? `/studio/talent?q=${encodeURIComponent(query)}` : '/studio/talent')
               }}
-              className="relative flex h-12 min-w-0 flex-1 items-center"
+              className="relative mx-auto flex h-12 w-full min-w-0 max-w-[840px] items-center"
             >
               <Search className="pointer-events-none absolute left-4 h-[18px] w-[18px] text-muted" />
               <input
@@ -146,7 +146,7 @@ export function StudioLayout() {
             <Link
               to="/studio/notifications"
               aria-label="Notifications"
-              className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-ink/5 hover:text-ink"
+              className="relative ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-ink/5 hover:text-ink"
             >
               <Bell className="h-[19px] w-[19px]" />
               {(unread.data?.notifications ?? 0) > 0 && (

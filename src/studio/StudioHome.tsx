@@ -72,7 +72,7 @@ export function StudioHome() {
       <header className="flex flex-wrap items-start justify-between gap-5">
         <div className="min-w-0">
           <span className="text-[13px] text-muted">{today}</span>
-          <h1 className="mt-1 font-display text-[2.1rem] font-extrabold leading-[1.02] tracking-[-0.035em] text-ink sm:text-[3.1rem]">
+          <h1 className="mt-1 font-display text-[2.1rem] font-extrabold leading-[1.02] tracking-[-0.035em] text-ink sm:text-[3.1rem] xl:text-[3.5rem]">
             {greeting()}, {profile?.first_name ?? 'there'}.
           </h1>
           <p className="mt-2 text-[16px] text-muted sm:text-[19px]">
@@ -248,7 +248,7 @@ function SessionCard({
   const nothing = tapes === 0 && callbacks === 0 && newSubmissions === 0
 
   return (
-    <div className="relative overflow-hidden rounded-panel border border-white/70 bg-[#FBFAF7] px-6 py-7 shadow-panel sm:px-8">
+    <div className="relative overflow-hidden rounded-panel border border-white/70 bg-[#FBFAF7] px-6 py-8 shadow-panel sm:px-9 lg:px-10 lg:py-9">
       {/* brand decoration, as in the design */}
       <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 hidden w-[46%] sm:block">
         <div className="absolute inset-0 opacity-70 blur-3xl">
@@ -292,7 +292,7 @@ function SessionCard({
         {loading ? (
           <Skeleton className="mt-6 h-16 w-full max-w-lg" />
         ) : (
-          <p className="mt-6 font-display text-[1.4rem] font-semibold leading-snug tracking-[-0.01em] text-ink sm:text-[1.75rem]">
+          <p className="mt-7 font-display text-[1.45rem] font-semibold leading-[1.25] tracking-[-0.015em] text-ink sm:text-[1.9rem] lg:text-[2.15rem]">
             {nothing ? (
               <>
                 Nothing to review yet. Publish a casting and the first tapes will land here.
@@ -314,7 +314,7 @@ function SessionCard({
           </p>
         )}
 
-        <div className="mt-6 flex flex-wrap items-center gap-2.5">
+        <div className="mt-7 flex flex-wrap items-center gap-2.5">
           <Link
             to={reviewHref}
             className="inline-flex h-12 items-center gap-2 rounded-field bg-ink px-5 text-[14px] font-bold text-white transition-colors hover:bg-ink/90"
@@ -330,14 +330,6 @@ function SessionCard({
             <FileText className="h-4 w-4" />
             Prepare my session
           </button>
-          {newSubmissions > 0 && (
-            <Link
-              to="/studio/casting-calls"
-              className="inline-flex h-12 items-center gap-2 rounded-field border border-line bg-card px-5 text-[14px] font-bold text-ink transition-colors hover:bg-paper"
-            >
-              Open {newSubmissions} new application{newSubmissions === 1 ? '' : 's'}
-            </Link>
-          )}
           <span
             title="The Cast Assistant needs the AI layer — not connected yet."
             className="inline-flex h-12 cursor-not-allowed items-center gap-2 rounded-field border border-dashed border-line bg-transparent px-5 text-[14px] font-semibold text-muted/70"
@@ -433,7 +425,7 @@ function CastingRow({ item }: { item: CastingOverview }) {
         to={`/studio/casting/${casting.id}`}
         className="group flex items-center gap-4 py-3 first:pt-0"
       >
-        <span className="h-14 w-11 shrink-0 overflow-hidden rounded-btn bg-line">
+        <span className="h-11 w-11 shrink-0 overflow-hidden rounded-[11px] bg-line">
           {casting.project?.poster_url && (
             <img
               src={casting.project.poster_url}
@@ -476,7 +468,7 @@ function AttentionRow({ item }: { item: AttentionItem }) {
   return (
     <li>
       <Link to={item.href} className="group flex items-center gap-4 py-3 first:pt-0">
-        <span className="h-14 w-11 shrink-0 overflow-hidden rounded-btn bg-line">
+        <span className="h-11 w-11 shrink-0 overflow-hidden rounded-[11px] bg-line">
           {item.posterUrl && (
             <img src={item.posterUrl} alt="" className="h-full w-full object-cover object-top" />
           )}
