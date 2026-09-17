@@ -141,7 +141,9 @@ Légende : **KEEP** · **KEEP+CONNECT** (UI conservée, données réelles) · **
 | Messages | `talent/Messages.tsx` | fixtures, état local | KEEP+CONNECT | `conversations`/`messages` partagées avec le studio |
 | Notifications | `talent/Notifications.tsx` | fixtures | KEEP+CONNECT | table `notifications` + read/unread |
 | Feed social | `studio/HomeFeed.tsx`, `app/MobileFeed.tsx` | fixtures riches (vidéos, YouTube) | KEEP | P6 — reste en fixtures pour la démo, isolé derrière un repo |
-| Performance profile / match IA | `types.ts`, `sceneAnalysis.ts` | scores fixtures | KEEP | scoring déterministe côté serveur plus tard (P5) |
+| Performance profile (carte sombre) | `TalentProfilePage.tsx` | barres de scores fixtures | **REPLACE** | remplacée par **Profile strength** (complétion réelle + ce qu'il manque). Le scoring de performance revient avec le slice matching (P5) quand il y aura des auditions à mesurer — afficher des barres sans données serait un faux |
+| Activity / posts (profil) | `TalentProfilePage.tsx` | posts fixtures + composer | **REMOVE (temporaire)** | le composer n'écrivait nulle part ; revient avec le feed (P6) et sa table |
+| Match IA / scene analysis | `sceneAnalysis.ts` | scores fixtures | KEEP | scoring déterministe côté serveur plus tard (P5) |
 
 ### 2.3 Production side
 
@@ -322,13 +324,13 @@ Les fixtures actuelles deviennent des seeds SQL/TS idempotents (`scripts/seed.ts
 
 Une branche par slice, `tsc` + build + tests verts avant merge, push à chaque étape.
 
-| # | Branche | Contenu | Priorité brief |
-| --- | --- | --- | --- |
-| 0 | `feat/fullstack-migration-plan` | ce document, `docs/*`, `.env.example` | — |
-| 1 | `feat/database-schema` | migrations SQL, RLS, buckets, types générés, client, seed | P0 |
-| 2 | `feat/auth` | signup/login/logout/reset, session persistante, guards, states | P0 |
-| 3 | `feat/talent-onboarding` | account type, wizard talent, avatar upload, profile completion | P0 |
-| 4 | `feat/talent-profile` | profil talent 100 % connecté + édition persistée + media upload | P0 |
+| # | Branche | Contenu | Priorité brief | État |
+| --- | --- | --- | --- | --- |
+| 0 | `feat/fullstack-migration-plan` | ce document, `docs/*`, `.env.example` | — | ✅ |
+| 1 | `feat/database-schema` | migrations SQL, RLS, buckets, vues, client typé, CLI `db.mjs` | P0 | ✅ |
+| 2 | `feat/auth` | signup/login/logout/reset, session persistante, guards, states | P0 | ✅ |
+| 3 | `feat/talent-onboarding` | account type, wizard talent, upload réel, profile completion | P0 | ✅ |
+| 4 | `feat/talent-profile` | profil talent 100 % connecté + édition persistée + media upload | P0 | ✅ |
 | 5 | `feat/production-onboarding` | profil production, create/join organization | P1 |
 | 6 | `feat/projects` | CRUD projets + artwork + statuts | P1 |
 | 7 | `feat/casting-calls` | casting calls + rôles + publication (wizard branché) | P1 |
