@@ -219,6 +219,20 @@ export const en: Record<string, string> = {
   'onb.headshots': 'Headshots',
   'onb.showreel': 'Showreel',
 
+  // ── Social graph ──
+  'social.follow': 'Follow',
+  'social.following': 'Following',
+  'social.followers_one': '{count} follower',
+  'social.followers_other': '{count} followers',
+  'social.network': 'Your network',
+  'social.followersLabel': 'Followers',
+  'social.followingLabel': 'Following',
+  'social.productionsFollowed': 'Productions followed',
+  'social.networkHint': 'Follow a production and its casting calls come first in your feed.',
+  'feed.filter.following': 'Following',
+  'feed.empty.following': 'You do not follow any production yet',
+  'feed.empty.followingHint': 'Follow a production from one of its posts and this tab keeps only their casting calls.',
+
   // ── Talent home / feed ──
   'feed.srTitle': 'Your feed, {name}',
   'feed.filter.recent': 'Recent',
@@ -359,6 +373,26 @@ export const en: Record<string, string> = {
   'auditions.notSelected': 'The production did not select you for this role.',
   'auditions.yourNote': 'Your note:',
   'auditions.loadFailed': 'Could not load your auditions',
+
+  // ── Tape check ──
+  'tape.title': 'Tape check',
+  'tape.label.framing': 'Framing',
+  'tape.label.definition': 'Definition',
+  'tape.label.duration': 'Length',
+  'tape.label.light': 'Light',
+  'tape.label.sound': 'Sound',
+  'tape.framing.portrait': 'portrait — right for a phone',
+  'tape.framing.landscape': 'landscape — self-tapes are watched upright',
+  'tape.framing.square': 'square',
+  'tape.framing.unknown': 'could not be read',
+  'tape.seconds_one': '{count} second',
+  'tape.seconds_other': '{count} seconds',
+  'tape.brightness': '{percent}% average luminance',
+  'tape.sound.present': 'audio track detected',
+  'tape.sound.missing': 'no audio track',
+  'tape.sound.unknown': 'this browser cannot tell',
+  'tape.unknown': 'could not be read',
+  'tape.disclaimer': 'Measured in the browser when the tape was sent — framing, definition, length, light and sound. It says nothing about the performance.',
 
   // ── Self-tape ──
   'selftape.title': 'Self-tape',

@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Bookmark,
+  Check,
   ChevronDown,
   Clock,
   Globe,
   Link2,
   MapPin,
+  Plus,
   Users,
   Wallet,
   Zap,
@@ -34,6 +36,9 @@ export function CastingPost({
   onToggleSave,
   onApply,
   canApply,
+  following = false,
+  followers = 0,
+  onToggleFollow,
 }: {
   casting: CastingCallWithContext
   applicationsByRole: Map<string, MyApplication>
@@ -41,6 +46,10 @@ export function CastingPost({
   onToggleSave: () => void
   onApply: (role: RoleRow) => void
   canApply: boolean
+  /** The production behind the post — the social graph lives on the header. */
+  following?: boolean
+  followers?: number
+  onToggleFollow?: () => void
 }) {
   const t = useT()
   const toast = useToast()
@@ -90,12 +99,35 @@ export function CastingPost({
               .filter(Boolean)
               .join(' · ') || t('post.castingCall')}
           </p>
-          <p className="mt-0.5 flex items-center gap-1 text-[12px] text-muted">
+          <p className="mt-0.5 flex flex-wrap items-center gap-1 text-[12px] text-muted">
             {relativeTime(casting.published_at ?? casting.created_at, t)}
             <span aria-hidden>·</span>
             <Globe className="h-3 w-3" aria-hidden />
             <span className="sr-only">{t('post.public')}</span>
+            {followers > 0 && (
+              <>
+                <span aria-hidden>·</span>
+                <span>{t('social.followers', { count: followers })}</span>
+              </>
+            )}
           </p>
+
+          {onToggleFollow && (
+            <button
+              type="button"
+              onClick={onToggleFollow}
+              aria-pressed={following}
+              className={cn(
+                'mt-1.5 inline-flex min-h-[32px] items-center gap-1.5 rounded-full border px-3 text-[12.5px] font-bold transition-colors',
+                following
+                  ? 'border-line bg-paper text-muted hover:text-ink'
+                  : 'border-ink bg-card text-ink hover:bg-paper',
+              )}
+            >
+              {following ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+              {following ? t('social.following') : t('social.follow')}
+            </button>
+          )}
         </div>
         <button
           type="button"

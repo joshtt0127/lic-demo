@@ -12,6 +12,7 @@ import {
   useStudioMutations,
 } from '@/features/studio/queries'
 import { useSelfTapes } from '@/features/selftapes/queries'
+import { TapeCheckCard } from '@/components/upload/TapeCheckCard'
 import { APPLICATION_STATUS_LABEL, relativeTime } from '@/lib/format'
 import { formatBytes } from '@/lib/storage'
 import { errorMessage } from '@/lib/supabase'
@@ -156,6 +157,7 @@ export function CandidateReviewModal({
               preload="metadata"
               className="w-full rounded-btn border border-line bg-black"
             />
+            {tape.check && <TapeCheckCard check={tape.check} />}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted">
               <span>Sent {relativeTime(tape.submittedAt)}</span>
               {tapeDuration && <span className="font-mono">{tapeDuration}</span>}

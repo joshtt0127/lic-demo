@@ -395,6 +395,42 @@ export type AnalyticsEventRow = {
 
 // ── Views ────────────────────────────────────────────────────────────────────
 
+/** What the browser measured about a self-tape when it was sent. */
+export type TapeCheckRow = {
+  self_tape_id: string
+  duration_s: number | null
+  width: number | null
+  height: number | null
+  framing: 'portrait' | 'landscape' | 'square' | null
+  brightness: number | null
+  has_audio: boolean | null
+  bytes: number | null
+  checks: { key: string; ok: boolean | null; detail: Record<string, string | number | null> }[]
+  score: number | null
+  created_at: string
+}
+
+/** The social graph: a profile follows a profile, or an organization. */
+export type FollowRow = {
+  follower_id: string
+  following_id: string
+  created_at: string
+}
+
+export type OrganizationFollowRow = {
+  profile_id: string
+  org_id: string
+  created_at: string
+}
+
+/** Counted on the rows themselves — never stored. */
+export type ProfileNetworkViewRow = {
+  profile_id: string
+  followers: number
+  following: number
+  organizations_followed: number
+}
+
 export type CandidateViewRow = {
   application_id: string
   role_id: string
@@ -493,11 +529,15 @@ export type Database = {
       messages: Writable<MessageRow, 'conversation_id' | 'sender_id' | 'body'>
       notifications: Writable<NotificationRow, 'recipient_id' | 'type' | 'title'>
       analytics_events: Writable<AnalyticsEventRow, 'name'>
+      tape_checks: Writable<TapeCheckRow, 'self_tape_id'>
+      follows: Writable<FollowRow, 'follower_id' | 'following_id'>
+      organization_follows: Writable<OrganizationFollowRow, 'profile_id' | 'org_id'>
     }
     Views: {
       v_candidates: ReadOnly<CandidateViewRow>
       v_role_stats: ReadOnly<RoleStatsViewRow>
       v_project_stats: ReadOnly<ProjectStatsViewRow>
+      v_profile_network: ReadOnly<ProfileNetworkViewRow>
     }
     Functions: {
       // eslint-disable-next-line @typescript-eslint/no-empty-object-type

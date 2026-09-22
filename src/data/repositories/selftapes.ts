@@ -1,7 +1,8 @@
 import { supabase } from '@/lib/supabase'
 import { deleteMedia, uploadMedia } from '@/data/repositories/media'
 import { signedUrl } from '@/lib/storage'
-import type { MediaAssetRow } from '@/types/database'
+import { checkTape, measureTape, type TapeCheck } from '@/lib/tapeCheck'
+import type { MediaAssetRow, TapeCheckRow } from '@/types/database'
 
 /**
  * Self-tapes.
@@ -23,6 +24,8 @@ export type SelfTape = {
   /** Time-limited — never store it. */
   url: string
   asset: MediaAssetRow
+  /** What the browser measured when the tape was sent (see lib/tapeCheck). */
+  check: TapeCheckRow | null
 }
 
 type Joined = {
@@ -31,9 +34,10 @@ type Joined = {
   submitted_at: string
   duration_s: number | null
   media_assets: MediaAssetRow | null
+  tape_checks: TapeCheckRow | null
 }
 
-const SELECT = 'id, application_id, submitted_at, duration_s, media_assets (*)'
+const SELECT = 'id, application_id, submitted_at, duration_s, media_assets (*), tape_checks (*)'
 
 async function shape(row: Joined): Promise<SelfTape | null> {
   if (!row.media_assets) return null
@@ -46,6 +50,7 @@ async function shape(row: Joined): Promise<SelfTape | null> {
     mime: row.media_assets.mime,
     url: await signedUrl(row.media_assets.bucket, row.media_assets.path),
     asset: row.media_assets,
+    check: row.tape_checks ?? null,
   }
 }
 
@@ -89,6 +94,15 @@ export async function addSelfTape({
   file: File
   onProgress?: (percent: number) => void
 }): Promise<SelfTape> {
+  // Measured before the upload: the browser already holds the file, so this
+  // costs nothing and nothing is transcoded server-side.
+  let analysis: TapeCheck | null = null
+  try {
+    analysis = checkTape(await measureTape(file))
+  } catch {
+    // A file the browser cannot decode simply has no check.
+  }
+
   const asset = await uploadMedia({ ownerId, kind: 'selftape', file, onProgress })
 
   const { data, error } = await supabase
@@ -107,7 +121,37 @@ export async function addSelfTape({
     throw error
   }
 
-  const tape = await shape(data as unknown as Joined)
+  const inserted = data as unknown as Joined
+
+  if (analysis) {
+    const { error: checkError } = await supabase.from('tape_checks').insert({
+      self_tape_id: inserted.id,
+      duration_s: analysis.metrics.durationSeconds,
+      width: analysis.metrics.width,
+      height: analysis.metrics.height,
+      framing: analysis.framing,
+      brightness: analysis.metrics.brightness,
+      has_audio: analysis.metrics.hasAudio,
+      bytes: analysis.metrics.bytes,
+      checks: analysis.items,
+      score: analysis.score,
+    })
+    // The tape matters more than its report card: a failed check is not a
+    // failed upload.
+    if (!checkError) {
+      const { data: withCheck } = await supabase
+        .from('self_tapes')
+        .select(SELECT)
+        .eq('id', inserted.id)
+        .maybeSingle()
+      if (withCheck) {
+        const tape = await shape(withCheck as unknown as Joined)
+        if (tape) return tape
+      }
+    }
+  }
+
+  const tape = await shape(inserted)
   if (!tape) throw new Error('The tape was uploaded but could not be read back')
   return tape
 }

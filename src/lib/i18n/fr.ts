@@ -221,6 +221,20 @@ export const fr: Record<string, string> = {
   'onb.headshots': 'Photos',
   'onb.showreel': 'Bande démo',
 
+  // ── Social graph ──
+  'social.follow': 'Suivre',
+  'social.following': 'Suivi',
+  'social.followers_one': '{count} abonné',
+  'social.followers_other': '{count} abonnés',
+  'social.network': 'Votre réseau',
+  'social.followersLabel': 'Abonnés',
+  'social.followingLabel': 'Abonnements',
+  'social.productionsFollowed': 'Productions suivies',
+  'social.networkHint': 'Suivez une production et ses appels à casting passent en premier dans votre fil.',
+  'feed.filter.following': 'Suivis',
+  'feed.empty.following': 'Vous ne suivez encore aucune production',
+  'feed.empty.followingHint': 'Suivez une production depuis une de ses publications et cet onglet ne garde que ses castings.',
+
   // ── Accueil talent / fil ──
   'feed.srTitle': 'Votre fil, {name}',
   'feed.filter.recent': 'Récents',
@@ -365,6 +379,26 @@ export const fr: Record<string, string> = {
   'auditions.notSelected': 'La production ne vous a pas retenu pour ce rôle.',
   'auditions.yourNote': 'Votre mot :',
   'auditions.loadFailed': 'Impossible de charger vos auditions',
+
+  // ── Tape check ──
+  'tape.title': 'Contrôle de la tape',
+  'tape.label.framing': 'Cadrage',
+  'tape.label.definition': 'Définition',
+  'tape.label.duration': 'Durée',
+  'tape.label.light': 'Lumière',
+  'tape.label.sound': 'Son',
+  'tape.framing.portrait': 'portrait — adapté au téléphone',
+  'tape.framing.landscape': 'paysage — les self-tapes se regardent à la verticale',
+  'tape.framing.square': 'carré',
+  'tape.framing.unknown': 'illisible',
+  'tape.seconds_one': '{count} seconde',
+  'tape.seconds_other': '{count} secondes',
+  'tape.brightness': '{percent} % de luminance moyenne',
+  'tape.sound.present': 'piste audio détectée',
+  'tape.sound.missing': 'aucune piste audio',
+  'tape.sound.unknown': 'ce navigateur ne sait pas le dire',
+  'tape.unknown': 'illisible',
+  'tape.disclaimer': 'Mesuré dans le navigateur au moment de l’envoi — cadrage, définition, durée, lumière et son. Ne dit rien du jeu.',
 
   // ── Self-tape ──
   'selftape.title': 'Self-tape',

@@ -227,6 +227,30 @@ une console à moitié traduite se lirait plus mal). Les libellés partagés
 (statuts, cycle de vie, complétion du profil) sont des **clés**, pas des phrases :
 `ROLE_STAGE_KEY`, `CASTING_STATUS_KEY`, `applyGate().reason`, `CompletionItem.label`.
 
+## Graphe social
+
+Deux liens (`follows` entre profils, `organization_follows` vers une
+organisation), lisibles de tous et écrits par soi seulement. Ce que ça change
+concrètement : filtre **Following** dans le fil, bouton Suivre sur l'en-tête de
+chaque publication avec le nombre d'abonnés, carte « Votre réseau » dans le
+rail, et une notification (donc un e-mail) pour la production suivie. Les
+compteurs viennent de la vue `v_profile_network` — jamais stockés, donc jamais
+faux après une suppression en cascade. Les « saved talents » restent le
+mécanisme privé de la production ; suivre est public et à l'initiative du
+comédien.
+
+## Contrôle technique des self-tapes
+
+`lib/tapeCheck.ts` mesure dans le navigateur ce qui est mesurable — cadrage,
+définition, durée, lumière (luminance Rec. 601 sur trois images), présence
+d'une piste audio — et applique des règles explicites et pondérées
+(`components/upload/TapeCheckCard.tsx` les affiche une par une, avec la valeur
+mesurée). Stocké dans `tape_checks` au moment de l'envoi, visible du comédien
+**et** de la production. Ce qui n'a pas pu être mesuré reste `null` et ne compte
+pas dans la note.
+**Ce n'est pas un avis sur le jeu** : la couche IA (analyse d'images clés par un
+modèle, avec sa clé) écrira dans sa propre table le jour où elle sera branchée.
+
 ## E-mails (ce qui sort de l'app)
 
 `notifications` → `email_outbox` (rendu + conservé) → `pg_net` vers un

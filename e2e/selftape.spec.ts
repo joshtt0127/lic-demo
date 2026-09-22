@@ -291,9 +291,16 @@ test.describe('camera', () => {
 
     const { data: tapes } = await admin
       .from('self_tapes')
-      .select('id, media_assets ( bucket, mime, bytes )')
+      .select('id, media_assets ( bucket, mime, bytes ), tape_checks ( score, framing, checks )')
       .eq('application_id', application!.id)
     expect(tapes).toHaveLength(1)
+
+    // The browser measured the take and stored what it could read.
+    const check = (tapes![0] as unknown as {
+      tape_checks: { score: number | null; framing: string | null; checks: unknown[] } | null
+    }).tape_checks
+    expect(check, 'a recorded take carries its own check').not.toBeNull()
+    expect(check!.checks.length).toBe(5)
     const asset = (tapes![0] as unknown as { media_assets: { bucket: string; mime: string; bytes: number } })
       .media_assets
     expect(asset.bucket).toBe('selftapes')

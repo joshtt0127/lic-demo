@@ -30,6 +30,12 @@ import {
   type CastingCallWithContext,
 } from '@/features/castings/queries'
 import { useConversations, participantName } from '@/features/messaging/queries'
+import {
+  useFollowedOrganizations,
+  useFollowMutations,
+  useNetworkCounts,
+  useOrganizationFollowers,
+} from '@/features/social/queries'
 import { useNotifications } from '@/features/notifications/queries'
 import { APPLICATION_STATUS_TONE } from '@/lib/format'
 import { useT } from '@/lib/i18n'
@@ -46,7 +52,7 @@ type FeedItem =
   | { key: string; at: string; kind: 'casting'; casting: CastingCallWithContext }
   | { key: string; at: string; kind: 'activity'; application: MyApplication; event: 'applied' | 'decision' }
 
-type Scope = 'recent' | 'closing' | 'saved' | 'applied'
+type Scope = 'recent' | 'following' | 'closing' | 'saved' | 'applied'
 
 /**
  * Talent home — a feed. Each published casting call is a post authored by the
@@ -69,6 +75,24 @@ export function TalentHome() {
   const conversations = useConversations(profileId)
   const notifications = useNotifications(profileId)
 
+  // ── The social graph: the productions this account follows ──
+  const followedOrgs = useFollowedOrganizations(profileId)
+  const network = useNetworkCounts(profileId)
+  const follow = useFollowMutations(profileId)
+  const orgIds = useMemo(
+    () =>
+      [
+        ...new Set(
+          (castings.data ?? [])
+            .map((casting) => casting.project?.organization?.id)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      ],
+    [castings.data],
+  )
+  const followers = useOrganizationFollowers(orgIds)
+  const followedIds = useMemo(() => new Set(followedOrgs.data ?? []), [followedOrgs.data])
+
   const [scope, setScope] = useState<Scope>('recent')
   const [applyTo, setApplyTo] = useState<{ role: RoleRow; castingTitle: string } | null>(null)
 
@@ -86,6 +110,10 @@ export function TalentHome() {
 
     const castingItems: FeedItem[] = allCastings
       .filter((casting) => {
+        if (scope === 'following') {
+          const orgId = casting.project?.organization?.id
+          return Boolean(orgId && followedIds.has(orgId))
+        }
         if (scope === 'saved') return savedIds.has(casting.id)
         if (scope === 'applied') return casting.roles.some((role) => applicationsByRole.has(role.id))
         if (scope === 'closing') return Boolean(casting.deadline_at)
@@ -98,7 +126,9 @@ export function TalentHome() {
         casting,
       }))
 
-    if (scope === 'saved' || scope === 'closing') return sortFeed(castingItems, scope)
+    if (scope === 'saved' || scope === 'closing' || scope === 'following') {
+      return sortFeed(castingItems, scope)
+    }
 
     const activityItems: FeedItem[] = mine.flatMap((application) => {
       const items: FeedItem[] = []
@@ -124,7 +154,7 @@ export function TalentHome() {
     })
 
     return sortFeed([...castingItems, ...activityItems], scope)
-  }, [applications.data, applicationsByRole, castings.data, savedIds, scope])
+  }, [applications.data, applicationsByRole, castings.data, followedIds, savedIds, scope])
 
   if (talent.isLoading || (!talent.data && !talent.error)) {
     return (
@@ -233,6 +263,17 @@ export function TalentHome() {
           </Card>
 
           <Card className="flex flex-col gap-3">
+            <span className="tech-label">{t('social.network')}</span>
+            <StatRow label={t('social.followersLabel')} value={network.data?.followers ?? 0} />
+            <StatRow label={t('social.followingLabel')} value={network.data?.following ?? 0} />
+            <StatRow
+              label={t('social.productionsFollowed')}
+              value={network.data?.organizationsFollowed ?? 0}
+            />
+            <p className="text-[12px] text-muted">{t('social.networkHint')}</p>
+          </Card>
+
+          <Card className="flex flex-col gap-3">
             <span className="tech-label">{t('feed.yourNumbers')}</span>
             <StatRow label={t('feed.auditionsSent')} value={stats.data?.submitted ?? 0} />
             <StatRow label={t('feed.shortlisted')} value={stats.data?.shortlisted ?? 0} />
@@ -279,11 +320,12 @@ export function TalentHome() {
 
           {/* The feed's own controls: real filters over real castings. */}
           <div className="flex items-center gap-2">
-            <div className="no-scrollbar min-w-0 flex-1 overflow-x-auto">
+            {/* Five filters: they wrap rather than being clipped. */}
+            <div className="min-w-0 flex-1">
               <SegmentedControl
-                wrap={false}
                 options={[
                   { value: 'recent', label: t('feed.filter.recent') },
+                  { value: 'following', label: t('feed.filter.following') },
                   { value: 'closing', label: t('feed.filter.closing') },
                   { value: 'saved', label: t('feed.filter.saved') },
                   { value: 'applied', label: t('feed.filter.applied') },
@@ -314,20 +356,24 @@ export function TalentHome() {
             <EmptyState
               icon={<Clapperboard className="h-5 w-5" />}
               title={
-                scope === 'saved'
-                  ? t('feed.empty.saved')
-                  : scope === 'applied'
-                    ? t('feed.empty.applied')
-                    : scope === 'closing'
-                      ? t('feed.empty.closing')
-                      : t('feed.empty.recent')
+                scope === 'following'
+                  ? t('feed.empty.following')
+                  : scope === 'saved'
+                    ? t('feed.empty.saved')
+                    : scope === 'applied'
+                      ? t('feed.empty.applied')
+                      : scope === 'closing'
+                        ? t('feed.empty.closing')
+                        : t('feed.empty.recent')
               }
               description={
                 scope === 'recent'
                   ? t('feed.empty.recentHint')
-                  : scope === 'saved'
-                    ? t('feed.empty.savedHint')
-                    : undefined
+                  : scope === 'following'
+                    ? t('feed.empty.followingHint')
+                    : scope === 'saved'
+                      ? t('feed.empty.savedHint')
+                      : undefined
               }
               action={
                 scope !== 'recent' ? (
@@ -359,6 +405,25 @@ export function TalentHome() {
                         })
                       }
                       canApply={isTalent}
+                      following={
+                        item.casting.project?.organization
+                          ? followedIds.has(item.casting.project.organization.id)
+                          : false
+                      }
+                      followers={
+                        item.casting.project?.organization
+                          ? (followers.data?.get(item.casting.project.organization.id) ?? 0)
+                          : 0
+                      }
+                      onToggleFollow={
+                        item.casting.project?.organization
+                          ? () =>
+                              follow.organization.mutate({
+                                orgId: item.casting.project!.organization!.id,
+                                following: followedIds.has(item.casting.project!.organization!.id),
+                              })
+                          : undefined
+                      }
                     />
                   ) : (
                     <ActivityPost

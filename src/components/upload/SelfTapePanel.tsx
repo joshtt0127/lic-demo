@@ -3,6 +3,7 @@ import { Camera, Film, RotateCcw, Trash2, Upload, Video } from 'lucide-react'
 import { Button, FormError, Spinner } from '@/components/ui'
 import { FileDropzone } from '@/components/upload/FileDropzone'
 import { SelfTapeRecorder } from '@/components/upload/SelfTapeRecorder'
+import { TapeCheckCard } from '@/components/upload/TapeCheckCard'
 import { useToast } from '@/components/Toast'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useSelfTapes, useSelfTapeMutations } from '@/features/selftapes/queries'
@@ -114,6 +115,7 @@ export function SelfTapePanel({
             preload="metadata"
             className="w-full rounded-btn border border-line bg-black"
           />
+          {current.check && <TapeCheckCard check={current.check} compact />}
           {!locked && (
             <div className="flex flex-wrap items-center gap-2">
               <Button
