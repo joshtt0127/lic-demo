@@ -9,13 +9,18 @@ import { DEMO_PASSWORD, localEnv } from './env'
  * fake unread badges).
  */
 
+/**
+ * The exact strings the old fixture home used to print. Bare numbers are not in
+ * this list on purpose: "312" also appears inside the timestamps other specs
+ * generate for their casting titles, which made this guard fail on data that
+ * was not a leak at all.
+ */
 const FIXTURE_LEAKS = [
   'Maya Reyes',
   'Vertice Talent',
   'Profile views',
   'Audition matches',
   'Performance score',
-  '312',
 ]
 
 test('a fresh talent account sees only its own data', async ({ page }) => {
