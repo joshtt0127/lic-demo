@@ -48,8 +48,8 @@ Trois surfaces dans une seule app (+ `/auth/*` et `/onboarding`) :
 | `/`              | Launcher de la démo                  | `pages/Launcher.tsx` |
 | `/pitch`         | Pitch (placeholder)                  | `pages/Pitch.tsx` |
 | `/studio/*`      | **Production** (desktop, pleine largeur) | `studio/StudioLayout.tsx` |
-| `/app/*`         | **Talent mobile** (dans un cadre iPhone) | `app/AppLayout.tsx` |
-| `/talent/*`      | **Talent desktop** (fiche façon LinkedIn, pleine largeur) | `talent/TalentDesktopLayout.tsx` |
+| `/app`           | **Aperçu téléphone** : l'app talent réelle dans un cadre iPhone (iframe) | `pages/PhonePreview.tsx` |
+| `/talent/*`      | **Talent** (desktop pleine largeur, tab bar en bas sur téléphone) | `talent/TalentLayout.tsx` |
 
 - **Studio** sous-routes : `/studio` (feed), `/studio/dashboard`, `/studio/search`, `/studio/review`.
 - **Messagerie production → talent** : `features/messaging/startConversation()` ouvre (ou réutilise,
@@ -180,7 +180,13 @@ Utilitaire `cn()` dans `src/lib/cn.ts`.
 ## Self-tapes, cycle de vie, équipe
 
 - **Self-tape** (`data/repositories/selftapes.ts`, `features/selftapes/queries.ts`,
-  `components/upload/SelfTapePanel.tsx`) : une tape = objet storage privé + `media_assets` +
+  `components/upload/SelfTapePanel.tsx`, `components/upload/SelfTapeRecorder.tsx`) :
+  **enregistrement caméra réel** (getUserMedia + MediaRecorder, décompte, minuteur, limite
+  3 min, relecture, nouvelle prise) ou import de fichier — les deux finissent sur le même
+  chemin d'upload. Le type est normalisé (`video/webm` sans le suffixe de codec) car le
+  bucket ne connaît que les types de base. Postuler enchaîne directement sur la tape
+  (`ApplyModal` étape 2). Testé headless avec la caméra factice de Chromium
+  (`playwright.config.ts`). une tape = objet storage privé + `media_assets` +
   `self_tapes` rattachée à la candidature (c'est cette ligne qui autorise l'URL signée pour
   l'organisation qui review). Envoi avec progression réelle, remplacement sûr (la nouvelle
   d'abord, l'ancienne ensuite), suppression en deux temps. Panneau en lecture seule si la

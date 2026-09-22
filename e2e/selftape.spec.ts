@@ -189,3 +189,132 @@ test('a talent sends a self-tape, replaces it, and the production plays it', asy
   await admin.auth.admin.deleteUser(talentId)
   await admin.auth.admin.deleteUser(producerId)
 })
+
+/**
+ * Recording, not just uploading: the camera path must produce the same thing —
+ * one `self_tapes` row on the application, playable by the production.
+ *
+ * Chromium's fake capture device stands in for a webcam, so this runs headless
+ * and on CI like any other test.
+ */
+test.describe('camera', () => {
+  // The fake capture device is declared in playwright.config.ts.
+  test.use({ permissions: ['camera', 'microphone'] })
+
+  test('a talent records a self-tape with their camera', async ({ page }) => {
+    const stamp = Date.now()
+    const env = localEnv()
+    const admin = createClient(env.VITE_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false },
+    })
+
+    const { data: producer } = await admin.auth.admin.createUser({
+      email: `e2e.cam.prod.${stamp}@letitcast.dev`,
+      password: DEMO_PASSWORD,
+      email_confirm: true,
+    })
+    const producerId = producer!.user.id
+    const { data: org } = await admin
+      .from('organizations')
+      .insert({ name: `Cam Films ${stamp}`, slug: `cam-films-${stamp}`, created_by: producerId })
+      .select('id')
+      .single()
+    const { data: project } = await admin
+      .from('projects')
+      .insert({ org_id: org!.id, created_by: producerId, title: `Close Up ${stamp}` })
+      .select('id')
+      .single()
+    const { data: casting } = await admin
+      .from('casting_calls')
+      .insert({
+        project_id: project!.id,
+        created_by: producerId,
+        title: `Close Up ${stamp} — open call`,
+        status: 'published',
+        published_at: new Date().toISOString(),
+      })
+      .select('id')
+      .single()
+    const { data: role } = await admin
+      .from('roles')
+      .insert({ casting_call_id: casting!.id, name: `Jun ${stamp}` })
+      .select('id')
+      .single()
+
+    const talentEmail = `e2e.cam.talent.${stamp}@letitcast.dev`
+    const { data: created } = await admin.auth.admin.createUser({
+      email: talentEmail,
+      password: DEMO_PASSWORD,
+      email_confirm: true,
+      user_metadata: { first_name: 'Remi', last_name: 'Cam' },
+    })
+    const talentId = created!.user.id
+    await admin
+      .from('profiles')
+      .update({
+        account_type: 'talent',
+        first_name: 'Remi',
+        last_name: 'Cam',
+        onboarding_step: null,
+        onboarding_completed_at: new Date().toISOString(),
+      })
+      .eq('id', talentId)
+    await admin
+      .from('talent_profiles')
+      .upsert({ profile_id: talentId }, { onConflict: 'profile_id' })
+    const { data: application } = await admin
+      .from('applications')
+      .insert({
+        role_id: role!.id,
+        talent_id: talentId,
+        status: 'submitted',
+        submitted_at: new Date().toISOString(),
+      })
+      .select('id')
+      .single()
+
+    await page.goto('/auth/sign-in')
+    await page.getByLabel('Email').fill(talentEmail)
+    await page.getByLabel('Password', { exact: true }).fill(DEMO_PASSWORD)
+    await page.getByRole('button', { name: 'Sign in' }).click()
+    await page.waitForURL('**/talent', { timeout: 30_000 })
+
+    await page.goto('/talent/auditions')
+    await page.getByRole('button', { name: 'Record my self-tape' }).click()
+
+    // The camera really starts, then the take really records.
+    await expect(page.getByRole('button', { name: 'Start recording' })).toBeEnabled({
+      timeout: 20_000,
+    })
+    await page.getByRole('button', { name: 'Start recording' }).click()
+    await expect(page.getByRole('button', { name: 'Stop recording' })).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.waitForTimeout(2500)
+    await page.getByRole('button', { name: 'Stop recording' }).click()
+
+    await expect(page.getByRole('button', { name: 'Use this take' })).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.getByRole('button', { name: 'Use this take' }).click()
+    await expect(page.getByText('Self-tape sent to the production')).toBeVisible({
+      timeout: 30_000,
+    })
+
+    const { data: tapes } = await admin
+      .from('self_tapes')
+      .select('id, media_assets ( bucket, mime, bytes )')
+      .eq('application_id', application!.id)
+    expect(tapes).toHaveLength(1)
+    const asset = (tapes![0] as unknown as { media_assets: { bucket: string; mime: string; bytes: number } })
+      .media_assets
+    expect(asset.bucket).toBe('selftapes')
+    expect(asset.mime).toMatch(/^video\/(mp4|webm)$/)
+    expect(asset.bytes).toBeGreaterThan(0)
+
+    await admin.from('projects').delete().eq('id', project!.id)
+    await admin.from('organizations').delete().eq('id', org!.id)
+    await admin.auth.admin.deleteUser(talentId)
+    await admin.auth.admin.deleteUser(producerId)
+  })
+})

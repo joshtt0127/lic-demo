@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Film, RotateCcw, Trash2, Video } from 'lucide-react'
+import { Camera, Film, RotateCcw, Trash2, Upload, Video } from 'lucide-react'
 import { Button, FormError, Spinner } from '@/components/ui'
 import { FileDropzone } from '@/components/upload/FileDropzone'
+import { SelfTapeRecorder } from '@/components/upload/SelfTapeRecorder'
 import { useToast } from '@/components/Toast'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useSelfTapes, useSelfTapeMutations } from '@/features/selftapes/queries'
@@ -40,6 +41,7 @@ export function SelfTapePanel({
   const [progress, setProgress] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [confirmRemove, setConfirmRemove] = useState(false)
+  const [recording, setRecording] = useState(false)
 
   const current = tapes.data?.[0] ?? null
 
@@ -54,6 +56,7 @@ export function SelfTapePanel({
         replacing: current,
       })
       toast(current ? 'Self-tape replaced' : 'Self-tape sent to the production')
+      setRecording(false)
     } catch (uploadError) {
       setError(errorMessage(uploadError, 'Could not send your tape'))
     } finally {
@@ -90,7 +93,13 @@ export function SelfTapePanel({
 
       {error && <FormError>{error}</FormError>}
 
-      {tapes.isLoading ? (
+      {recording && !locked ? (
+        <SelfTapeRecorder
+          busy={progress !== null}
+          onUse={send}
+          onCancel={() => setRecording(false)}
+        />
+      ) : tapes.isLoading ? (
         <span className="flex items-center gap-2 text-[13px] text-muted">
           <Spinner />
           Loading your tape…
@@ -105,6 +114,15 @@ export function SelfTapePanel({
           />
           {!locked && (
             <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={progress !== null}
+                icon={<Camera className="h-3.5 w-3.5" />}
+                onClick={() => setRecording(true)}
+              >
+                Record again
+              </Button>
               <FileDropzone
                 kind="selftape"
                 bare
@@ -114,7 +132,7 @@ export function SelfTapePanel({
               >
                 <span className="inline-flex h-9 items-center gap-1.5 rounded-btn border border-line bg-card px-3 text-[13px] font-semibold text-ink transition-colors hover:bg-paper">
                   <RotateCcw className="h-3.5 w-3.5" />
-                  Replace
+                  Replace with a file
                 </span>
               </FileDropzone>
 
@@ -161,14 +179,28 @@ export function SelfTapePanel({
           No tape was sent for this audition.
         </p>
       ) : (
-        <FileDropzone
-          kind="selftape"
-          compact
-          disabled={progress !== null}
-          onFile={send}
-          onError={setError}
-          label="Add your self-tape"
-        />
+        <div className="flex flex-col gap-2.5">
+          {/* Recording is the point — a file stays one tap away. */}
+          <Button
+            icon={<Camera className="h-4 w-4" />}
+            disabled={progress !== null}
+            onClick={() => setRecording(true)}
+          >
+            Record my self-tape
+          </Button>
+          <FileDropzone
+            kind="selftape"
+            bare
+            disabled={progress !== null}
+            onFile={send}
+            onError={setError}
+          >
+            <span className="inline-flex min-h-[36px] w-full items-center justify-center gap-1.5 rounded-field border border-line bg-card px-3 text-[13px] font-semibold text-ink transition-colors hover:bg-paper">
+              <Upload className="h-3.5 w-3.5" />
+              Or upload a file
+            </span>
+          </FileDropzone>
+        </div>
       )}
 
       {progress !== null && (

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Check, Film } from 'lucide-react'
-import { Avatar, FormError, FormField, Spinner } from '@/components/ui'
+import { Avatar, Button, FormError, FormField, Spinner } from '@/components/ui'
 import { EditModal, Field, TextArea } from '@/components/EditModal'
+import { SelfTapePanel } from '@/components/upload/SelfTapePanel'
 import { useToast } from '@/components/Toast'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useApplicationMutations } from '@/features/applications/queries'
@@ -11,7 +12,13 @@ import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 import type { RoleRow } from '@/types/database'
 
-/** The apply form: a note, a headshot and a showreel picked from your media. */
+/**
+ * Applying, then taping — in one go.
+ *
+ * The form sends the application, and the modal immediately offers to record
+ * the self-tape for that role: the tape is the point of the application, and
+ * sending it should not mean finding the audition again later.
+ */
 export function ApplyModal({
   role,
   castingTitle,
@@ -35,16 +42,46 @@ export function ApplyModal({
   const [headshotId, setHeadshotId] = useState<string | null>(headshots[0]?.id ?? null)
   const [showreelId, setShowreelId] = useState<string | null>(showreels[0]?.id ?? null)
   const [error, setError] = useState<string | null>(null)
+  const [applicationId, setApplicationId] = useState<string | null>(null)
 
   async function submit() {
     setError(null)
     try {
-      await apply.mutateAsync({ roleId: role.id, note, headshotId, showreelId })
+      const application = await apply.mutateAsync({
+        roleId: role.id,
+        note,
+        headshotId,
+        showreelId,
+      })
       toast(`Application sent for ${role.name}`)
-      onClose()
+      setApplicationId(application.id)
     } catch (applyError) {
       setError(errorMessage(applyError, 'Could not send your application'))
     }
+  }
+
+  // ── Step 2: the tape, right now ──
+  if (applicationId) {
+    return (
+      <EditModal open title={`Self-tape — ${role.name}`} onClose={onClose}>
+        <p className="flex items-center gap-2 text-[13px] text-muted">
+          <Check className="h-4 w-4 text-signal-good" />
+          Your application is sent. A tape is what gets watched — record it now, or add it later
+          from Auditions.
+        </p>
+
+        <SelfTapePanel
+          applicationId={applicationId}
+          instructions={role.selftape_instructions}
+        />
+
+        <div className="flex justify-end">
+          <Button variant="secondary" size="sm" onClick={onClose}>
+            Done
+          </Button>
+        </div>
+      </EditModal>
+    )
   }
 
   return (

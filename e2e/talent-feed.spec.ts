@@ -137,6 +137,14 @@ test('a published casting appears in the feed as a post, and applying works from
   await page.getByPlaceholder(/anything they should know/i).fill('Available all summer.')
   await page.getByRole('button', { name: /Submit application/ }).click()
 
+  // Applying leads straight to the tape — that is the point of applying.
+  await expect(page.getByRole('heading', { name: `Self-tape — ${roleName}` })).toBeVisible({
+    timeout: 20_000,
+  })
+  await expect(page.getByText('Your application is sent')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Record my self-tape' })).toBeVisible()
+  await page.getByRole('button', { name: 'Done' }).click()
+
   // The post now carries the status, and the feed shows the activity.
   await expect(post.getByText('Submitted').first()).toBeVisible({ timeout: 20_000 })
   await expect(page.getByText('You applied').first()).toBeVisible()

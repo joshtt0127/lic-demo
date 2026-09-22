@@ -22,7 +22,8 @@ import { StudioTalentProfilePage } from './studio/StudioTalentProfilePage'
 import { CalendarPage } from './studio/CalendarPage'
 import { TeamPage } from './studio/TeamPage'
 import { SettingsPage } from './studio/SettingsPage'
-import { TalentDesktopLayout } from './talent/TalentDesktopLayout'
+import { TalentLayout } from './talent/TalentLayout'
+import { PhonePreview } from './pages/PhonePreview'
 import { TalentHome } from './talent/TalentHome'
 import { TalentProfilePage } from './talent/TalentProfilePage'
 import { CastingCalls } from './talent/CastingCalls'
@@ -42,6 +43,7 @@ import { TalentCastingDetail } from './talent/TalentCastingDetail'
 export const router = createBrowserRouter([
   { path: '/', element: <Launcher /> },
   { path: '/pitch', element: <Pitch /> },
+  { path: '/app', element: <PhonePreview /> },
 
   // Auth — signed-in users are bounced to their own space.
   {
@@ -114,7 +116,7 @@ export const router = createBrowserRouter([
     element: <RequireSurface surface="talent" />,
     children: [
       {
-        element: <TalentDesktopLayout />,
+        element: <TalentLayout />,
         children: [
           { index: true, element: <TalentHome /> },
           { path: 'casting-calls', element: <CastingCalls /> },

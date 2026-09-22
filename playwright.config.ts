@@ -20,6 +20,15 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${PORT}`,
     ...devices['Desktop Chrome'],
+    // A fake camera + microphone, so the self-tape recorder can be tested for
+    // real instead of being mocked out.
+    launchOptions: {
+      args: [
+        '--use-fake-ui-for-media-stream',
+        '--use-fake-device-for-media-stream',
+        '--autoplay-policy=no-user-gesture-required',
+      ],
+    },
     viewport: { width: 1440, height: 900 },
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
