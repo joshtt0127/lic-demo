@@ -1,6 +1,9 @@
 /**
  * review-tape — ce que l'IA voit dans une self-tape.
  *
+ * Modèle : Gemini (clé Google). Le `responseSchema` de l'API force une réponse
+ * exploitable, donc pas de parsing au petit bonheur d'un texte libre.
+ *
  * Elle reçoit des images clés extraites de la tape (dans le navigateur de la
  * personne qui review : aucun transcodage serveur, aucune vidéo en transit), le
  * rôle et les traits de jeu que la production veut évaluer. Elle rend une note
@@ -21,7 +24,8 @@
  * un avis.
  */
 
-const MODEL = 'claude-sonnet-5'
+/** Surchargeable par un secret, pour changer de modèle sans redéployer le code. */
+const DEFAULT_MODEL = 'gemini-2.5-flash'
 
 type Body = {
   selfTapeId?: string
@@ -96,13 +100,14 @@ Deno.serve(async (request: Request) => {
     return json({ error: 'invalid JSON body' }, 400)
   }
 
-  const key = Deno.env.get('ANTHROPIC_API_KEY')
+  const key = Deno.env.get('GEMINI_API_KEY')
   if (!key) {
     const error =
-      'AI review is not connected yet — add ANTHROPIC_API_KEY to this function’s secrets.'
+      'AI review is not connected yet — add GEMINI_API_KEY to this function’s secrets.'
     await finish(body.reviewId, { status: 'failed', error })
     return json({ error }, 503)
   }
+  const model = Deno.env.get('GEMINI_MODEL') ?? DEFAULT_MODEL
 
   const frames = (body.frames ?? []).filter((frame) => frame.startsWith('data:image/'))
   if (frames.length === 0) {
@@ -113,17 +118,14 @@ Deno.serve(async (request: Request) => {
   const traits = (body.traits ?? []).filter(Boolean)
   const role = body.role ?? {}
 
-  const content: unknown[] = frames.map((frame) => ({
-    type: 'image',
-    source: {
-      type: 'base64',
-      media_type: frame.slice(5, frame.indexOf(';')),
+  const parts: unknown[] = frames.map((frame) => ({
+    inline_data: {
+      mime_type: frame.slice(5, frame.indexOf(';')),
       data: frame.slice(frame.indexOf(',') + 1),
     },
   }))
 
-  content.push({
-    type: 'text',
+  parts.push({
     text: [
       `Role: ${role.name ?? 'unnamed'}`,
       role.description ? `Description: ${role.description}` : null,
@@ -137,20 +139,51 @@ Deno.serve(async (request: Request) => {
       .join('\n'),
   })
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
+  // Le schéma force une réponse exploitable : pas de parsing au petit bonheur.
+  const responseSchema = {
+    type: 'OBJECT',
+    properties: {
+      summary: { type: 'STRING' },
+      fit_score: { type: 'INTEGER' },
+      traits: {
+        type: 'ARRAY',
+        items: {
+          type: 'OBJECT',
+          properties: {
+            trait: { type: 'STRING' },
+            score: { type: 'INTEGER', nullable: true },
+            evidence: { type: 'STRING' },
+          },
+          required: ['trait', 'evidence'],
+        },
+      },
+      strengths: { type: 'ARRAY', items: { type: 'STRING' } },
+      risks: { type: 'ARRAY', items: { type: 'STRING' } },
     },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 1200,
-      system: SYSTEM,
-      messages: [{ role: 'user', content }],
-    }),
-  })
+    required: ['summary', 'fit_score', 'traits', 'strengths', 'risks'],
+  }
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM }] },
+        contents: [{ role: 'user', parts }],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 3072,
+          responseMimeType: 'application/json',
+          responseSchema,
+          // Sans ça, la « réflexion » du modèle consomme tout le budget de
+          // sortie et la réponse revient vide : on ne veut pas d'un rapport
+          // interne, on veut le JSON.
+          thinkingConfig: { thinkingBudget: 0 },
+        },
+      }),
+    },
+  )
 
   if (!response.ok) {
     const error = `the model refused the request: ${(await response.text()).slice(0, 300)}`
@@ -158,8 +191,21 @@ Deno.serve(async (request: Request) => {
     return json({ error }, 502)
   }
 
-  const payload = (await response.json()) as { content?: { type: string; text?: string }[] }
-  const text = (payload.content ?? []).find((part) => part.type === 'text')?.text ?? ''
+  const payload = (await response.json()) as {
+    candidates?: { finishReason?: string; content?: { parts?: { text?: string }[] } }[]
+    promptFeedback?: { blockReason?: string }
+  }
+  const candidate = payload.candidates?.[0]
+  const text = candidate?.content?.parts?.[0]?.text ?? ''
+
+  if (!text) {
+    // Dire *pourquoi* c'est vide : refus de sécurité, budget épuisé, autre.
+    const reason =
+      payload.promptFeedback?.blockReason ?? candidate?.finishReason ?? 'no reason given'
+    const error = `the model returned nothing (${reason})`
+    await finish(body.reviewId, { status: 'failed', error })
+    return json({ error }, 502)
+  }
 
   // The model answers with JSON, but a stray sentence must not break the review.
   const start = text.indexOf('{')
@@ -187,7 +233,7 @@ Deno.serve(async (request: Request) => {
 
   await finish(body.reviewId, {
     status: 'ready',
-    model: MODEL,
+    model,
     frames: frames.length,
     summary: review.summary ?? null,
     fit_score: typeof review.fit_score === 'number' ? Math.round(review.fit_score) : null,
@@ -197,5 +243,5 @@ Deno.serve(async (request: Request) => {
     error: null,
   })
 
-  return json({ ok: true, model: MODEL, frames: frames.length, review })
+  return json({ ok: true, model, frames: frames.length, review })
 })

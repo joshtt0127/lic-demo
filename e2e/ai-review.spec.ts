@@ -5,11 +5,14 @@ import { DEMO_PASSWORD, localEnv, signInAs } from './env'
 /**
  * Le bouton « analyser la tape ».
  *
- * Ce qui est vérifié ici est tout ce qui ne dépend pas de la clé du modèle :
- * les images clés sont bien extraites de la vidéo **dans le navigateur** (donc
- * la vidéo ne transite pas), la fonction est appelée, et son verdict est écrit
- * par elle — pas par le client. Sans clé, la ligne finit en `failed` avec la
- * raison exacte, et l'écran l'affiche au lieu d'inventer un avis.
+ * Le test tient dans les deux états du monde, parce que la clé du modèle est une
+ * configuration serveur et non une donnée du test :
+ *   · clé posée  → l'avis revient `ready`, avec **une justification par note** ;
+ *   · pas de clé → la ligne finit en `failed` avec la raison exacte, et l'écran
+ *     l'affiche au lieu d'inventer un avis.
+ * Dans les deux cas on vérifie ce qui compte : les images sont extraites **dans
+ * le navigateur** (la vidéo ne transite pas), la fonction est appelée, et c'est
+ * elle qui écrit le verdict — jamais le client.
  */
 test('analysing a tape extracts frames, calls the function, and records the outcome', async ({
   page,
@@ -143,26 +146,39 @@ test('analysing a tape extracts frames, calls the function, and records the outc
       async () => {
         const { data } = await admin
           .from('tape_ai_reviews')
-          .select('status, traits_asked, requested_by, error')
+          .select('status')
           .eq('self_tape_id', tapes![0].id)
-        return data?.[0] ?? null
+        return data?.[0]?.status ?? 'pending'
       },
-      { timeout: 60_000 },
+      { timeout: 90_000 },
     )
-    .toMatchObject({
-      status: 'failed',
-      traits_asked: ['authority', 'fragility'],
-      requested_by: producerId,
-    })
+    .not.toBe('pending')
 
   const { data: review } = await admin
     .from('tape_ai_reviews')
-    .select('error')
+    .select('*')
     .eq('self_tape_id', tapes![0].id)
     .single()
-  // Sans clé, la raison est dite — aucun avis n'est inventé.
-  expect(review?.error).toContain('ANTHROPIC_API_KEY')
-  await expect(studio.getByText(/ANTHROPIC_API_KEY/)).toBeVisible({ timeout: 20_000 })
+
+  expect(review?.requested_by).toBe(producerId)
+  expect(review?.traits_asked).toEqual(['authority', 'fragility'])
+
+  if (review?.status === 'ready') {
+    // Jamais une note sans sa justification: c'est la règle de l'écran.
+    expect(review.model).toBeTruthy()
+    expect(review.frames).toBeGreaterThan(0)
+    expect(review.summary).toBeTruthy()
+    expect(review.traits.length).toBeGreaterThan(0)
+    for (const trait of review.traits) {
+      expect(trait.trait, 'every trait is named').toBeTruthy()
+      expect(trait.evidence, `"${trait.trait}" must say what was seen`).toBeTruthy()
+    }
+    await expect(studio.getByText(/fit \d+\/100/)).toBeVisible({ timeout: 20_000 })
+  } else {
+    // Pas de clé configurée: la raison est dite, aucun avis n'est inventé.
+    expect(review?.error).toContain('GEMINI_API_KEY')
+    await expect(studio.getByText(/GEMINI_API_KEY/)).toBeVisible({ timeout: 20_000 })
+  }
 
   // ── Ménage ──
   await admin.from('projects').delete().eq('id', project!.id)

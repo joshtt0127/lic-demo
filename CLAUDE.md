@@ -253,8 +253,25 @@ d'une piste audio — et applique des règles explicites et pondérées
 mesurée). Stocké dans `tape_checks` au moment de l'envoi, visible du comédien
 **et** de la production. Ce qui n'a pas pu être mesuré reste `null` et ne compte
 pas dans la note.
-**Ce n'est pas un avis sur le jeu** : la couche IA (analyse d'images clés par un
-modèle, avec sa clé) écrira dans sa propre table le jour où elle sera branchée.
+**Ce n'est pas un avis sur le jeu** : ça, c'est la couche IA ci-dessous, et elle
+écrit dans sa propre table.
+
+## Lecture IA d'une self-tape
+
+Bouton dans la review d'un candidat. Six images clés sont extraites **dans le
+navigateur** de la personne qui review (`crossOrigin='anonymous'`, sinon le
+canvas est teinté par l'URL signée) : la vidéo ne transite pas et la requête
+pèse six JPEG. La production saisit les **traits de jeu** à évaluer ; le rôle et
+ses consignes partent avec. `supabase/functions/review-tape` appelle **Gemini**
+(`gemini-2.5-flash`, secret `GEMINI_API_KEY`, `GEMINI_MODEL` pour en changer) et
+**écrit elle-même** le verdict dans `tape_ai_reviews` avec la clé service role —
+un avis d'IA ne peut pas être forgé depuis le navigateur.
+Deux réglages qui comptent : `responseSchema` (réponse exploitable, pas de
+parsing au petit bonheur) et `thinkingConfig.thinkingBudget = 0` — sinon la
+réflexion du modèle consomme tout le budget de sortie et la réponse revient
+vide. L'écran n'affiche **jamais une note sans sa justification**, et le modèle
+répond « pas lisible sur des images fixes » quand c'est le cas (l'ironie, par
+exemple, passe par la voix).
 
 ## E-mails (ce qui sort de l'app)
 
