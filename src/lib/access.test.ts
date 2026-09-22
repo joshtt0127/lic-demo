@@ -9,6 +9,7 @@ const base: ProfileRow = {
   last_name: 'Reyes',
   avatar_url: null,
   locale: 'en',
+  email_notifications: true,
   city: 'Los Angeles',
   country: 'US',
   onboarding_step: null,

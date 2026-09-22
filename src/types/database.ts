@@ -61,6 +61,8 @@ export type ProfileRow = {
   last_name: string | null
   avatar_url: string | null
   locale: Locale
+  /** Opt-out for notification emails (honoured by the database trigger). */
+  email_notifications: boolean
   city: string | null
   country: string | null
   onboarding_step: string | null

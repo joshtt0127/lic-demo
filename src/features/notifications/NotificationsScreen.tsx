@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/EmptyState'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useNotificationMutations, useNotifications } from '@/features/notifications/queries'
 import { useT } from '@/lib/i18n'
+import { EmailPreference } from './EmailPreference'
 import { relativeTime } from '@/lib/format'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
@@ -72,6 +73,8 @@ export function NotificationsScreen({ base }: { base: '/talent' | '/studio' }) {
           </Button>
         )}
       </header>
+
+      <EmailPreference />
 
       {notifications.error && (
         <FormError>{errorMessage(notifications.error, 'Could not load your notifications')}</FormError>

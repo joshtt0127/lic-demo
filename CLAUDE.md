@@ -227,6 +227,17 @@ une console à moitié traduite se lirait plus mal). Les libellés partagés
 (statuts, cycle de vie, complétion du profil) sont des **clés**, pas des phrases :
 `ROLE_STAGE_KEY`, `CASTING_STATUS_KEY`, `applyGate().reason`, `CompletionItem.label`.
 
+## E-mails (ce qui sort de l'app)
+
+`notifications` → `email_outbox` (rendu + conservé) → `pg_net` vers un
+fournisseur HTTP → `reconcile_email_outbox()` (cron chaque minute) qui relit la
+réponse. Sans clé configurée, la ligne passe en `skipped` avec la raison : rien
+ne prétend avoir été envoyé. L'opt-out `profiles.email_notifications` est lu par
+le trigger ; l'interrupteur est sur l'écran Notifications des deux surfaces.
+Les secrets (`email_provider_url`, `email_api_key`, `email_from`, `app_base_url`)
+vivent dans **Supabase Vault**. `npm run email:status` montre la file.
+Détails et activation : `docs/DATABASE.md`.
+
 ## Audits (garde-fous, à relancer après une passe UI)
 
 `npm run audit:ui` — contrôles morts (bouton sans action, lien vide) et écrans qui lisent le

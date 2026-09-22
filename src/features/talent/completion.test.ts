@@ -10,6 +10,7 @@ const empty: TalentProfileFull = {
     last_name: null,
     avatar_url: null,
     locale: 'en',
+    email_notifications: true,
     city: null,
     country: null,
     onboarding_step: null,

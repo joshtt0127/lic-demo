@@ -413,5 +413,10 @@ export const en: Record<string, string> = {
   // ── Notifications ──
   'notifications.title': 'Notifications',
   'notifications.empty': 'No notification yet',
+  'notifications.emailTitle': 'Email me',
+  'notifications.emailHint': 'A message, an audition update or an invitation also arrives by email.',
+  'notifications.emailOn': 'Emails turned on',
+  'notifications.emailOff': 'Emails turned off',
+  'notifications.emailFailed': 'Could not change this setting',
   'notifications.markAll': 'Mark all as read',
 }

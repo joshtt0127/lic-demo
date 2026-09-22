@@ -22,6 +22,7 @@ export type ProfilePatch = Partial<
     | 'city'
     | 'country'
     | 'locale'
+    | 'email_notifications'
     | 'onboarding_step'
     | 'onboarding_completed_at'
   >

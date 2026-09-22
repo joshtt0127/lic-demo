@@ -115,3 +115,57 @@ ne sert qu'aux scripts locaux et n'est jamais importée depuis `src/`.
 `src/types/database.ts` est écrit à la main et miroir des migrations (c'est le contrat des
 repositories). `npm run db:types` produit `src/types/database.generated.ts` depuis le projet
 réel — à comparer après chaque migration pour détecter une dérive.
+
+## E-mails sortants
+
+Jusqu'ici **rien ne sortait de l'app** : un comédien n'était prévenu que s'il se
+reconnectait. Mesuré sur le projet de démo : deux messages attendaient depuis
+cinq jours dans la boîte d'un compte qui ne s'était pas reconnecté.
+
+La chaîne (migration `20260922100000_email_delivery`) :
+
+```
+notification (déjà écrite par les triggers)
+   → email_outbox      rend le sujet + le HTML et les conserve
+   → pg_net.http_post  vers un fournisseur HTTP (hors transaction)
+   → reconcile_email_outbox()   relit la réponse : sent | failed + la raison
+```
+
+- **`email_outbox`** est écrite *même sans fournisseur configuré* : la ligne
+  passe alors en `skipped` avec la raison. Rien ne prétend avoir été envoyé, et
+  le contenu exact reste consultable (`npm run email:status`).
+- **`profiles.email_notifications`** est lu par le trigger : l'opt-out est
+  respecté à la source, pas par l'expéditeur.
+- Les invitations d'équipe passent par la même sortie (leur destinataire n'a pas
+  encore de compte, donc pas de `notifications`).
+- `pg_cron` réconcilie chaque minute ; `dispatched` veut seulement dire « pg_net
+  l'a pris », `sent` veut dire « le fournisseur a répondu 2xx ».
+
+### Activer l'envoi réel
+
+Trois secrets dans **Supabase Vault** (jamais dans une table, jamais côté client) :
+
+```sql
+select vault.create_secret('https://api.resend.com/emails', 'email_provider_url', 'fournisseur');
+select vault.create_secret('re_xxx',                        'email_api_key',      'clé API');
+select vault.create_secret('Let It Cast <no-reply@ton-domaine.fr>', 'email_from', 'expéditeur');
+-- déjà posé : app_base_url, qui construit les liens des e-mails
+```
+
+Le corps envoyé est `{ from, to: [], subject, html }` avec
+`Authorization: Bearer <clé>` — la forme de l'API Resend, que Postmark ou
+SendGrid acceptent avec une URL différente.
+
+Vérifié de bout en bout sans fournisseur externe : en pointant
+`email_provider_url` sur le REST du projet lui-même (une table `email_probe`
+jetable), le POST est arrivé avec `from`, `to`, `subject` et le HTML complet, et
+`reconcile_email_outbox()` a bien basculé la ligne en `sent` — puis en `failed`
+avec le message exact du serveur quand la clé manquait. La table de test et les
+secrets ont été retirés après la vérification.
+
+### Limite assumée
+
+Les e-mails sont **en anglais** : les lignes de `notifications` sont écrites en
+anglais par les triggers, et traduire l'e-mail demanderait de stocker les
+données structurées de la notification plutôt que sa phrase. C'est le prochain
+pas si l'on veut des e-mails en français.

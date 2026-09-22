@@ -419,5 +419,10 @@ export const fr: Record<string, string> = {
   // ── Notifications ──
   'notifications.title': 'Notifications',
   'notifications.empty': 'Aucune notification pour l’instant',
+  'notifications.emailTitle': 'Me prévenir par e-mail',
+  'notifications.emailHint': 'Un message, un changement de statut ou une invitation arrive aussi par e-mail.',
+  'notifications.emailOn': 'E-mails activés',
+  'notifications.emailOff': 'E-mails désactivés',
+  'notifications.emailFailed': 'Impossible de changer ce réglage',
   'notifications.markAll': 'Tout marquer comme lu',
 }
