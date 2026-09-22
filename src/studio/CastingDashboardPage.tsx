@@ -289,14 +289,13 @@ export function CastingDashboardPage() {
           >
             View as talent
           </Button>
-          <Button
-            variant="premium"
-            size="sm"
-            icon={<Layers className="h-3.5 w-3.5" />}
-            onClick={() => setTab('submissions')}
+          <Link
+            to={`/studio/casting/${data.id}/console`}
+            className="inline-flex h-9 items-center gap-1.5 rounded-field bg-cream px-3.5 text-[13px] font-bold text-ink transition-colors hover:bg-cream/80"
           >
+            <Layers className="h-3.5 w-3.5" />
             Casting console
-          </Button>
+          </Link>
           {!mayPublish ? null : published ? (
             <Button
               size="sm"
@@ -543,7 +542,7 @@ export function CastingDashboardPage() {
                   <h2 className="font-display text-[17px] font-bold text-ink">Recent activity</h2>
                   <button
                     onClick={() => setTab('activity')}
-                    className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-muted hover:text-ink"
+                    className="inline-flex min-h-[32px] items-center gap-1.5 rounded-btn px-1.5 text-[13px] font-semibold text-muted hover:bg-paper hover:text-ink"
                   >
                     See all
                     <ArrowUpRight className="h-3.5 w-3.5" />
@@ -1161,7 +1160,7 @@ function TeamCard({
         <h2 className="font-display text-[19px] font-bold text-ink">Your team</h2>
         <Link
           to="/studio/team"
-          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-muted hover:text-ink"
+          className="inline-flex min-h-[32px] items-center gap-1.5 rounded-btn px-1.5 text-[13px] font-semibold text-muted hover:bg-paper hover:text-ink"
         >
           <Plus className="h-3.5 w-3.5" />
           Invite

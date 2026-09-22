@@ -51,7 +51,10 @@ Trois surfaces dans une seule app (+ `/auth/*` et `/onboarding`) :
 | `/app`           | **Aperçu téléphone** : l'app talent réelle dans un cadre iPhone (iframe) | `pages/PhonePreview.tsx` |
 | `/talent/*`      | **Talent** (desktop pleine largeur, tab bar en bas sur téléphone) | `talent/TalentLayout.tsx` |
 
-- **Studio** sous-routes : `/studio` (feed), `/studio/dashboard`, `/studio/search`, `/studio/review`.
+- **Studio** sous-routes : `/studio` (home), `/studio/casting-calls`, `/studio/casting/:id`
+  (dashboard) et `/studio/casting/:id/console` (**selection console** : board kanban par statut
+  réel + vue Wall par rôle), `/studio/projects`, `/studio/talent`, `/studio/calendar`,
+  `/studio/team`, `/studio/settings`, `/studio/messages`, `/studio/notifications`.
 - **Messagerie production → talent** : `features/messaging/startConversation()` ouvre (ou réutilise,
   par contexte `application`/`role`/`direct`) un fil et envoie le premier message ;
   `features/messaging/MessageTalentModal.tsx` est le point d'entrée, câblé sur la fiche talent

@@ -80,7 +80,22 @@ for (const [label, email, routes] of [
   for (const width of WIDTHS) {
     const page = await browser.newPage({ viewport: { width, height: 900 } })
     if (email) await signIn(page, email)
-    for (const route of routes) {
+
+    // The casting-scoped screens need a real id — take the org's first casting.
+    const scoped = []
+    if (label === 'studio') {
+      await page.goto('http://localhost:5180/studio/casting-calls')
+      await page.waitForTimeout(1500)
+      const href = await page
+        .locator('a[href^="/studio/casting/"]')
+        .first()
+        .getAttribute('href')
+        .catch(() => null)
+      const id = href?.split('/studio/casting/')[1]?.split('/')[0]
+      if (id) scoped.push(`/studio/casting/${id}`, `/studio/casting/${id}/console`)
+    }
+
+    for (const route of [...routes, ...scoped]) {
       await page.goto('http://localhost:5180' + route)
       await page.waitForTimeout(1100)
       const result = await probe(page)

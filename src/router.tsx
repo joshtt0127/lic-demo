@@ -15,6 +15,7 @@ import { StudioLayout } from './studio/StudioLayout'
 import { StudioHome } from './studio/StudioHome'
 import { CastingCallsPage } from './studio/CastingCallsPage'
 import { NewCastingPage } from './studio/NewCastingPage'
+import { SelectionConsolePage } from './studio/SelectionConsolePage'
 import { CastingDashboardPage } from './studio/CastingDashboardPage'
 import { ProjectsPage } from './studio/ProjectsPage'
 import { TalentRecruiterPage } from './studio/TalentRecruiterPage'
@@ -92,6 +93,7 @@ export const router = createBrowserRouter([
           { path: 'casting-calls', element: <CastingCallsPage /> },
           { path: 'casting-calls/new', element: <NewCastingPage /> },
           { path: 'casting/:castingId', element: <CastingDashboardPage /> },
+          { path: 'casting/:castingId/console', element: <SelectionConsolePage /> },
           { path: 'projects', element: <ProjectsPage /> },
           { path: 'talent', element: <TalentRecruiterPage /> },
           { path: 'talent/:profileId', element: <StudioTalentProfilePage /> },
