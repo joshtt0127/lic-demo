@@ -124,7 +124,52 @@ insert follows / organization_follows
 Le comptage des abonnés par organisation se fait **en une requête pour tout le
 fil** (`organizationFollowerCounts(orgIds)`), pas une requête par publication.
 
-## 6. Ce que le graphe social ne fait pas
+## 6. Les publications — la partie « réseau social »
+
+Un graphe sans contenu ne fait rien. `posts` + `post_likes` (migration
+`20260922140000`) apportent ce que publient **les gens** :
+
+```sql
+create table public.posts (
+  id             uuid primary key default gen_random_uuid(),
+  author_id      uuid not null references public.profiles (id) on delete cascade,
+  body           text not null,
+  media_asset_id uuid references public.media_assets (id) on delete set null,
+  created_at     timestamptz not null default now(),
+  constraint posts_body_not_empty check (length(btrim(body)) > 0),
+  constraint posts_body_length    check (length(body) <= 2000)
+);
+
+create table public.post_likes (
+  post_id    uuid not null references public.posts (id) on delete cascade,
+  profile_id uuid not null references public.profiles (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (post_id, profile_id)
+);
+```
+
+- Le fil **Réseau** montre les publications des personnes suivies **et** les
+  siennes ; un compte qui ne suit encore personne voit les publications
+  récentes, sinon un fil vide ne donne envie de suivre personne.
+- Un like est compté sur les lignes (comme les abonnés) et prévient l'auteur —
+  jamais soi-même.
+- Le fil **Récents** entrelace trois natures d'objets par date : casting publié,
+  publication d'une personne, et sa propre activité de candidature.
+- **Ce qui n'est jamais publié : les candidatures.** Un fil qui dirait « X a
+  postulé chez Y » trahirait exactement ce que la plateforme promet de garder
+  entre eux. Seul l'acteur voit sa propre activité.
+- Suggestions « Des gens à suivre » : des comptes qui suivent les **mêmes
+  productions** que vous et que vous ne suivez pas encore — calculé sur les
+  lignes publiques, pas un classement opaque.
+
+Piège PostgREST rencontré ici : depuis l'existence de `saved_talents`, il y a
+deux chemins entre `profiles` et `talent_profiles`, donc l'embed de l'auteur
+échoue avec *« more than one relationship was found »*. Il faut nommer la
+contrainte (`talent_profiles!talent_profiles_profile_id_fkey`). Les deux
+requêtes du fil social sont désormais dans `e2e/data-access.spec.ts`, qui
+rejoue **toutes** les requêtes à jointure contre le schéma réel.
+
+## 7. Ce que le graphe social ne fait pas
 
 - **Il ne remplace pas `saved_talents`.** Une production garde une liste de
   travail privée ; suivre est public et à l'initiative du comédien. Deux
@@ -133,9 +178,12 @@ fil** (`organizationFollowerCounts(orgIds)`), pas une requête par publication.
   l'utilisateur choisit, l'algorithme ne décide pas à sa place.
 - **Il ne stocke aucun compteur.**
 
-## 7. Vérification
+## 8. Vérification
 
-`e2e/social-graph.spec.ts`, joué contre la vraie base :
+`e2e/social-graph.spec.ts` et `e2e/social-posts.spec.ts`, joués contre la vraie
+base.
+
+Le graphe :
 
 1. deux productions publient chacune un casting ;
 2. le comédien ne suit personne → l'onglet *Following* est vide et le dit ;
@@ -144,3 +192,11 @@ fil** (`organizationFollowerCounts(orgIds)`), pas une requête par publication.
 4. l'onglet *Following* ne garde **que** cette production ;
 5. la production reçoit sa notification (vérifié dans son écran) ;
 6. se désabonner efface la ligne.
+
+Les publications :
+
+1. l'auteur publie depuis le composeur ;
+2. quelqu'un qui ne le suit pas ne voit rien dans son fil Réseau ;
+3. il le suit → la publication arrive ;
+4. il l'aime → le compteur passe à 1 **et** l'auteur reçoit sa notification ;
+5. l'auteur supprime sa publication → la ligne disparaît.

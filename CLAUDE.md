@@ -230,7 +230,12 @@ une console à moitié traduite se lirait plus mal). Les libellés partagés
 ## Graphe social
 
 Deux liens (`follows` entre profils, `organization_follows` vers une
-organisation), lisibles de tous et écrits par soi seulement. Ce que ça change
+organisation) **et des publications** (`posts` / `post_likes`), lisibles de tous
+et écrits par soi seulement. Le fil entrelace trois natures d'objets par date :
+casting publié, publication d'une personne, activité de ses propres
+candidatures. Filtres **Réseau** (les gens suivis) et **Following** (les
+productions suivies). Les candidatures ne sont jamais publiées — voir
+`docs/SOCIAL_GRAPH.md`. Ce que ça change
 concrètement : filtre **Following** dans le fil, bouton Suivre sur l'en-tête de
 chaque publication avec le nombre d'abonnés, carte « Votre réseau » dans le
 rail, et une notification (donc un e-mail) pour la production suivie. Les

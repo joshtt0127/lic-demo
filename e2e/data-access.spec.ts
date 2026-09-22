@@ -162,6 +162,36 @@ test('every embedded query the app relies on still resolves', async () => {
       () => talent.from('saved_castings').select('casting_call_id').limit(5),
     ],
     [
+      'social feed: posts with their author',
+      () =>
+        talent
+          .from('posts')
+          .select(
+            `id, body, created_at, author_id,
+             media_assets ( bucket, path, kind ),
+             profiles!posts_author_id_fkey (
+               id, first_name, last_name, avatar_url,
+               talent_profiles!talent_profiles_profile_id_fkey ( headline, professional_name )
+             )`,
+          )
+          .limit(5),
+    ],
+    [
+      'social feed: people to follow',
+      () =>
+        talent
+          .from('profiles')
+          .select(
+            `id, first_name, last_name, avatar_url,
+             talent_profiles!talent_profiles_profile_id_fkey ( headline, professional_name )`,
+          )
+          .limit(5),
+    ],
+    [
+      'social graph: follows and organization follows',
+      () => talent.from('organization_follows').select('org_id').limit(5),
+    ],
+    [
       'talent: skills and languages',
       () => talent.from('talent_skills').select('skill_id, level, skills(id, name, category)').limit(5),
     ],

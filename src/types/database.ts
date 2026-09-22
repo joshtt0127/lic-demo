@@ -429,6 +429,21 @@ export type TapeCheckRow = {
   created_at: string
 }
 
+/** Une publication d'un membre — la partie « réseau » du fil. */
+export type PostRow = {
+  id: string
+  author_id: string
+  body: string
+  media_asset_id: string | null
+  created_at: string
+}
+
+export type PostLikeRow = {
+  post_id: string
+  profile_id: string
+  created_at: string
+}
+
 /** The social graph: a profile follows a profile, or an organization. */
 export type FollowRow = {
   follower_id: string
@@ -550,6 +565,8 @@ export type Database = {
       analytics_events: Writable<AnalyticsEventRow, 'name'>
       tape_checks: Writable<TapeCheckRow, 'self_tape_id'>
       tape_ai_reviews: Writable<TapeAiReviewRow, 'self_tape_id'>
+      posts: Writable<PostRow, 'author_id' | 'body'>
+      post_likes: Writable<PostLikeRow, 'post_id' | 'profile_id'>
       follows: Writable<FollowRow, 'follower_id' | 'following_id'>
       organization_follows: Writable<OrganizationFollowRow, 'profile_id' | 'org_id'>
     }

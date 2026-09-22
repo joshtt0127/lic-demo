@@ -222,6 +222,22 @@ export const fr: Record<string, string> = {
   'onb.showreel': 'Bande démo',
 
   // ── Social graph ──
+  'social.someone': 'Quelqu’un',
+  'social.like': 'J’aime',
+  'social.likes_one': '{count} j’aime',
+  'social.likes_other': '{count} j’aime',
+  'social.deletePost': 'Supprimer cette publication',
+  'social.composerPlaceholder': 'Partagez quelque chose avec votre réseau…',
+  'social.composerTitle': 'Nouvelle publication',
+  'social.composerHint': 'Une prise dont vous êtes fier, un tournage qui se termine, un stage que vous cherchez…',
+  'social.publish': 'Publier',
+  'social.publishFailed': 'Impossible de publier',
+  'social.suggestions': 'Des gens à suivre',
+  'social.suggestionsHint': 'Ils suivent les mêmes productions que vous.',
+  'social.noSuggestions': 'Suivez une production, et les comédiens qui la suivent apparaîtront ici.',
+  'feed.filter.people': 'Réseau',
+  'feed.empty.people': 'Rien de votre réseau pour l’instant',
+  'feed.empty.peopleHint': 'Publiez quelque chose, ou suivez des comédiens — leurs publications arrivent ici.',
   'social.follow': 'Suivre',
   'social.following': 'Suivi',
   'social.followers_one': '{count} abonné',
@@ -253,8 +269,7 @@ export const fr: Record<string, string> = {
   'feed.booked': 'Rôles décrochés',
   'feed.counted': 'Calculé à partir de vos candidatures — rien n’est estimé ici.',
   'feed.headline': 'Ajoutez une accroche à votre profil',
-  'feed.footer':
-    'Connecté avec {email}. Chaque publication ci-dessus est un casting publié dans la base.',
+  'feed.footer': 'Connecté avec {email}. Tout ce qui est au-dessus est réel : un casting publié par une production, ou ce qu’a écrit quelqu’un de votre réseau.',
   'feed.empty.recent': 'Votre fil est encore vide',
   'feed.empty.recentHint':
     'Dès qu’une production publie un appel à casting, il apparaît ici comme une publication.',

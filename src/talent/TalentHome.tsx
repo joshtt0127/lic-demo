@@ -9,6 +9,7 @@ import {
   MessageCircle,
   Pencil,
   Search,
+  Users,
 } from 'lucide-react'
 import { Avatar, Button, Card, FormError, Tag } from '@/components/ui'
 import { Skeleton } from '@/components/Skeleton'
@@ -32,10 +33,17 @@ import {
 import { useConversations, participantName } from '@/features/messaging/queries'
 import {
   useFollowedOrganizations,
+  useFollowedProfiles,
   useFollowMutations,
   useNetworkCounts,
   useOrganizationFollowers,
 } from '@/features/social/queries'
+import {
+  useNetworkPosts,
+  usePostMutations,
+  useSuggestedProfiles,
+} from '@/features/social/posts'
+import type { Post } from '@/data/repositories/posts'
 import { useNotifications } from '@/features/notifications/queries'
 import { APPLICATION_STATUS_TONE } from '@/lib/format'
 import { useT } from '@/lib/i18n'
@@ -44,15 +52,18 @@ import { cn } from '@/lib/cn'
 import type { RoleRow } from '@/types/database'
 import { CastingPost } from './feed/CastingPost'
 import { ActivityPost } from './feed/ActivityPost'
+import { PersonPost } from './feed/PersonPost'
+import { PostComposer } from './feed/PostComposer'
 
 /** Statuses a production decided on — worth a line in the feed. */
 const DECIDED = new Set(['under_review', 'shortlisted', 'callback', 'offer', 'cast', 'not_selected'])
 
 type FeedItem =
   | { key: string; at: string; kind: 'casting'; casting: CastingCallWithContext }
+  | { key: string; at: string; kind: 'post'; post: Post }
   | { key: string; at: string; kind: 'activity'; application: MyApplication; event: 'applied' | 'decision' }
 
-type Scope = 'recent' | 'following' | 'closing' | 'saved' | 'applied'
+type Scope = 'recent' | 'people' | 'following' | 'closing' | 'saved' | 'applied'
 
 /**
  * Talent home — a feed. Each published casting call is a post authored by the
@@ -78,7 +89,6 @@ export function TalentHome() {
   // ── The social graph: the productions this account follows ──
   const followedOrgs = useFollowedOrganizations(profileId)
   const network = useNetworkCounts(profileId)
-  const follow = useFollowMutations(profileId)
   const orgIds = useMemo(
     () =>
       [
@@ -92,6 +102,17 @@ export function TalentHome() {
   )
   const followers = useOrganizationFollowers(orgIds)
   const followedIds = useMemo(() => new Set(followedOrgs.data ?? []), [followedOrgs.data])
+
+  // ── Les gens : ceux que l'on suit, et soi-même ──
+  const followedPeople = useFollowedProfiles(profileId)
+  const networkAuthors = useMemo(
+    () => [...(followedPeople.data ?? []), ...(profileId ? [profileId] : [])],
+    [followedPeople.data, profileId],
+  )
+  const posts = useNetworkPosts(profileId, networkAuthors)
+  const suggestions = useSuggestedProfiles(profileId)
+  const postMutations = usePostMutations(profileId)
+  const follow = useFollowMutations(profileId)
 
   const [scope, setScope] = useState<Scope>('recent')
   const [applyTo, setApplyTo] = useState<{ role: RoleRow; castingTitle: string } | null>(null)
@@ -107,6 +128,15 @@ export function TalentHome() {
   const feed = useMemo<FeedItem[]>(() => {
     const allCastings = castings.data ?? []
     const mine = applications.data ?? []
+
+    const postItems: FeedItem[] = (posts.data ?? []).map((post) => ({
+      key: `post-${post.id}`,
+      at: post.createdAt,
+      kind: 'post' as const,
+      post,
+    }))
+
+    if (scope === 'people') return sortFeed(postItems, scope)
 
     const castingItems: FeedItem[] = allCastings
       .filter((casting) => {
@@ -153,8 +183,8 @@ export function TalentHome() {
       return items
     })
 
-    return sortFeed([...castingItems, ...activityItems], scope)
-  }, [applications.data, applicationsByRole, castings.data, followedIds, savedIds, scope])
+    return sortFeed([...castingItems, ...postItems, ...activityItems], scope)
+  }, [applications.data, applicationsByRole, castings.data, followedIds, posts.data, savedIds, scope])
 
   if (talent.isLoading || (!talent.data && !talent.error)) {
     return (
@@ -318,6 +348,8 @@ export function TalentHome() {
             </Link>
           </Card>
 
+          {isTalent && <PostComposer name={name} />}
+
           {/* The feed's own controls: real filters over real castings. */}
           <div className="flex items-center gap-2">
             {/* Five filters: they wrap rather than being clipped. */}
@@ -325,6 +357,7 @@ export function TalentHome() {
               <SegmentedControl
                 options={[
                   { value: 'recent', label: t('feed.filter.recent') },
+                  { value: 'people', label: t('feed.filter.people') },
                   { value: 'following', label: t('feed.filter.following') },
                   { value: 'closing', label: t('feed.filter.closing') },
                   { value: 'saved', label: t('feed.filter.saved') },
@@ -356,24 +389,28 @@ export function TalentHome() {
             <EmptyState
               icon={<Clapperboard className="h-5 w-5" />}
               title={
-                scope === 'following'
-                  ? t('feed.empty.following')
-                  : scope === 'saved'
-                    ? t('feed.empty.saved')
-                    : scope === 'applied'
-                      ? t('feed.empty.applied')
-                      : scope === 'closing'
-                        ? t('feed.empty.closing')
-                        : t('feed.empty.recent')
+                scope === 'people'
+                  ? t('feed.empty.people')
+                  : scope === 'following'
+                    ? t('feed.empty.following')
+                    : scope === 'saved'
+                      ? t('feed.empty.saved')
+                      : scope === 'applied'
+                        ? t('feed.empty.applied')
+                        : scope === 'closing'
+                          ? t('feed.empty.closing')
+                          : t('feed.empty.recent')
               }
               description={
                 scope === 'recent'
                   ? t('feed.empty.recentHint')
-                  : scope === 'following'
-                    ? t('feed.empty.followingHint')
-                    : scope === 'saved'
-                      ? t('feed.empty.savedHint')
-                      : undefined
+                  : scope === 'people'
+                    ? t('feed.empty.peopleHint')
+                    : scope === 'following'
+                      ? t('feed.empty.followingHint')
+                      : scope === 'saved'
+                        ? t('feed.empty.savedHint')
+                        : undefined
               }
               action={
                 scope !== 'recent' ? (
@@ -424,6 +461,18 @@ export function TalentHome() {
                               })
                           : undefined
                       }
+                    />
+                  ) : item.kind === 'post' ? (
+                    <PersonPost
+                      post={item.post}
+                      isMine={item.post.author?.id === profileId}
+                      onToggleLike={() =>
+                        postMutations.like.mutate({
+                          postId: item.post.id,
+                          liked: item.post.likedByMe,
+                        })
+                      }
+                      onDelete={() => postMutations.remove.mutate(item.post.id)}
                     />
                   ) : (
                     <ActivityPost
@@ -506,6 +555,52 @@ export function TalentHome() {
                   </li>
                 ))}
               </ul>
+            )}
+          </Card>
+
+          <Card className="flex flex-col gap-3.5">
+            <span className="tech-label inline-flex items-center gap-1.5">
+              <Users className="h-4 w-4" />
+              {t('social.suggestions')}
+            </span>
+            {(suggestions.data ?? []).length === 0 ? (
+              <p className="text-[13px] text-muted">{t('social.noSuggestions')}</p>
+            ) : (
+              <>
+                <ul className="flex flex-col gap-3">
+                  {(suggestions.data ?? []).map((person) => {
+                    const personName =
+                      person.professionalName ||
+                      [person.first_name, person.last_name].filter(Boolean).join(' ') ||
+                      t('social.someone')
+                    return (
+                      <li key={person.id} className="flex min-w-0 items-center gap-2.5">
+                        <Avatar src={person.avatar_url ?? undefined} name={personName} size="sm" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[13.5px] font-semibold text-ink">
+                            {personName}
+                          </span>
+                          {person.headline && (
+                            <span className="block truncate text-[12px] text-muted">
+                              {person.headline}
+                            </span>
+                          )}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            follow.person.mutate({ targetId: person.id, following: false })
+                          }
+                          className="inline-flex min-h-[32px] shrink-0 items-center rounded-full border border-ink px-3 text-[12.5px] font-bold text-ink transition-colors hover:bg-paper"
+                        >
+                          {t('social.follow')}
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+                <p className="text-[12px] text-muted">{t('social.suggestionsHint')}</p>
+              </>
             )}
           </Card>
 
