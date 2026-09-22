@@ -334,7 +334,7 @@ function ContextLink({
   return (
     <Link
       to={href}
-      className="ml-auto hidden shrink-0 items-center gap-1.5 sm:inline-flex"
+      className="ml-auto hidden min-h-[36px] shrink-0 items-center gap-1.5 rounded-btn px-1.5 transition-colors hover:bg-paper sm:inline-flex"
       title={[context.data.label, context.data.detail].filter(Boolean).join(' — ')}
     >
       <Tag tone="link" className="max-w-[14rem] truncate">

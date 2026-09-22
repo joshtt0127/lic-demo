@@ -350,8 +350,17 @@ function CastingProfileForm({ data }: { data: TalentProfileFull }) {
           options={languageOptions}
           values={form.languages}
           onChange={(languages) => setForm((current) => ({ ...current, languages }))}
-          placeholder="Search a language…"
+          placeholder={
+            languagesCatalogue.isLoading ? 'Loading languages…' : 'Search a language…'
+          }
         />
+        {/* An empty picker with no explanation looks broken — say what happened. */}
+        {!languagesCatalogue.isLoading && languageOptions.length === 0 && (
+          <p className="mt-1.5 text-[12.5px] text-muted">
+            The language list could not be loaded. You can skip this and add your languages
+            later from your profile.
+          </p>
+        )}
       </Row>
 
       <Row icon={<AudioLines className="h-[18px] w-[18px]" />} label="Accents">

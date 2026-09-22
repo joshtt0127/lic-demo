@@ -16,7 +16,10 @@
     "test:watch": "vitest",
     "db:seed": "NODE_OPTIONS=--use-system-ca node scripts/seed.mjs",
     "verify:backend": "NODE_OPTIONS=--use-system-ca node scripts/verify-backend.mjs",
-    "test:e2e": "NODE_OPTIONS=--use-system-ca playwright test"
+    "test:e2e": "NODE_OPTIONS=--use-system-ca playwright test",
+    "audit:ui": "node scripts/ui-audit.mjs",
+    "audit:responsive": "node scripts/responsive-audit.mjs",
+    "audit:radius": "node scripts/radius-audit.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.0.18",

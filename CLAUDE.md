@@ -177,6 +177,35 @@ Utilitaire `cn()` dans `src/lib/cn.ts`.
   `Review.tsx` : rating + étoiles, other ratings, AI scene analysis, feedback direct à l'acteur) avec un
   compteur **XX / YY** (position dans la file de candidats du rôle) à côté de la nav précédent/suivant.
 
+## Self-tapes, cycle de vie, équipe
+
+- **Self-tape** (`data/repositories/selftapes.ts`, `features/selftapes/queries.ts`,
+  `components/upload/SelfTapePanel.tsx`) : une tape = objet storage privé + `media_assets` +
+  `self_tapes` rattachée à la candidature (c'est cette ligne qui autorise l'URL signée pour
+  l'organisation qui review). Envoi avec progression réelle, remplacement sûr (la nouvelle
+  d'abord, l'ancienne ensuite), suppression en deux temps. Panneau en lecture seule si la
+  candidature est décidée ou le casting fermé.
+- **Cycle de vie** (`features/castings/lifecycle.ts`) : `applyGate(role, casting)` est la
+  **seule** règle qui dit si on peut postuler et sinon pourquoi (« Submissions are closed »,
+  « This role is cast », « The deadline has passed »). Jamais de bouton Apply mort : on
+  affiche la raison. Un acteur garde l'accès à son rôle/casting/projet après fermeture
+  (migration `20260918090000`).
+- **Équipe** : votes par membre avec **raison** (`candidate_reviews.comment`), couverture
+  « X of Y teammates reviewed », notes internes. Les rôles d'organisation sont appliqués
+  **en base** (migration `20260922090000` : `can_review_org`, `guard_application_status`
+  côté production) et l'UI se contente de masquer/désactiver via `can()`.
+- **Messagerie v2** : realtime (`features/messaging/useLiveMessaging.ts`, migration
+  `20260918100000`), marqueur Sent/Read dérivé de `last_read_at`, fil contextuel
+  (`getConversationContext`) qui renvoie vers l'audition ou le casting.
+
+## Audits (garde-fous, à relancer après une passe UI)
+
+`npm run audit:ui` — contrôles morts (bouton sans action, lien vide) et écrans qui lisent le
+serveur sans état de chargement / d'erreur / vide.
+`npm run audit:responsive` — 6 largeurs × toutes les routes montées : débordement, éléments
+qui sortent, cibles tactiles < 32px, contenu coupé.
+`npm run audit:radius` — coins carrés ou rayons trop timides sur les surfaces réelles.
+
 ## Conventions
 
 - Alias d'import **`@/`** → `src/` (configuré dans `vite.config.ts` + `tsconfig.json`).

@@ -130,7 +130,11 @@ export function CastingCallsPage() {
                         {casting.project?.title ?? casting.title}
                       </span>
                       <Tag tone={STATUS_TONE[casting.status]}>{casting.status}</Tag>
-                      {tapesToReview > 0 && <Tag tone="no">{tapesToReview} tapes to review</Tag>}
+                      {tapesToReview > 0 && (
+                        <Tag tone="no">
+                          {tapesToReview} tape{tapesToReview > 1 ? 's' : ''} to review
+                        </Tag>
+                      )}
                     </div>
                     <p className="mt-0.5 text-[14px] text-muted">{casting.title}</p>
                     <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted">
