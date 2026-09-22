@@ -352,9 +352,12 @@ export function TalentHome() {
 
           {/* The feed's own controls: real filters over real castings. */}
           <div className="flex items-center gap-2">
-            {/* Five filters: they wrap rather than being clipped. */}
-            <div className="min-w-0 flex-1">
+            {/* Une ligne qui défile au doigt sur téléphone, qui se replie dès
+                qu'il y a la place. */}
+            <div className="no-scrollbar min-w-0 flex-1 overflow-x-auto sm:overflow-visible">
               <SegmentedControl
+                wrap={false}
+                className="sm:flex-wrap"
                 options={[
                   { value: 'recent', label: t('feed.filter.recent') },
                   { value: 'people', label: t('feed.filter.people') },

@@ -115,7 +115,7 @@ export function StudioHome() {
             <h2 className="font-display text-[19px] font-bold text-ink">Your castings</h2>
             <Link
               to="/studio/casting-calls"
-              className="inline-flex h-9 items-center gap-1.5 rounded-btn px-2 text-[13px] font-semibold text-muted transition-colors hover:bg-ink/5 hover:text-ink"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-btn px-2 text-[13px] font-semibold text-muted transition-colors hover:bg-ink/5 hover:text-ink"
             >
               View all
               <ArrowRight className="h-3.5 w-3.5" />
@@ -153,7 +153,7 @@ export function StudioHome() {
             </h2>
             <Link
               to="/studio/casting-calls"
-              className="inline-flex h-9 items-center gap-1.5 rounded-btn px-2 text-[13px] font-semibold text-muted transition-colors hover:bg-ink/5 hover:text-ink"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-btn px-2 text-[13px] font-semibold text-muted transition-colors hover:bg-ink/5 hover:text-ink"
             >
               View all
               <ArrowRight className="h-3.5 w-3.5" />

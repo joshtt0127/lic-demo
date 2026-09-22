@@ -89,7 +89,7 @@ export function SignIn() {
           />
         </FormField>
 
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col items-start gap-2 min-[380px]:flex-row min-[380px]:items-center min-[380px]:justify-between min-[380px]:gap-3">
           <Checkbox
             id="keep-signed-in"
             checked={keepSignedIn}
@@ -98,7 +98,7 @@ export function SignIn() {
           />
           <Link
             to="/auth/forgot-password"
-            className="inline-flex min-h-[34px] items-center font-semibold text-link hover:underline text-sm"
+            className="inline-flex min-h-[34px] items-center whitespace-nowrap text-sm font-semibold text-link hover:underline"
           >
             {t('auth.forgot')}
           </Link>

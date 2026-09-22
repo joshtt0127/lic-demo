@@ -258,8 +258,10 @@ export function SelectionConsolePage() {
           }}
         />
       ) : (
-        <div className="w-full overflow-x-auto pb-2">
-          <div className="flex min-w-[900px] items-start gap-3">
+        // Téléphone : les colonnes s'empilent — on scrolle vers le bas, pas de
+        // côté. À partir de sm, c'est un vrai kanban horizontal.
+        <div data-scroller className="w-full pb-2 sm:overflow-x-auto">
+          <div className="flex flex-col gap-3 sm:min-w-[900px] sm:flex-row sm:items-start">
             {COLUMNS.map((column) => {
               const items = byColumn.get(column.key) ?? []
               return (
@@ -279,7 +281,7 @@ export function SelectionConsolePage() {
                     if (candidate) void move(candidate, column.target)
                   }}
                   className={cn(
-                    'flex w-[230px] shrink-0 flex-col gap-2 rounded-card border p-2.5 transition-colors',
+                    'flex flex-col gap-2 rounded-card border p-2.5 transition-colors sm:w-[230px] sm:shrink-0',
                     column.tone,
                     over === column.key ? 'border-ink' : 'border-line',
                   )}
@@ -290,7 +292,7 @@ export function SelectionConsolePage() {
                   </header>
 
                   {items.length === 0 ? (
-                    <p className="px-1 pb-2 text-[12px] text-muted">
+                    <p className="hidden px-1 pb-2 text-[12px] text-muted sm:block">
                       {mayDecide ? 'Drop a candidate here' : 'Nobody'}
                     </p>
                   ) : (

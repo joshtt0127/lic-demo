@@ -267,7 +267,42 @@ export function ReportsPage() {
       {/* ── Casting by casting ── */}
       <Card className="flex flex-col gap-4">
         <span className="tech-label">By casting</span>
-        <div className="overflow-x-auto">
+
+        {/* Téléphone : une carte par casting, avec ses chiffres en clair. */}
+        <ul className="flex flex-col gap-2.5 sm:hidden">
+          {data.perCasting.map((casting) => (
+            <li key={casting.id} className="rounded-field border border-line bg-card p-3">
+              <div className="flex items-start justify-between gap-2">
+                <Link to={`/studio/casting/${casting.id}`} className="min-w-0">
+                  <span className="block truncate text-[14px] font-bold text-ink">
+                    {casting.projectTitle}
+                  </span>
+                  <span className="block truncate text-[12px] text-muted">{casting.title}</span>
+                </Link>
+                <Tag tone={casting.status === 'published' ? 'good' : 'neutral'}>
+                  {casting.status}
+                </Tag>
+              </div>
+              <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12.5px]">
+                {[
+                  ['Roles filled', `${casting.rolesFilled}/${casting.roles}`],
+                  ['Candidates', String(casting.submissions)],
+                  ['Tapes', String(casting.tapes)],
+                  ['Shortlist', String(casting.shortlisted)],
+                  ['Cast', String(casting.cast)],
+                  ['Deadline', casting.deadlineAt ? formatDate(casting.deadlineAt) : '—'],
+                ].map(([label, value]) => (
+                  <div key={label} className="flex items-baseline justify-between gap-2">
+                    <dt className="text-muted">{label}</dt>
+                    <dd className="font-mono font-semibold text-ink">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </li>
+          ))}
+        </ul>
+
+        <div className="hidden overflow-x-auto sm:block">
           <table className="w-full min-w-[720px] border-collapse">
             <thead>
               <tr className="border-b border-line text-left">

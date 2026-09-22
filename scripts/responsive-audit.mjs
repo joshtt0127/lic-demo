@@ -21,7 +21,7 @@ async function signIn(page, email) {
 async function probe(page) {
   return page.evaluate(() => {
     const vw = document.documentElement.clientWidth
-    const out = { overflow: 0, wide: [], small: [], scrollers: [] }
+    const out = { overflow: 0, wide: [], small: [], scrollers: [], wrapped: [] }
 
     out.overflow = Math.max(0, document.documentElement.scrollWidth - vw)
 
@@ -37,6 +37,24 @@ async function probe(page) {
       if (r.right > vw + 2 && r.width > 40 && !inScroller && !decorative) {
         const wideCls = (el.className || '').toString().slice(0, 48)
         out.wide.push(`${el.tagName.toLowerCase()}.${wideCls} w=${Math.round(r.width)} right=${Math.round(r.right)}`)
+      }
+
+      // A label that wraps inside a control reads as broken ("Add / role").
+      // Measured on the text itself: a text node that produces more than one
+      // client rect has wrapped — icons and padding cannot fool this.
+      if (['BUTTON', 'A'].includes(el.tagName) && !inScroller) {
+        for (const node of el.childNodes) {
+          if (node.nodeType !== Node.TEXT_NODE) continue
+          const text = node.textContent?.trim()
+          // Un titre qui passe à la ligne, c'est normal ; un libellé de
+          // contrôle qui se coupe en deux, non. Les libellés sont courts.
+          if (!text || text.length < 4 || text.length > 16) continue
+          const range = document.createRange()
+          range.selectNodeContents(node)
+          if (range.getClientRects().length > 1) {
+            out.wrapped.push(`${el.tagName.toLowerCase()} "${text.slice(0, 24)}"`)
+          }
+        }
       }
 
       // Tap targets
@@ -66,6 +84,7 @@ async function probe(page) {
     out.wide = [...new Set(out.wide)].slice(0, 4)
     out.small = [...new Set(out.small)].slice(0, 4)
     out.scrollers = [...new Set(out.scrollers)].slice(0, 3)
+    out.wrapped = [...new Set(out.wrapped)].slice(0, 4)
     return out
   })
 }
@@ -104,6 +123,7 @@ for (const [label, email, routes] of [
       if (result.wide.length) issues.push(`wide: ${result.wide.join(' | ')}`)
       if (result.small.length) issues.push(`small targets: ${result.small.join(' | ')}`)
       if (result.scrollers.length) issues.push(`clipped: ${result.scrollers.join(' | ')}`)
+      if (result.wrapped.length) issues.push(`wrapped labels: ${result.wrapped.join(' | ')}`)
       if (issues.length) console.log(`${String(width).padEnd(5)} ${route.padEnd(28)} ${issues.join('  ·  ')}`)
     }
     await page.close()

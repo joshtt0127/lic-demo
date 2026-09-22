@@ -46,6 +46,7 @@ export function SelfTapeRecorder({
   busy?: boolean
 }) {
   const t = useT()
+  const frameRef = useRef<HTMLDivElement>(null)
   const previewRef = useRef<HTMLVideoElement>(null)
   const playbackRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -61,6 +62,12 @@ export function SelfTapeRecorder({
   const [error, setError] = useState<string | null>(null)
 
   const support = pickMimeType()
+
+  // Sur téléphone, le panneau s'ouvre souvent hors écran : on l'amène au centre
+  // pour que la caméra et le bouton soient là sans avoir à chercher.
+  useEffect(() => {
+    frameRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, [])
 
   // ── Camera ──
   useEffect(() => {
@@ -189,14 +196,17 @@ export function SelfTapeRecorder({
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div ref={frameRef} className="flex flex-col gap-3">
       <div className="relative overflow-hidden rounded-card border border-line bg-black">
         {/* The live camera, then the take once it exists. */}
         <video
           ref={previewRef}
           muted
           playsInline
-          className={cn('aspect-[9/16] w-full object-cover sm:aspect-video', take && 'hidden')}
+          className={cn(
+            'aspect-[9/16] max-h-[52vh] w-full object-cover sm:aspect-video sm:max-h-none',
+            take && 'hidden',
+          )}
         />
         {take && (
           <video
@@ -204,7 +214,7 @@ export function SelfTapeRecorder({
             src={take.url}
             controls
             playsInline
-            className="aspect-[9/16] w-full object-contain sm:aspect-video"
+            className="aspect-[9/16] max-h-[52vh] w-full object-contain sm:aspect-video sm:max-h-none"
           />
         )}
 

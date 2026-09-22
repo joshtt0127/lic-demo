@@ -450,7 +450,7 @@ export function CastingDashboardPage() {
                         setTab('roles')
                       }}
                     >
-                      Add role
+                      <span className="whitespace-nowrap">Add role</span>
                     </Button>
                   </div>
                 </div>
@@ -869,7 +869,96 @@ function RolesTable({
     : ['Role', 'Type', 'Submissions', 'Shortlist', 'Status', 'Dates', '']
 
   return (
-    <div className="-mx-2 overflow-x-auto px-2">
+    <>
+      {/* Téléphone : une carte par rôle. Un tableau qui défile de côté se lit
+          mal au pouce, et l'information tient très bien en pile. */}
+      <ul className="flex flex-col gap-2.5 sm:hidden">
+        {roles.map((role) => {
+          const own = perRole.get(role.id) ?? []
+          const booked = own.find((candidate) => candidate.status === 'cast')
+          const shortlist = own.filter((candidate) =>
+            SHORTLIST_STATUSES.includes(candidate.status),
+          ).length
+
+          return (
+            <li key={role.id} className="rounded-field border border-line bg-card p-3">
+              <div className="flex items-start gap-3">
+                <Avatar
+                  src={booked?.avatar_url ?? undefined}
+                  name={booked?.name ?? role.name}
+                  size="sm"
+                />
+                <button onClick={onOpen} className="min-w-0 flex-1 text-left">
+                  <span className="block truncate text-[15px] font-bold text-ink">{role.name}</span>
+                  <span className="block truncate text-[12px] text-muted">
+                    {[
+                      role.gender_pref,
+                      role.playing_age_min !== null && role.playing_age_max !== null
+                        ? `${role.playing_age_min}–${role.playing_age_max}`
+                        : null,
+                      role.shooting_start ? formatDateShort(role.shooting_start) : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ') || 'No criteria set'}
+                  </span>
+                </button>
+                <Tag tone={role.role_type === 'lead' ? 'link' : 'cream'}>
+                  {role.role_type === 'lead'
+                    ? 'Lead'
+                    : role.role_type === 'contestant'
+                      ? 'Contestant'
+                      : 'Supporting'}
+                </Tag>
+              </div>
+
+              <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-muted">
+                <span>
+                  <span className="font-mono font-bold text-ink">{own.length}</span> submissions
+                </span>
+                <span>
+                  <span className="font-mono font-bold text-ink">{shortlist}</span> shortlisted
+                </span>
+              </div>
+
+              <div className="mt-2.5 flex items-center gap-2">
+                <SelectInput
+                  aria-label={`Status of ${role.name}`}
+                  disabled={!canSetStatus}
+                  value={role.status}
+                  onChange={(event) => onStatus(role, event.target.value as RoleStatus)}
+                  className="h-9 flex-1 text-[13px]"
+                >
+                  {ROLE_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {ROLE_STATUS_LABEL[status]}
+                    </option>
+                  ))}
+                </SelectInput>
+                {editable && (
+                  <>
+                    <button
+                      onClick={() => onEdit?.(role)}
+                      aria-label={`Edit ${role.name}`}
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted hover:bg-ink/5 hover:text-ink"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => onDelete?.(role)}
+                      aria-label={`Delete ${role.name}`}
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted hover:bg-signal-no/10 hover:text-signal-no"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </>
+                )}
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+
+      <div className="-mx-2 hidden overflow-x-auto px-2 sm:block">
       <table className={cn('w-full border-collapse', compact ? 'min-w-[560px]' : 'min-w-[720px]')}>
         <thead>
           <tr className="border-b border-line text-left">
@@ -974,7 +1063,8 @@ function RolesTable({
           })}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   )
 }
 

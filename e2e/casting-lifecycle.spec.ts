@@ -156,7 +156,12 @@ test('a casting goes from draft to cast, and the talent sees the truth at each s
 
   // ── 4. The production books the role and closes submissions ──
   await production.getByRole('button', { name: /^Roles/ }).click()
-  await production.getByLabel(`Status of ${roleName}`, { exact: true }).selectOption('booked')
+  // Le tableau des rôles a une version carte sur téléphone : on vise le
+  // contrôle réellement affiché, pas les deux.
+  await production
+    .getByLabel(`Status of ${roleName}`, { exact: true })
+    .locator('visible=true')
+    .selectOption('booked')
   await expect
     .poll(async () => {
       const { data } = await admin.from('roles').select('status').eq('name', roleName).single()
