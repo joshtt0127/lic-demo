@@ -54,7 +54,9 @@ Trois surfaces dans une seule app (+ `/auth/*` et `/onboarding`) :
 - **Studio** sous-routes : `/studio` (home), `/studio/casting-calls`, `/studio/casting/:id`
   (dashboard) et `/studio/casting/:id/console` (**selection console** : board kanban par statut
   réel + vue Wall par rôle), `/studio/projects`, `/studio/talent`, `/studio/calendar`,
-  `/studio/team`, `/studio/settings`, `/studio/messages`, `/studio/notifications`.
+  `/studio/reports` (**analytics** : entonnoir, volume hebdo, délais médians, tableau par
+  casting, activité d'équipe, export CSV), `/studio/team`, `/studio/settings`,
+  `/studio/messages`, `/studio/notifications`.
 - **Messagerie production → talent** : `features/messaging/startConversation()` ouvre (ou réutilise,
   par contexte `application`/`role`/`direct`) un fil et envoie le premier message ;
   `features/messaging/MessageTalentModal.tsx` est le point d'entrée, câblé sur la fiche talent

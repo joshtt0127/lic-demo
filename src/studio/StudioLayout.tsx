@@ -11,6 +11,7 @@ import {
   Plus,
   Search,
   Settings,
+  TrendingUp,
   UserRound,
   Users,
 } from 'lucide-react'
@@ -49,9 +50,10 @@ export function StudioLayout() {
       to: '/studio/messages',
       label: 'Inbox',
       icon: Inbox,
-      badge: (unread.data?.messages ?? 0) + (unread.data?.notifications ?? 0),
+      badge: unread.data?.messages ?? 0,
     },
     { to: '/studio/calendar', label: 'Calendar', icon: CalendarDays, badge: 0 },
+    { to: '/studio/reports', label: 'Reports', icon: TrendingUp, badge: 0 },
     { to: '/studio/team', label: 'Team', icon: Users, badge: 0 },
     { to: '/studio/settings', label: 'Settings', icon: Settings, badge: 0 },
   ]
@@ -162,7 +164,9 @@ export function StudioLayout() {
             >
               <Bell className="h-[19px] w-[19px]" />
               {(unread.data?.notifications ?? 0) > 0 && (
-                <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-signal-no ring-2 ring-paper" />
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-signal-no px-1 font-mono text-[9px] font-bold text-white ring-2 ring-paper">
+                  {unread.data?.notifications}
+                </span>
               )}
             </Link>
 

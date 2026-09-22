@@ -9,7 +9,7 @@
 import { chromium } from '@playwright/test'
 
 const TALENT = ['/talent', '/talent/casting-calls', '/talent/auditions', '/talent/messages', '/talent/notifications', '/talent/profile']
-const STUDIO = ['/studio', '/studio/casting-calls', '/studio/casting-calls/new', '/studio/projects', '/studio/talent', '/studio/calendar', '/studio/team', '/studio/settings', '/studio/messages', '/studio/notifications']
+const STUDIO = ['/studio', '/studio/casting-calls', '/studio/casting-calls/new', '/studio/projects', '/studio/talent', '/studio/calendar', '/studio/reports', '/studio/team', '/studio/settings', '/studio/messages', '/studio/notifications']
 const PUBLIC = ['/', '/auth/sign-in', '/auth/sign-up', '/onboarding']
 
 async function signIn(page, email) {

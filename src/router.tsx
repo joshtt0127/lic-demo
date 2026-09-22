@@ -133,6 +133,10 @@ export const router = createBrowserRouter([
             }),
           },
           {
+            path: 'reports',
+            lazy: async () => ({ Component: (await import('./studio/ReportsPage')).ReportsPage }),
+          },
+          {
             path: 'calendar',
             lazy: async () => ({ Component: (await import('./studio/CalendarPage')).CalendarPage }),
           },
