@@ -141,27 +141,40 @@ notification (déjà écrite par les triggers)
 - `pg_cron` réconcilie chaque minute ; `dispatched` veut seulement dire « pg_net
   l'a pris », `sent` veut dire « le fournisseur a répondu 2xx ».
 
-### Activer l'envoi réel
+### Le dernier kilomètre : SMTP, pas un SaaS
 
-Trois secrets dans **Supabase Vault** (jamais dans une table, jamais côté client) :
+Supabase n'a **pas** d'API « envoyer un e-mail » : son mailer intégré ne porte
+que les e-mails d'**auth** (confirmation, lien magique, réinitialisation) et ce
+projet est plafonné à **2 e-mails par heure** (`rate_limit_email_sent: 2`, lu
+dans la config du projet). Une notification ne peut donc pas passer par là.
 
-```sql
-select vault.create_secret('https://api.resend.com/emails', 'email_provider_url', 'fournisseur');
-select vault.create_secret('re_xxx',                        'email_api_key',      'clé API');
-select vault.create_secret('Let It Cast <no-reply@ton-domaine.fr>', 'email_from', 'expéditeur');
--- déjà posé : app_base_url, qui construit les liens des e-mails
+Ce que Supabase donne, en revanche, c'est un endroit où faire tourner du code à
+côté de la base. `supabase/functions/send-email` prend exactement le corps que
+l'outbox produit et le remet à **un serveur SMTP que l'équipe possède déjà**
+(iCloud, Gmail, un relais d'entreprise). Pas de compte tiers à créer.
+
+```
+email_outbox → pg_net → Edge Function send-email → SMTP → la boîte du comédien
 ```
 
-Le corps envoyé est `{ from, to: [], subject, html }` avec
-`Authorization: Bearer <clé>` — la forme de l'API Resend, que Postmark ou
-SendGrid acceptent avec une URL différente.
+Activation, en une commande (rien n'est écrit dans le dépôt) :
 
-Vérifié de bout en bout sans fournisseur externe : en pointant
-`email_provider_url` sur le REST du projet lui-même (une table `email_probe`
-jetable), le POST est arrivé avec `from`, `to`, `subject` et le HTML complet, et
-`reconcile_email_outbox()` a bien basculé la ligne en `sent` — puis en `failed`
-avec le message exact du serveur quand la clé manquait. La table de test et les
-secrets ont été retirés après la vérification.
+```bash
+SMTP_HOST=smtp.mail.me.com SMTP_PORT=587 \
+SMTP_USER=vous@icloud.com SMTP_PASS=mot-de-passe-application \
+EMAIL_FROM='Let It Cast <vous@icloud.com>' \
+npm run email:setup
+```
+
+Elle pose les secrets de la fonction, branche l'expéditeur de la base dessus
+avec un secret partagé, **et** configure le même SMTP pour l'auth Supabase — ce
+qui fait sauter le plafond de 2/h sur les e-mails de confirmation et de
+réinitialisation.
+
+Sans ces secrets, la fonction répond `503 SMTP is not configured` et la ligne
+d'outbox passe en `failed` avec ce message exact. Vérifié : un message envoyé
+dans l'app a traversé outbox → `pg_net` → fonction et est revenu avec ce 503,
+enregistré tel quel par `reconcile_email_outbox()`.
 
 ### Limite assumée
 

@@ -234,9 +234,13 @@ fournisseur HTTP → `reconcile_email_outbox()` (cron chaque minute) qui relit l
 réponse. Sans clé configurée, la ligne passe en `skipped` avec la raison : rien
 ne prétend avoir été envoyé. L'opt-out `profiles.email_notifications` est lu par
 le trigger ; l'interrupteur est sur l'écran Notifications des deux surfaces.
+Le dernier kilomètre est `supabase/functions/send-email` (Edge Function) qui
+parle **SMTP** à un serveur que l'équipe possède déjà : Supabase n'a pas d'API
+d'envoi, son mailer ne couvre que l'auth et est plafonné à 2 e-mails/heure.
 Les secrets (`email_provider_url`, `email_api_key`, `email_from`, `app_base_url`)
-vivent dans **Supabase Vault**. `npm run email:status` montre la file.
-Détails et activation : `docs/DATABASE.md`.
+vivent dans **Supabase Vault**, les identifiants SMTP dans les secrets de la
+fonction. `npm run email:setup` branche tout d'un coup, `npm run email:status`
+montre la file. Détails : `docs/DATABASE.md`.
 
 ## Audits (garde-fous, à relancer après une passe UI)
 
