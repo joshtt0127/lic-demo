@@ -40,10 +40,21 @@ export default async function teardown() {
     removed += 1
   }
 
+  // A conversation whose members are all gone is unreachable by anyone.
+  const { data: ghosts } = await admin
+    .from('conversations')
+    .select('id, conversation_members ( profile_id )')
+  type GhostJoin = { id: string; conversation_members: { profile_id: string }[] | null }
+  for (const conversation of ((ghosts ?? []) as unknown as GhostJoin[])) {
+    if ((conversation.conversation_members ?? []).length > 0) continue
+    await admin.from('conversations').delete().eq('id', conversation.id)
+    removed += 1
+  }
+
   if (created.length > 0 || removed > 0) {
     console.log(
       `\n[teardown] removed ${created.length} E2E account(s)` +
-        (removed > 0 ? ` and ${removed} orphan organization(s)` : ''),
+        (removed > 0 ? ` and ${removed} orphan row(s)` : ''),
     )
   }
 }
