@@ -12,6 +12,7 @@ import {
   useTalentSkillMutations,
 } from '@/features/talent/queries'
 import { errorMessage } from '@/lib/supabase'
+import { useT } from '@/lib/i18n'
 
 /**
  * Step 3 — skills, with suggestions and a proficiency level per skill.
@@ -36,6 +37,7 @@ const SUGGESTED = [
 ]
 
 export function SkillsStep() {
+  const t = useT()
   const { profile } = useAuth()
   const profileId = profile?.id
   const { data, isLoading, error } = useTalentProfile(profileId)
@@ -100,7 +102,7 @@ export function SkillsStep() {
           <Input
             fieldSize="lg"
             icon={<Search className="h-[18px] w-[18px]" />}
-            placeholder="Search a skill — acting, singing, horse riding…"
+            placeholder={t('onb.skillsPlaceholder')}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={(event) => {
@@ -177,7 +179,7 @@ export function SkillsStep() {
 
           {data.skills.length === 0 ? (
             <div className="mt-3 rounded-field bg-[#F1F0EB] px-6 py-7 text-center">
-              <p className="text-[15px] font-bold text-ink">No skills yet.</p>
+              <p className="text-[15px] font-bold text-ink">{t('onb.noSkills')}</p>
               <p className="mt-1 text-[14px] text-muted">
                 Add at least 3 skills to make your profile easier to find.
               </p>

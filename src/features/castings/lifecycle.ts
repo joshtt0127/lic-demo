@@ -20,13 +20,16 @@ export const ROLE_STATUS_LABEL: Record<RoleStatus, string> = {
   closed: 'Closed',
 }
 
-/** How the role's stage reads to a talent (empty for `open` — the default). */
-export const ROLE_STAGE_LABEL: Record<RoleStatus, string | null> = {
+/**
+ * How the role's stage reads to a talent (nothing for `open` — the default).
+ * Translation keys, not sentences: the talent app is bilingual.
+ */
+export const ROLE_STAGE_KEY: Record<RoleStatus, string | null> = {
   open: null,
-  reviewing: 'Reviewing tapes',
-  callbacks: 'In callbacks',
-  booked: 'Cast',
-  closed: 'Closed',
+  reviewing: 'lifecycle.stage.reviewing',
+  callbacks: 'lifecycle.stage.callbacks',
+  booked: 'lifecycle.stage.booked',
+  closed: 'lifecycle.stage.closed',
 }
 
 export const ROLE_STATUS_TONE: Record<RoleStatus, StatusTone> = {
@@ -37,16 +40,19 @@ export const ROLE_STATUS_TONE: Record<RoleStatus, StatusTone> = {
   closed: 'neutral',
 }
 
-export const CASTING_STATUS_LABEL: Record<CastingStatus, string> = {
-  draft: 'Draft',
-  published: 'Published',
-  closed: 'Closed',
-  archived: 'Archived',
+export const CASTING_STATUS_KEY: Record<CastingStatus, string> = {
+  draft: 'lifecycle.castingStatus.draft',
+  published: 'lifecycle.castingStatus.published',
+  closed: 'lifecycle.castingStatus.closed',
+  archived: 'lifecycle.castingStatus.archived',
 }
 
 export type ApplyGate = {
   canApply: boolean
-  /** Why not — shown in place of the Apply button, never as a dead button. */
+  /**
+   * Why not, as a translation key — shown in place of the Apply button, never
+   * as a dead button.
+   */
   reason: string | null
 }
 
@@ -56,12 +62,12 @@ export function applyGate(
   now = new Date(),
 ): ApplyGate {
   if (casting.status !== 'published') {
-    return { canApply: false, reason: 'Submissions are closed' }
+    return { canApply: false, reason: 'lifecycle.submissionsClosed' }
   }
-  if (role.status === 'booked') return { canApply: false, reason: 'This role is cast' }
-  if (role.status === 'closed') return { canApply: false, reason: 'This role is closed' }
+  if (role.status === 'booked') return { canApply: false, reason: 'lifecycle.roleCast' }
+  if (role.status === 'closed') return { canApply: false, reason: 'lifecycle.roleClosed' }
   if (casting.deadline_at && new Date(casting.deadline_at).getTime() < now.getTime()) {
-    return { canApply: false, reason: 'The deadline has passed' }
+    return { canApply: false, reason: 'lifecycle.deadlinePassed' }
   }
   return { canApply: true, reason: null }
 }

@@ -13,13 +13,13 @@ describe('applyGate', () => {
   it('closes the door once the production closes submissions', () => {
     const gate = applyGate({ status: 'open' }, { status: 'closed', deadline_at: null }, now)
     expect(gate.canApply).toBe(false)
-    expect(gate.reason).toBe('Submissions are closed')
+    expect(gate.reason).toBe('lifecycle.submissionsClosed')
   })
 
   it('says the role is cast rather than showing a dead Apply button', () => {
     expect(
       applyGate({ status: 'booked' }, { status: 'published', deadline_at: null }, now).reason,
-    ).toBe('This role is cast')
+    ).toBe('lifecycle.roleCast')
   })
 
   it('refuses a role whose deadline has passed', () => {

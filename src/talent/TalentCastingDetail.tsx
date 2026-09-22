@@ -21,13 +21,13 @@ import { useMyApplications } from '@/features/applications/queries'
 import { ApplyModal } from '@/features/applications/ApplyModal'
 import {
   applyGate,
-  ROLE_STAGE_LABEL,
+  ROLE_STAGE_KEY,
   ROLE_STATUS_TONE,
-  CASTING_STATUS_LABEL,
+  CASTING_STATUS_KEY,
 } from '@/features/castings/lifecycle'
+import { useT } from '@/lib/i18n'
 import { useLanguagesCatalog } from '@/features/talent/queries'
 import {
-  APPLICATION_STATUS_LABEL,
   APPLICATION_STATUS_TONE,
   deadlineLabel,
   formatDate,
@@ -42,6 +42,7 @@ import type { RoleRow } from '@/types/database'
  * applies: "Apply" writes the `applications` row the production will review.
  */
 export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
+  const t = useT()
   const { castingId } = useParams()
   const navigate = useNavigate()
   const { profile } = useAuth()
@@ -156,7 +157,7 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
 
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <Tag tone={isClosingSoon(data.deadline_at) ? 'no' : 'neutral'}>
-                {deadlineLabel(data.deadline_at)}
+                {deadlineLabel(data.deadline_at, t)}
               </Tag>
               {isTalent && (
               <button
@@ -196,23 +197,23 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
         <div className="flex items-center justify-between">
           <h2 className="tech-label inline-flex items-center gap-1.5">
             <Users className="h-4 w-4" />
-            Roles ({data.roles.length})
+            {t('casting.rolesCount', { count: data.roles.length })}
           </h2>
-          {castingClosed && <Tag tone="no">{CASTING_STATUS_LABEL[data.status]}</Tag>}
+          {castingClosed && <Tag tone="no">{t(CASTING_STATUS_KEY[data.status])}</Tag>}
         </div>
 
         {data.roles.length === 0 ? (
           <EmptyState
             icon={<Users className="h-5 w-5" />}
-            title="No role published yet"
-            description="The production has not opened a role on this casting call."
+            title={t('casting.noRole')}
+            description={t('casting.noRoleHint')}
           />
         ) : (
           <ul className="flex flex-col gap-3">
             {data.roles.map((role) => {
               const application = myApplications.find((item) => item.role_id === role.id)
               const gate = applyGate(role, data)
-              const stage = ROLE_STAGE_LABEL[role.status]
+              const stage = ROLE_STAGE_KEY[role.status]
               return (
                 <li key={role.id}>
                   <Card className="flex flex-col gap-4">
@@ -229,7 +230,7 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
                                 ? 'Contestant'
                                 : 'Supporting'}
                           </Tag>
-                          {stage && <Tag tone={ROLE_STATUS_TONE[role.status]}>{stage}</Tag>}
+                          {stage && <Tag tone={ROLE_STATUS_TONE[role.status]}>{t(stage)}</Tag>}
                         </div>
                         {role.description && (
                           <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink/90">
@@ -241,29 +242,31 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
                       {!isTalent ? null : application ? (
                         <div className="flex flex-col items-end gap-1.5">
                           <Tag tone={APPLICATION_STATUS_TONE[application.status]}>
-                            {APPLICATION_STATUS_LABEL[application.status]}
+                            {t(`status.${application.status}`)}
                           </Tag>
                           <Link
                             to="/talent/auditions"
                             className="text-[12px] font-semibold text-link hover:underline"
                           >
-                            See your audition
+                            {t('casting.seeAudition')}
                           </Link>
                         </div>
                       ) : gate.canApply ? (
                         <Button size="sm" variant="premium" onClick={() => setApplyTo(role)}>
-                          Apply for this role
+                          {t('casting.apply')}
                         </Button>
                       ) : (
                         // No dead button: say why instead.
-                        <Tag tone={ROLE_STATUS_TONE[role.status]}>{gate.reason}</Tag>
+                        <Tag tone={ROLE_STATUS_TONE[role.status]}>
+                          {gate.reason ? t(gate.reason) : ''}
+                        </Tag>
                       )}
                     </div>
 
                     <dl className="grid grid-cols-2 gap-3 border-t border-line pt-3 text-[13px] sm:grid-cols-4">
                       <Detail
                         icon={<Users className="h-3.5 w-3.5" />}
-                        label="Playing age"
+                        label={t('casting.playingAge')}
                         value={
                           role.playing_age_min !== null && role.playing_age_max !== null
                             ? `${role.playing_age_min}–${role.playing_age_max}`
@@ -305,7 +308,7 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
                       <div className="rounded-field bg-paper p-3.5">
                         <span className="tech-label inline-flex items-center gap-1.5">
                           <Film className="h-3.5 w-3.5" />
-                          Self-tape instructions
+                          {t('casting.selftapeInstructions')}
                         </span>
                         <p className="mt-1.5 text-[14px] leading-relaxed text-ink/90">
                           {role.selftape_instructions}
@@ -321,7 +324,7 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
                         className="inline-flex w-fit items-center gap-1.5 text-[13px] font-semibold text-link hover:underline"
                       >
                         <Globe className="h-3.5 w-3.5" />
-                        Download the sides
+                        {t('casting.sides')}
                       </a>
                     )}
                   </Card>

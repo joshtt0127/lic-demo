@@ -46,6 +46,7 @@ import { useTalentApplicationStats } from '@/features/applications/queries'
 import { track } from '@/lib/analytics'
 import { cn } from '@/lib/cn'
 import { errorMessage } from '@/lib/supabase'
+import { useT } from '@/lib/i18n'
 import type { CreditRow, TrainingRow } from '@/types/database'
 
 /**
@@ -99,6 +100,7 @@ function ProfileSkeleton() {
 }
 
 function ProfileView({ data }: { data: TalentProfileFull }) {
+  const t = useT()
   const toast = useToast()
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -162,7 +164,7 @@ function ProfileView({ data }: { data: TalentProfileFull }) {
 
             <button
               onClick={() => setOpenSection('identity')}
-              aria-label="Edit profile"
+              aria-label={t('profile.edit')}
               className="absolute right-5 top-5 flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-ink/5 hover:text-ink"
             >
               <Pencil className="h-4 w-4" />
@@ -206,20 +208,20 @@ function ProfileView({ data }: { data: TalentProfileFull }) {
         <div className="grid grid-cols-3 gap-3">
           <StatCell
             value={stats.data?.submitted ?? 0}
-            label="Auditions sent"
+            label={t('feed.auditionsSent')}
             loading={stats.isLoading}
           />
           <StatCell
             value={stats.data?.shortlisted ?? 0}
-            label="Shortlisted"
+            label={t('feed.shortlisted')}
             loading={stats.isLoading}
           />
-          <StatCell value={stats.data?.booked ?? 0} label="Booked" loading={stats.isLoading} />
+          <StatCell value={stats.data?.booked ?? 0} label={t('feed.booked')} loading={stats.isLoading} />
         </div>
 
         {/* ── about ── */}
         <Card className="flex flex-col gap-2">
-          <SectionHeader title="About" onEdit={() => setOpenSection('about')} />
+          <SectionHeader title={t('profile.about')} onEdit={() => setOpenSection('about')} />
           <p className="whitespace-pre-line text-sm leading-relaxed text-ink/90">
             {data.talent.bio || 'Add a short bio to introduce yourself to casting directors.'}
           </p>
@@ -255,7 +257,7 @@ function ProfileView({ data }: { data: TalentProfileFull }) {
                   key={item.key}
                   className="rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-xs text-white/80"
                 >
-                  {item.label}
+                  {t(item.label)}
                 </li>
               ))}
             </ul>
@@ -264,7 +266,7 @@ function ProfileView({ data }: { data: TalentProfileFull }) {
 
         {/* ── skills ── */}
         <Card className="flex flex-col gap-3">
-          <SectionHeader title="Skills" />
+          <SectionHeader title={t('profile.skills')} />
           <p className="text-xs text-muted">
             Click the dots to set your proficiency level for each skill.
           </p>
@@ -317,7 +319,7 @@ function ProfileView({ data }: { data: TalentProfileFull }) {
                 )
               }}
               list="skills-catalogue"
-              placeholder="Search for a skill to add, e.g. Stage combat"
+              placeholder={t('profile.searchSkill')}
               className="flex-1"
             />
             <datalist id="skills-catalogue">
@@ -344,14 +346,14 @@ function ProfileView({ data }: { data: TalentProfileFull }) {
         {/* ── appearance / casting details ── */}
         <Card className="flex flex-col gap-2">
           <SectionHeader
-            title="Appearance & casting details"
+            title={t('profile.appearance')}
             icon={<UserCircle2 className="h-4 w-4" />}
             onEdit={() => setOpenSection('appearance')}
           />
           <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-            <Detail label="Gender" value={data.talent.gender} />
+            <Detail label={t('completion.gender')} value={data.talent.gender} />
             <Detail
-              label="Playing age"
+              label={t('profile.playingAge')}
               value={
                 data.talent.playing_age_min !== null && data.talent.playing_age_max !== null
                   ? `${data.talent.playing_age_min}–${data.talent.playing_age_max}`
@@ -359,24 +361,24 @@ function ProfileView({ data }: { data: TalentProfileFull }) {
               }
             />
             <Detail
-              label="Height"
+              label={t('profile.height')}
               value={data.talent.height_cm ? `${data.talent.height_cm} cm` : null}
             />
-            <TagDetail label="Ethnicities" values={data.talent.ethnicities} />
-            <TagDetail label="Accents" values={data.talent.accents} />
-            <TagDetail label="Nationalities" values={data.talent.nationalities} />
+            <TagDetail label={t('profile.ethnicities')} values={data.talent.ethnicities} />
+            <TagDetail label={t('profile.accents')} values={data.talent.accents} />
+            <TagDetail label={t('profile.nationalities')} values={data.talent.nationalities} />
           </div>
         </Card>
 
         {/* ── experience ── */}
         <Card className="flex flex-col gap-3">
           <SectionHeader
-            title="Experience"
+            title={t('profile.experience')}
             icon={<Briefcase className="h-4 w-4" />}
             onAdd={() => setCreditDraft({ category: 'Film' })}
           />
           {data.credits.length === 0 ? (
-            <p className="py-2 text-sm text-muted">No experience added yet.</p>
+            <p className="py-2 text-sm text-muted">{t('profile.noCredits')}</p>
           ) : (
             <ul className="flex flex-col divide-y divide-line">
               {data.credits.map((credit) => (
@@ -432,7 +434,7 @@ function ProfileView({ data }: { data: TalentProfileFull }) {
             profileId={profileId}
             kind="headshot"
             assets={headshots}
-            addLabel="Add photo"
+            addLabel={t('profile.addPhoto')}
             emptyHint="Headshots and book photos — JPG, PNG, WebP or AVIF up to 20 MB each."
           />
         </Card>
@@ -445,7 +447,7 @@ function ProfileView({ data }: { data: TalentProfileFull }) {
             kind="showreel"
             assets={showreels}
             aspect="video"
-            addLabel="Add showreel"
+            addLabel={t('profile.addShowreel')}
             emptyHint="MP4, MOV or WebM up to 200 MB. Self-tapes you submit stay private to that casting."
           />
         </Card>
@@ -458,7 +460,7 @@ function ProfileView({ data }: { data: TalentProfileFull }) {
             onAdd={() => setTrainingDraft({})}
           />
           {data.training.length === 0 ? (
-            <p className="text-sm text-muted">No training added yet.</p>
+            <p className="text-sm text-muted">{t('profile.noTraining')}</p>
           ) : (
             <ul className="flex flex-col divide-y divide-line">
               {data.training.map((entry) => (
@@ -511,14 +513,14 @@ function ProfileView({ data }: { data: TalentProfileFull }) {
               {data.talent.agent_phone && <p className="text-muted">{data.talent.agent_phone}</p>}
             </div>
           ) : (
-            <p className="text-sm text-muted">No agent on file.</p>
+            <p className="text-sm text-muted">{t('profile.noAgent')}</p>
           )}
         </Card>
 
         <Card className="flex flex-col gap-2">
-          <SectionHeader title="Languages" onEdit={() => setOpenSection('languages')} />
+          <SectionHeader title={t('completion.languages')} onEdit={() => setOpenSection('languages')} />
           {data.languages.length === 0 ? (
-            <p className="text-sm text-muted">No language added yet.</p>
+            <p className="text-sm text-muted">{t('profile.noLanguages')}</p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {data.languages.map((language) => (
@@ -529,15 +531,15 @@ function ProfileView({ data }: { data: TalentProfileFull }) {
         </Card>
 
         <Card className="flex flex-col gap-2 text-sm">
-          <SectionHeader title="Details" onEdit={() => setOpenSection('details')} />
+          <SectionHeader title={t('profile.details')} onEdit={() => setOpenSection('details')} />
           <InfoRow
-            label="Height"
+            label={t('profile.height')}
             value={data.talent.height_cm ? `${data.talent.height_cm} cm` : '—'}
           />
-          <InfoRow label="Availability" value={AVAILABILITY_LABEL[data.talent.availability]} />
-          <InfoRow label="Contact" value={user?.email ?? '—'} link />
+          <InfoRow label={t('profile.availability')} value={AVAILABILITY_LABEL[data.talent.availability]} />
+          <InfoRow label={t('profile.contact')} value={user?.email ?? '—'} link />
           {data.talent.website && (
-            <InfoRow label="Website" value={data.talent.website.replace(/^https?:\/\//, '')} link />
+            <InfoRow label={t('profile.website')} value={data.talent.website.replace(/^https?:\/\//, '')} link />
           )}
         </Card>
       </div>
@@ -796,6 +798,8 @@ function IdentityModal({
   }) => void
   pending?: boolean
 }) {
+  const t = useT()
+
   const [form, setForm] = useState({
     firstName: data.profile.first_name ?? '',
     lastName: data.profile.last_name ?? '',
@@ -814,7 +818,7 @@ function IdentityModal({
   return (
     <EditModal
       open={open}
-      title="Edit profile"
+      title={t('profile.edit')}
       onClose={onClose}
       saveLabel={pending ? 'Saving…' : 'Save'}
       onSave={() => {
@@ -839,21 +843,21 @@ function IdentityModal({
     >
       {error && <FormError>{error}</FormError>}
       <div className="grid grid-cols-2 gap-3">
-        <Field label="First name">
+        <Field label={t('onb.firstName')}>
           <TextInput value={form.firstName} onChange={set('firstName')} />
         </Field>
-        <Field label="Last name">
+        <Field label={t('onb.lastName')}>
           <TextInput value={form.lastName} onChange={set('lastName')} />
         </Field>
       </div>
-      <Field label="Professional name">
+      <Field label={t('onb.professionalName')}>
         <TextInput
           value={form.professionalName}
           onChange={set('professionalName')}
-          placeholder="The name you are credited under"
+          placeholder={t('onb.professionalNamePlaceholder')}
         />
       </Field>
-      <Field label="Headline">
+      <Field label={t('onb.headline')}>
         <TextInput
           value={form.headline}
           onChange={set('headline')}
@@ -861,10 +865,10 @@ function IdentityModal({
         />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="City">
+        <Field label={t('onb.city')}>
           <TextInput value={form.city} onChange={set('city')} />
         </Field>
-        <Field label="Country">
+        <Field label={t('profile.country')}>
           <TextInput value={form.country} onChange={set('country')} />
         </Field>
       </div>
@@ -883,11 +887,13 @@ function AboutModal({
   onClose: () => void
   onSave: (bio: string) => void
 }) {
+  const t = useT()
+
   const [draft, setDraft] = useState(bio)
 
   return (
     <EditModal open={open} title="Edit about" onClose={onClose} onSave={() => onSave(draft.trim())}>
-      <Field label="Bio">
+      <Field label={t('profile.bio')}>
         <TextArea rows={7} value={draft} onChange={(event) => setDraft(event.target.value)} />
       </Field>
     </EditModal>
@@ -914,6 +920,8 @@ function AppearanceModal({
     experience_level: string | null
   }) => void
 }) {
+  const t = useT()
+
   const [form, setForm] = useState({
     gender: data.talent.gender,
     min: data.talent.playing_age_min?.toString() ?? '',
@@ -952,10 +960,10 @@ function AppearanceModal({
   }
 
   return (
-    <EditModal open={open} title="Appearance & casting details" onClose={onClose} onSave={submit}>
+    <EditModal open={open} title={t('profile.appearance')} onClose={onClose} onSave={submit}>
       {error && <FormError>{error}</FormError>}
 
-      <Field label="Gender">
+      <Field label={t('completion.gender')}>
         <SegmentedControl
           options={GENDER_OPTIONS}
           value={form.gender}
@@ -966,21 +974,21 @@ function AppearanceModal({
       </Field>
 
       <div className="grid grid-cols-3 gap-3">
-        <Field label="Age from">
+        <Field label={t('profile.ageFrom')}>
           <TextInput
             type="number"
             value={form.min}
             onChange={(event) => setForm((current) => ({ ...current, min: event.target.value }))}
           />
         </Field>
-        <Field label="Age to">
+        <Field label={t('profile.ageTo')}>
           <TextInput
             type="number"
             value={form.max}
             onChange={(event) => setForm((current) => ({ ...current, max: event.target.value }))}
           />
         </Field>
-        <Field label="Height (cm)">
+        <Field label={t('profile.heightCm')}>
           <TextInput
             type="number"
             value={form.height}
@@ -989,7 +997,7 @@ function AppearanceModal({
         </Field>
       </div>
 
-      <Field label="Experience">
+      <Field label={t('profile.experience')}>
         <SegmentedControl
           options={EXPERIENCE_OPTIONS}
           value={form.experienceLevel}
@@ -999,7 +1007,7 @@ function AppearanceModal({
         />
       </Field>
 
-      <Field label="Ethnicities">
+      <Field label={t('profile.ethnicities')}>
         <MultiSelect
           options={ETHNICITY_OPTIONS}
           values={form.ethnicities}
@@ -1008,24 +1016,24 @@ function AppearanceModal({
         />
       </Field>
 
-      <Field label="Accents">
+      <Field label={t('profile.accents')}>
         <MultiSelect
           options={form.accents.map((value) => ({ value, label: value }))}
           values={form.accents}
           onChange={(accents) => setForm((current) => ({ ...current, accents }))}
           allowCreate
-          placeholder="Add an accent…"
+          placeholder={t('profile.addAccent')}
           emptyLabel="No accent added"
         />
       </Field>
 
-      <Field label="Nationalities">
+      <Field label={t('profile.nationalities')}>
         <MultiSelect
           options={form.nationalities.map((value) => ({ value, label: value }))}
           values={form.nationalities}
           onChange={(nationalities) => setForm((current) => ({ ...current, nationalities }))}
           allowCreate
-          placeholder="Add a nationality…"
+          placeholder={t('profile.addNationality')}
           emptyLabel="None added"
         />
       </Field>
@@ -1049,6 +1057,8 @@ function RepresentationModal({
     agent_phone: string | null
   }) => void
 }) {
+  const t = useT()
+
   const [form, setForm] = useState({
     agency: data.talent.agency_name ?? '',
     agent: data.talent.agent_name ?? '',
@@ -1080,16 +1090,16 @@ function RepresentationModal({
       }}
     >
       {error && <FormError>{error}</FormError>}
-      <Field label="Agency">
+      <Field label={t('profile.agency')}>
         <TextInput value={form.agency} onChange={set('agency')} placeholder="Vertice Talent" />
       </Field>
-      <Field label="Agent">
+      <Field label={t('profile.agent')}>
         <TextInput value={form.agent} onChange={set('agent')} />
       </Field>
-      <Field label="Agent email">
+      <Field label={t('profile.agentEmail')}>
         <TextInput value={form.email} onChange={set('email')} type="email" />
       </Field>
-      <Field label="Agent phone">
+      <Field label={t('profile.agentPhone')}>
         <TextInput value={form.phone} onChange={set('phone')} />
       </Field>
     </EditModal>
@@ -1112,6 +1122,8 @@ function DetailsModal({
     website: string | null
   }) => void
 }) {
+  const t = useT()
+
   const [form, setForm] = useState({
     height: data.talent.height_cm?.toString() ?? '',
     availability: data.talent.availability,
@@ -1123,7 +1135,7 @@ function DetailsModal({
   return (
     <EditModal
       open={open}
-      title="Details"
+      title={t('profile.details')}
       onClose={onClose}
       onSave={() => {
         const height = form.height ? Number(form.height) : null
@@ -1145,14 +1157,14 @@ function DetailsModal({
       }}
     >
       {error && <FormError>{error}</FormError>}
-      <Field label="Height (cm)">
+      <Field label={t('profile.heightCm')}>
         <TextInput
           type="number"
           value={form.height}
           onChange={(event) => setForm((current) => ({ ...current, height: event.target.value }))}
         />
       </Field>
-      <Field label="Availability">
+      <Field label={t('profile.availability')}>
         <Select
           value={form.availability}
           onChange={(event) =>
@@ -1162,19 +1174,19 @@ function DetailsModal({
             }))
           }
         >
-          <option value="available">Available</option>
-          <option value="on_project">On project</option>
-          <option value="unavailable">Unavailable</option>
+          <option value="available">{t('profile.available')}</option>
+          <option value="on_project">{t('profile.onProject')}</option>
+          <option value="unavailable">{t('profile.unavailable')}</option>
         </Select>
       </Field>
-      <Field label="Union">
+      <Field label={t('profile.union')}>
         <TextInput
           value={form.union}
           onChange={(event) => setForm((current) => ({ ...current, union: event.target.value }))}
           placeholder="SAG-AFTRA"
         />
       </Field>
-      <Field label="Website">
+      <Field label={t('profile.website')}>
         <TextInput
           value={form.website}
           onChange={(event) => setForm((current) => ({ ...current, website: event.target.value }))}
@@ -1198,16 +1210,18 @@ function LanguagesModal({
   onClose: () => void
   onSave: (codes: string[]) => void
 }) {
+  const t = useT()
+
   const [codes, setCodes] = useState(selected)
 
   return (
-    <EditModal open={open} title="Languages" onClose={onClose} onSave={() => onSave(codes)}>
-      <Field label="Languages you speak">
+    <EditModal open={open} title={t('completion.languages')} onClose={onClose} onSave={() => onSave(codes)}>
+      <Field label={t('profile.languagesSpoken')}>
         <MultiSelect
           options={options}
           values={codes}
           onChange={setCodes}
-          placeholder="Search a language…"
+          placeholder={t('profile.searchLanguage')}
           emptyLabel="No language selected"
         />
       </Field>
@@ -1233,6 +1247,8 @@ function CreditModal({
     url: string | null
   }) => void
 }) {
+  const t = useT()
+
   const [form, setForm] = useState({
     title: draft?.title ?? '',
     role: draft?.role_name ?? '',
@@ -1282,13 +1298,13 @@ function CreditModal({
       }}
     >
       {error && <FormError>{error}</FormError>}
-      <Field label="Project title">
+      <Field label={t('profile.projectTitle')}>
         <TextInput value={form.title} onChange={set('title')} />
       </Field>
-      <Field label="Role">
+      <Field label={t('profile.role')}>
         <TextInput value={form.role} onChange={set('role')} />
       </Field>
-      <Field label="Type">
+      <Field label={t('profile.type')}>
         <Select value={form.category} onChange={set('category')}>
           {['Film', 'TV series', 'Theatre', 'Commercial', 'Music video', 'Indie film', 'Short'].map(
             (type) => (
@@ -1300,20 +1316,20 @@ function CreditModal({
         </Select>
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Year">
+        <Field label={t('profile.year')}>
           <TextInput value={form.year} onChange={set('year')} placeholder="2026" />
         </Field>
-        <Field label="Company / network">
+        <Field label={t('profile.company')}>
           <TextInput value={form.company} onChange={set('company')} />
         </Field>
       </div>
-      <Field label="Director">
+      <Field label={t('profile.director')}>
         <TextInput value={form.director} onChange={set('director')} />
       </Field>
-      <Field label="Location">
+      <Field label={t('completion.location')}>
         <TextInput value={form.location} onChange={set('location')} />
       </Field>
-      <Field label="Production or company website">
+      <Field label={t('profile.productionSite')}>
         <TextInput value={form.url} onChange={set('url')} placeholder="https://…" />
       </Field>
     </EditModal>
@@ -1335,6 +1351,8 @@ function TrainingModal({
     description: string | null
   }) => void
 }) {
+  const t = useT()
+
   const [form, setForm] = useState({
     school: draft?.school ?? '',
     program: draft?.program ?? '',
@@ -1365,20 +1383,20 @@ function TrainingModal({
       }}
     >
       {error && <FormError>{error}</FormError>}
-      <Field label="School">
+      <Field label={t('profile.school')}>
         <TextInput
           value={form.school}
           onChange={(event) => setForm((current) => ({ ...current, school: event.target.value }))}
         />
       </Field>
-      <Field label="Programme">
+      <Field label={t('profile.programme')}>
         <TextInput
           value={form.program}
           onChange={(event) => setForm((current) => ({ ...current, program: event.target.value }))}
         />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="From">
+        <Field label={t('profile.from')}>
           <TextInput
             value={form.startYear}
             onChange={(event) =>
@@ -1387,7 +1405,7 @@ function TrainingModal({
             placeholder="2018"
           />
         </Field>
-        <Field label="To">
+        <Field label={t('profile.to')}>
           <TextInput
             value={form.endYear}
             onChange={(event) => setForm((current) => ({ ...current, endYear: event.target.value }))}
@@ -1395,7 +1413,7 @@ function TrainingModal({
           />
         </Field>
       </div>
-      <Field label="Description">
+      <Field label={t('profile.description')}>
         <TextArea
           rows={3}
           value={form.description}
@@ -1450,18 +1468,19 @@ function SectionHeader({
 }
 
 function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+  const t = useT()
   return (
     <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
       <button
         onClick={onEdit}
-        aria-label="Edit"
+        aria-label={t('common.edit')}
         className="flex h-7 w-7 items-center justify-center rounded-full text-muted hover:bg-ink/5 hover:text-ink"
       >
         <Pencil className="h-3.5 w-3.5" />
       </button>
       <button
         onClick={onDelete}
-        aria-label="Delete"
+        aria-label={t('common.delete')}
         className="flex h-7 w-7 items-center justify-center rounded-full text-muted hover:bg-signal-no/10 hover:text-signal-no"
       >
         <Trash2 className="h-3.5 w-3.5" />

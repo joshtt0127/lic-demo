@@ -11,6 +11,7 @@ import type { TalentProfileFull } from '@/data/repositories/talent'
 
 export type CompletionItem = {
   key: string
+  /** Translation key — the talent app is bilingual (see `lib/i18n`). */
   label: string
   weight: number
   done: boolean
@@ -26,60 +27,60 @@ export function completionItems(data: TalentProfileFull): CompletionItem[] {
   return [
     {
       key: 'name',
-      label: 'Your name',
+      label: 'completion.name',
       weight: 10,
       section: 'identity',
       done: has(profile.first_name) && has(profile.last_name),
     },
     {
       key: 'avatar',
-      label: 'Profile photo',
+      label: 'completion.avatar',
       weight: 12,
       section: 'identity',
       done: has(profile.avatar_url),
     },
-    { key: 'location', label: 'Location', weight: 6, section: 'identity', done: has(profile.city) },
+    { key: 'location', label: 'completion.location', weight: 6, section: 'identity', done: has(profile.city) },
     {
       key: 'headline',
-      label: 'Headline',
+      label: 'completion.headline',
       weight: 10,
       section: 'professional',
       done: has(talent.headline),
     },
-    { key: 'bio', label: 'Biography', weight: 8, section: 'professional', done: has(talent.bio) },
+    { key: 'bio', label: 'completion.bio', weight: 8, section: 'professional', done: has(talent.bio) },
     {
       key: 'playing_age',
-      label: 'Playing age range',
+      label: 'completion.age',
       weight: 12,
       section: 'casting',
       done: talent.playing_age_min !== null && talent.playing_age_max !== null,
     },
-    { key: 'gender', label: 'Gender', weight: 6, section: 'casting', done: has(talent.gender) },
+    { key: 'gender', label: 'completion.gender', weight: 6, section: 'casting', done: has(talent.gender) },
     {
       key: 'languages',
-      label: 'Languages',
+      label: 'completion.languages',
       weight: 8,
       section: 'casting',
       done: languages.length > 0,
     },
-    { key: 'skills', label: 'Skills', weight: 10, section: 'skills', done: skills.length >= 3 },
+    { key: 'skills', label: 'completion.skills', weight: 10, section: 'skills', done: skills.length >= 3 },
     {
       key: 'headshots',
-      label: 'At least one headshot',
+      label: 'completion.headshot',
       weight: 12,
       section: 'media',
       done: media.some((asset) => asset.kind === 'headshot' || asset.kind === 'portfolio'),
     },
     {
       key: 'showreel',
-      label: 'A showreel or self-tape',
+      label: 'completion.reel',
       weight: 8,
       section: 'media',
       done: media.some((asset) => asset.kind === 'showreel' || asset.kind === 'selftape'),
     },
     {
       key: 'credits',
-      label: 'Credits or training',
+      label: 'completion.credits',
       weight: 8,
       section: 'credits',
       done: credits.length > 0 || training.length > 0,

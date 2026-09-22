@@ -6,8 +6,9 @@ import { SelfTapeRecorder } from '@/components/upload/SelfTapeRecorder'
 import { useToast } from '@/components/Toast'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useSelfTapes, useSelfTapeMutations } from '@/features/selftapes/queries'
-import { formatBytes, RULES } from '@/lib/storage'
+import { formatBytes } from '@/lib/storage'
 import { relativeTime } from '@/lib/format'
+import { useT } from '@/lib/i18n'
 import { errorMessage } from '@/lib/supabase'
 
 function duration(seconds: number | null): string | null {
@@ -33,6 +34,7 @@ export function SelfTapePanel({
   /** A decided application no longer takes a new tape. */
   locked?: boolean
 }) {
+  const t = useT()
   const { profile } = useAuth()
   const toast = useToast()
   const tapes = useSelfTapes(applicationId)
@@ -55,10 +57,10 @@ export function SelfTapePanel({
         onProgress: setProgress,
         replacing: current,
       })
-      toast(current ? 'Self-tape replaced' : 'Self-tape sent to the production')
+      toast(current ? t('selftape.replaced') : t('selftape.sent'))
       setRecording(false)
     } catch (uploadError) {
-      setError(errorMessage(uploadError, 'Could not send your tape'))
+      setError(errorMessage(uploadError, t('selftape.sendFailed')))
     } finally {
       setProgress(null)
     }
@@ -69,12 +71,12 @@ export function SelfTapePanel({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="tech-label inline-flex items-center gap-1.5">
           <Video className="h-3.5 w-3.5" />
-          Self-tape
+          {t('selftape.title')}
         </span>
         {current && (
           <span className="text-[12px] text-muted">
             {[
-              `sent ${relativeTime(current.submittedAt)}`,
+              t('selftape.meta', { when: relativeTime(current.submittedAt, t) }),
               duration(current.durationSeconds),
               current.bytes ? formatBytes(current.bytes) : null,
             ]
@@ -86,7 +88,7 @@ export function SelfTapePanel({
 
       {instructions && (
         <p className="text-[13px] leading-relaxed text-ink/90">
-          <span className="font-semibold">Brief: </span>
+          <span className="font-semibold">{t('selftape.brief')} </span>
           {instructions}
         </p>
       )}
@@ -102,7 +104,7 @@ export function SelfTapePanel({
       ) : tapes.isLoading ? (
         <span className="flex items-center gap-2 text-[13px] text-muted">
           <Spinner />
-          Loading your tape…
+          {t('selftape.loading')}
         </span>
       ) : current ? (
         <>
@@ -121,7 +123,7 @@ export function SelfTapePanel({
                 icon={<Camera className="h-3.5 w-3.5" />}
                 onClick={() => setRecording(true)}
               >
-                Record again
+                {t('selftape.recordAgain')}
               </Button>
               <FileDropzone
                 kind="selftape"
@@ -132,7 +134,7 @@ export function SelfTapePanel({
               >
                 <span className="inline-flex h-9 items-center gap-1.5 rounded-btn border border-line bg-card px-3 text-[13px] font-semibold text-ink transition-colors hover:bg-paper">
                   <RotateCcw className="h-3.5 w-3.5" />
-                  Replace with a file
+                  {t('selftape.replaceFile')}
                 </span>
               </FileDropzone>
 
@@ -146,18 +148,18 @@ export function SelfTapePanel({
                     onClick={async () => {
                       try {
                         await remove.mutateAsync(current)
-                        toast('Self-tape removed')
+                        toast(t('selftape.removed'))
                       } catch (removeError) {
-                        setError(errorMessage(removeError, 'Could not remove your tape'))
+                        setError(errorMessage(removeError, t('selftape.removeFailed')))
                       } finally {
                         setConfirmRemove(false)
                       }
                     }}
                   >
-                    {remove.isPending ? 'Removing…' : 'Confirm removal'}
+                    {remove.isPending ? t('selftape.removing') : t('selftape.confirmRemove')}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => setConfirmRemove(false)}>
-                    Keep it
+                    {t('selftape.keep')}
                   </Button>
                 </>
               ) : (
@@ -167,7 +169,7 @@ export function SelfTapePanel({
                   icon={<Trash2 className="h-3.5 w-3.5" />}
                   onClick={() => setConfirmRemove(true)}
                 >
-                  Remove
+                  {t('selftape.remove')}
                 </Button>
               )}
             </div>
@@ -176,7 +178,7 @@ export function SelfTapePanel({
       ) : locked ? (
         <p className="flex items-center gap-2 text-[13px] text-muted">
           <Film className="h-3.5 w-3.5" />
-          No tape was sent for this audition.
+          {t('selftape.none')}
         </p>
       ) : (
         <div className="flex flex-col gap-2.5">
@@ -186,7 +188,7 @@ export function SelfTapePanel({
             disabled={progress !== null}
             onClick={() => setRecording(true)}
           >
-            Record my self-tape
+            {t('selftape.record')}
           </Button>
           <FileDropzone
             kind="selftape"
@@ -197,7 +199,7 @@ export function SelfTapePanel({
           >
             <span className="inline-flex min-h-[36px] w-full items-center justify-center gap-1.5 rounded-field border border-line bg-card px-3 text-[13px] font-semibold text-ink transition-colors hover:bg-paper">
               <Upload className="h-3.5 w-3.5" />
-              Or upload a file
+              {t('selftape.upload')}
             </span>
           </FileDropzone>
         </div>
@@ -212,13 +214,15 @@ export function SelfTapePanel({
             />
           </div>
           <span className="font-mono text-[11px] text-muted">
-            {progress < 100 ? `Uploading ${progress}%` : 'Finishing…'}
+            {progress < 100
+              ? t('selftape.uploading', { percent: progress })
+              : t('selftape.finishing')}
           </span>
         </div>
       )}
 
       {!current && !locked && progress === null && (
-        <span className="text-[11.5px] text-muted">{RULES.selftape.label}</span>
+        <span className="text-[11.5px] text-muted">{t('selftape.rules')}</span>
       )}
     </div>
   )

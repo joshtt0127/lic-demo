@@ -4,6 +4,7 @@ import { ArrowRight, Clapperboard } from 'lucide-react'
 import { FormError, Spinner } from '@/components/ui'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { track } from '@/lib/analytics'
+import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/cn'
 import type { AccountType } from '@/types/database'
 
@@ -16,28 +17,29 @@ const animate = typeof document === 'undefined' || document.visibilityState === 
 
 const CHOICES: {
   id: AccountType
-  title: string
-  description: string
-  tags: string[]
+  titleKey: string
+  descriptionKey: string
+  tagsKey: string
   watermark: 'talent' | 'production'
 }[] = [
   {
     id: 'talent',
-    title: 'I’m a Talent',
-    description: 'Find roles, submit auditions and build your professional profile.',
-    tags: ['Auditions', 'Roles', 'Visibility'],
+    titleKey: 'onb.accountType.talent',
+    descriptionKey: 'onb.accountType.talentText',
+    tagsKey: 'onb.accountType.talentTags',
     watermark: 'talent',
   },
   {
     id: 'production',
-    title: 'I work in Production',
-    description: 'Discover talent, manage castings and collaborate with your team.',
-    tags: ['Find talent', 'Post castings', 'Collaborate'],
+    titleKey: 'onb.accountType.production',
+    descriptionKey: 'onb.accountType.productionText',
+    tagsKey: 'onb.accountType.productionTags',
     watermark: 'production',
   },
 ]
 
 export function AccountTypeStep() {
+  const t = useT()
   const { setAccountType } = useAuth()
   const [pending, setPending] = useState<AccountType | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -75,7 +77,7 @@ export function AccountTypeStep() {
       <div className="flex flex-col items-center gap-3 pt-2">
         <span className="h-[2px] w-7 bg-ink/25" />
         <p className="text-center text-[13px] text-muted">
-          You can only belong to one side of the marketplace per account.
+          {t('onb.accountType.oneSide')}
         </p>
       </div>
     </div>
@@ -83,24 +85,29 @@ export function AccountTypeStep() {
 }
 
 function ChoiceCard({
-  title,
-  description,
-  tags,
+  titleKey,
+  descriptionKey,
+  tagsKey,
   watermark,
   index,
   pending,
   disabled,
   onClick,
 }: {
-  title: string
-  description: string
-  tags: string[]
+  titleKey: string
+  descriptionKey: string
+  tagsKey: string
   watermark: 'talent' | 'production'
   index: number
   pending: boolean
   disabled: boolean
   onClick: () => void
 }) {
+  const t = useT()
+  const title = t(titleKey)
+  const description = t(descriptionKey)
+  const tags = t(tagsKey).split(' · ')
+
   return (
     <motion.button
       type="button"

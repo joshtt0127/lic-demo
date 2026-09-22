@@ -15,15 +15,10 @@ import { Card, Tag } from '@/components/ui'
 import { useToast } from '@/components/Toast'
 import type { CastingCallWithContext } from '@/features/castings/queries'
 import type { MyApplication } from '@/features/applications/queries'
-import { applyGate, ROLE_STAGE_LABEL, ROLE_STATUS_TONE } from '@/features/castings/lifecycle'
-import {
-  APPLICATION_STATUS_LABEL,
-  APPLICATION_STATUS_TONE,
-  deadlineLabel,
-  isClosingSoon,
-  relativeTime,
-} from '@/lib/format'
+import { applyGate, ROLE_STAGE_KEY, ROLE_STATUS_TONE } from '@/features/castings/lifecycle'
+import { APPLICATION_STATUS_TONE, deadlineLabel, isClosingSoon, relativeTime } from '@/lib/format'
 import { asset } from '@/lib/asset'
+import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/cn'
 import type { RoleRow } from '@/types/database'
 
@@ -47,6 +42,7 @@ export function CastingPost({
   onApply: (role: RoleRow) => void
   canApply: boolean
 }) {
+  const t = useT()
   const toast = useToast()
   const [expanded, setExpanded] = useState(false)
   const [allRoles, setAllRoles] = useState(false)
@@ -69,9 +65,9 @@ export function CastingPost({
     const url = `${window.location.origin}/casting/${casting.id}`
     try {
       await navigator.clipboard.writeText(url)
-      toast('Link copied — anyone can open this casting call')
+      toast(t('post.shared'))
     } catch {
-      toast('Could not copy the link')
+      toast(t('post.shareFailed'))
     }
   }
 
@@ -92,19 +88,19 @@ export function CastingPost({
           <p className="mt-0.5 truncate text-[13px] text-muted">
             {[author?.company_type, project?.production_type, authorPlace]
               .filter(Boolean)
-              .join(' · ') || 'Casting call'}
+              .join(' · ') || t('post.castingCall')}
           </p>
           <p className="mt-0.5 flex items-center gap-1 text-[12px] text-muted">
-            {relativeTime(casting.published_at ?? casting.created_at)}
+            {relativeTime(casting.published_at ?? casting.created_at, t)}
             <span aria-hidden>·</span>
             <Globe className="h-3 w-3" aria-hidden />
-            <span className="sr-only">Public casting call</span>
+            <span className="sr-only">{t('post.public')}</span>
           </p>
         </div>
         <button
           type="button"
           onClick={onToggleSave}
-          aria-label={saved ? 'Remove from saved' : 'Save this casting call'}
+          aria-label={saved ? t('post.unsaveAria') : t('post.saveAria')}
           aria-pressed={saved}
           className={cn(
             'flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors',
@@ -142,7 +138,7 @@ export function CastingPost({
             onClick={() => setExpanded((value) => !value)}
             className="mt-1 inline-flex min-h-[32px] items-center text-[13px] font-semibold text-muted hover:text-ink"
           >
-            {expanded ? 'See less' : '…see more'}
+            {expanded ? t('post.seeLess') : t('post.seeMore')}
           </button>
         )}
 
@@ -151,7 +147,7 @@ export function CastingPost({
             <Tag icon={<MapPin className="h-3 w-3" />}>{casting.location}</Tag>
           )}
           <Tag icon={<Users className="h-3 w-3" />}>
-            {casting.roles.length} role{casting.roles.length === 1 ? '' : 's'}
+            {t('post.roles', { count: casting.roles.length })}
           </Tag>
           {casting.compensation && (
             <Tag icon={<Wallet className="h-3 w-3" />}>{casting.compensation}</Tag>
@@ -160,7 +156,7 @@ export function CastingPost({
             tone={isClosingSoon(casting.deadline_at) ? 'no' : 'neutral'}
             icon={<Clock className="h-3 w-3" />}
           >
-            {deadlineLabel(casting.deadline_at)}
+            {deadlineLabel(casting.deadline_at, t)}
           </Tag>
         </div>
       </div>
@@ -186,14 +182,18 @@ export function CastingPost({
           {visibleRoles.map((role) => {
             const application = applicationsByRole.get(role.id)
             const gate = applyGate(role, casting)
-            const stage = ROLE_STAGE_LABEL[role.status]
+            const stage = ROLE_STAGE_KEY[role.status]
             const age = [role.playing_age_min, role.playing_age_max].filter(
               (value) => value !== null,
             )
             const meta = [
-              role.role_type === 'lead' ? 'Lead' : role.role_type === 'contestant' ? 'Contestant' : 'Supporting',
+              t(`post.roleType.${role.role_type}`),
               role.gender_pref,
-              age.length === 2 ? `${age[0]}–${age[1]} yrs` : age.length === 1 ? `${age[0]} yrs` : null,
+              age.length === 2
+                ? t('post.age', { min: age[0] as number, max: age[1] as number })
+                : age.length === 1
+                  ? t('post.ageSingle', { age: age[0] as number })
+                  : null,
               role.location,
             ].filter(Boolean)
 
@@ -210,17 +210,17 @@ export function CastingPost({
                     {role.name}
                   </Link>
                   <p className="truncate text-[12.5px] text-muted">
-                    {[stage, ...meta].filter(Boolean).join(' · ')}
+                    {[stage ? t(stage) : null, ...meta].filter(Boolean).join(' · ')}
                   </p>
                 </div>
 
                 {application ? (
                   <Tag tone={APPLICATION_STATUS_TONE[application.status]}>
-                    {APPLICATION_STATUS_LABEL[application.status]}
+                    {t(`status.${application.status}`)}
                   </Tag>
                 ) : !gate.canApply ? (
                   <Tag tone={ROLE_STATUS_TONE[role.status]} className="shrink-0">
-                    {gate.reason}
+                    {gate.reason ? t(gate.reason) : ''}
                   </Tag>
                 ) : canApply ? (
                   <button
@@ -229,14 +229,14 @@ export function CastingPost({
                     className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-field bg-cream px-3.5 text-[13px] font-bold text-ink transition-colors hover:bg-cream/80"
                   >
                     <Zap className="h-3.5 w-3.5" />
-                    Apply
+                    {t('post.apply')}
                   </button>
                 ) : (
                   <Link
                     to={detailHref}
                     className="inline-flex h-9 shrink-0 items-center rounded-field border border-line px-3.5 text-[13px] font-semibold text-ink hover:border-ink/30"
                   >
-                    View
+                    {t('post.view')}
                   </Link>
                 )}
               </li>
@@ -250,7 +250,9 @@ export function CastingPost({
                 onClick={() => setAllRoles((value) => !value)}
                 className="flex min-h-[40px] w-full items-center justify-center gap-1.5 px-4 text-[13px] font-semibold text-muted hover:bg-paper hover:text-ink"
               >
-                {allRoles ? 'Show fewer roles' : `Show all ${casting.roles.length} roles`}
+                {allRoles
+                  ? t('post.showFewerRoles')
+                  : t('post.showAllRoles', { count: casting.roles.length })}
                 <ChevronDown className={cn('h-4 w-4 transition-transform', allRoles && 'rotate-180')} />
               </button>
             </li>
@@ -261,25 +263,32 @@ export function CastingPost({
       {/* ── Your own activity on this post, then the actions ── */}
       {myApplications.length > 0 && (
         <p className="px-4 pt-2.5 text-[12.5px] text-muted sm:px-5">
-          You applied to {myApplications.length} of {casting.roles.length} role
-          {casting.roles.length === 1 ? '' : 's'}
-          {myApplications.some((application) => application.hasSelfTape) ? ' · self-tape sent' : ''}
+          {t(
+            myApplications.some((application) => application.hasSelfTape)
+              ? 'post.appliedToTape'
+              : 'post.appliedTo',
+            { applied: myApplications.length, total: casting.roles.length },
+          )}
         </p>
       )}
 
       <div className="flex items-center gap-1 px-2 py-2 sm:px-3">
         <PostAction
           icon={<Users className="h-[18px] w-[18px]" />}
-          label="View roles"
+          label={t('post.viewRoles')}
           to={detailHref}
         />
         <PostAction
           icon={<Bookmark className={cn('h-[18px] w-[18px]', saved && 'fill-current')} />}
-          label={saved ? 'Saved' : 'Save'}
+          label={saved ? t('post.saved') : t('post.save')}
           onClick={onToggleSave}
           active={saved}
         />
-        <PostAction icon={<Link2 className="h-[18px] w-[18px]" />} label="Share" onClick={share} />
+        <PostAction
+          icon={<Link2 className="h-[18px] w-[18px]" />}
+          label={t('post.share')}
+          onClick={share}
+        />
       </div>
     </Card>
   )

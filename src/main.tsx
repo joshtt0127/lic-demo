@@ -6,6 +6,7 @@ import { router } from './router'
 import { ToastProvider } from './components/Toast'
 import { FullPageLoader } from './components/ui'
 import { AuthProvider } from './features/auth/AuthProvider'
+import { I18nProvider } from './lib/i18n'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -23,16 +24,18 @@ const queryClient = new QueryClient({
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ToastProvider>
-          {/* Routes are code-split: this covers the first chunk's arrival. */}
-          <RouterProvider
-            router={router}
-            fallbackElement={<FullPageLoader />}
-            future={{ v7_startTransition: true }}
-          />
-        </ToastProvider>
-      </AuthProvider>
+      <I18nProvider>
+        <AuthProvider>
+          <ToastProvider>
+            {/* Routes are code-split: this covers the first chunk's arrival. */}
+            <RouterProvider
+              router={router}
+              fallbackElement={<FullPageLoader />}
+              future={{ v7_startTransition: true }}
+            />
+          </ToastProvider>
+        </AuthProvider>
+      </I18nProvider>
     </QueryClientProvider>
   </React.StrictMode>,
 )

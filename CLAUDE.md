@@ -209,6 +209,24 @@ Utilitaire `cn()` dans `src/lib/cn.ts`.
   `20260918100000`), marqueur Sent/Read dérivé de `last_read_at`, fil contextuel
   (`getConversationContext`) qui renvoie vers l'audition ou le casting.
 
+## i18n (EN / FR)
+
+`src/lib/i18n/` — provider maison (pas de librairie) : clés plates namespacées
+(`auditions.empty.title`), pluriels par suffixe `_one` / `_other`, interpolation
+`{name}`, **repli sur l'anglais** quand une clé manque (et hors provider, pour
+les tests unitaires) plutôt qu'afficher la clé. La langue est détectée au premier
+passage (`navigator.language`), mémorisée dans `localStorage`, et pilote aussi
+`<html lang>` **et** le formatage des dates (`currentLocale()` dans `lib/format`).
+Sélecteur `components/LanguageSwitcher.tsx` sur l'auth, l'onboarding et l'app talent.
+
+Couverture : **tout le parcours talent** — auth, onboarding, fil et publications,
+appels à casting, fiche casting, candidature, auditions, self-tape (panneau +
+enregistreur), messages, notifications, fiche profil, statuts et dates.
+**Le studio reste en anglais** (les équipes de casting travaillent en anglais et
+une console à moitié traduite se lirait plus mal). Les libellés partagés
+(statuts, cycle de vie, complétion du profil) sont des **clés**, pas des phrases :
+`ROLE_STAGE_KEY`, `CASTING_STATUS_KEY`, `applyGate().reason`, `CompletionItem.label`.
+
 ## Audits (garde-fous, à relancer après une passe UI)
 
 `npm run audit:ui` — contrôles morts (bouton sans action, lien vide) et écrans qui lisent le

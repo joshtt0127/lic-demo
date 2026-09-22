@@ -10,7 +10,6 @@ import {
   type MyApplication,
 } from '@/features/applications/queries'
 import {
-  APPLICATION_STATUS_LABEL,
   APPLICATION_STATUS_TONE,
   APPLICATION_STEPS,
   deadlineLabel,
@@ -19,10 +18,11 @@ import {
 } from '@/lib/format'
 import { SelfTapePanel } from '@/components/upload/SelfTapePanel'
 import {
-  CASTING_STATUS_LABEL,
-  ROLE_STAGE_LABEL,
+  CASTING_STATUS_KEY,
+  ROLE_STAGE_KEY,
   ROLE_STATUS_TONE,
 } from '@/features/castings/lifecycle'
+import { useT } from '@/lib/i18n'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 
@@ -31,6 +31,7 @@ import { cn } from '@/lib/cn'
  * casting console — same id, same status, same timestamps.
  */
 export function TalentAuditions() {
+  const t = useT()
   const { profile } = useAuth()
   const applications = useMyApplications(profile?.id)
 
@@ -42,19 +43,19 @@ export function TalentAuditions() {
     <div className="flex flex-col gap-5">
       <header>
         <h1 className="font-display text-[1.6rem] font-extrabold tracking-[-0.02em] text-ink sm:text-[1.9rem]">
-          Auditions
+          {t('auditions.title')}
         </h1>
         <p className="mt-1 text-[15px] text-muted">
           {applications.isLoading
-            ? 'Loading your auditions…'
+            ? t('auditions.loading')
             : items.length === 0
-              ? 'Nothing submitted yet'
-              : `${active.length} in progress · ${items.length} total`}
+              ? t('auditions.none')
+              : t('auditions.summary', { active: active.length, total: items.length })}
         </p>
       </header>
 
       {applications.error && (
-        <FormError>{errorMessage(applications.error, 'Could not load your auditions')}</FormError>
+        <FormError>{errorMessage(applications.error, t('auditions.loadFailed'))}</FormError>
       )}
 
       {applications.isLoading ? (
@@ -65,14 +66,14 @@ export function TalentAuditions() {
       ) : items.length === 0 ? (
         <EmptyState
           icon={<Film className="h-5 w-5" />}
-          title="No audition yet"
-          description="Every role you apply to shows up here, with the status the production gives it."
+          title={t('auditions.empty')}
+          description={t('auditions.emptyHint')}
           action={
             <Link
               to="/talent/casting-calls"
               className="inline-flex h-10 items-center rounded-field bg-ink px-4 text-[14px] font-bold text-white"
             >
-              Browse casting calls
+              {t('auditions.browse')}
             </Link>
           }
         />
@@ -86,7 +87,7 @@ export function TalentAuditions() {
 
           {closed.length > 0 && (
             <section className="flex flex-col gap-3">
-              <span className="tech-label">Closed</span>
+              <span className="tech-label">{t('auditions.closed')}</span>
               {closed.map((application) => (
                 <AuditionCard key={application.id} application={application} muted />
               ))}
@@ -105,12 +106,13 @@ function AuditionCard({
   application: MyApplication
   muted?: boolean
 }) {
+  const t = useT()
   const { profile } = useAuth()
   const { withdraw } = useApplicationMutations(profile?.id)
 
   const currentIndex = statusStepIndex(application.status)
   const terminal = ['withdrawn', 'not_selected'].includes(application.status)
-  const stage = application.role ? ROLE_STAGE_LABEL[application.role.status] : null
+  const stage = application.role ? ROLE_STAGE_KEY[application.role.status] : null
   const submissionsClosed = application.casting
     ? application.casting.status !== 'published'
     : false
@@ -130,16 +132,18 @@ function AuditionCard({
           </span>
           <div className="min-w-0">
             <p className="font-display text-[16px] font-bold text-ink">
-              {application.role?.name ?? 'Role'}
+              {application.role?.name ?? t('activity.role')}
               <span className="font-normal text-muted">
                 {' '}
-                — {application.project?.title ?? 'Project'}
+                — {application.project?.title ?? t('activity.project')}
               </span>
             </p>
             <p className="mt-0.5 text-[13px] text-muted">
-              Applied {relativeTime(application.submitted_at ?? application.created_at)}
+              {t('auditions.applied', {
+                when: relativeTime(application.submitted_at ?? application.created_at, t),
+              })}
               {application.casting?.deadline_at
-                ? ` · ${deadlineLabel(application.casting.deadline_at)}`
+                ? ` · ${deadlineLabel(application.casting.deadline_at, t)}`
                 : ''}
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-muted">
@@ -151,7 +155,7 @@ function AuditionCard({
               )}
               <span className="inline-flex items-center gap-1">
                 <Video className="h-3 w-3" />
-                {application.hasSelfTape ? 'Self-tape sent' : 'No self-tape'}
+                {application.hasSelfTape ? t('auditions.tapeSent') : t('auditions.noTape')}
               </span>
             </div>
           </div>
@@ -159,14 +163,16 @@ function AuditionCard({
 
         <div className="flex flex-col items-end gap-2">
           <Tag tone={APPLICATION_STATUS_TONE[application.status]}>
-            {APPLICATION_STATUS_LABEL[application.status]}
+            {t(`status.${application.status}`)}
           </Tag>
           {stage && application.role && (
-            <Tag tone={ROLE_STATUS_TONE[application.role.status]}>{stage}</Tag>
+            <Tag tone={ROLE_STATUS_TONE[application.role.status]}>{t(stage)}</Tag>
           )}
           {submissionsClosed && application.casting && (
             <Tag tone="neutral">
-              {CASTING_STATUS_LABEL[application.casting.status]} casting
+              {t('lifecycle.closedCasting', {
+                status: t(CASTING_STATUS_KEY[application.casting.status]),
+              })}
             </Tag>
           )}
           {application.role?.casting_call_id && (
@@ -174,7 +180,7 @@ function AuditionCard({
               to={`/talent/casting/${application.role.casting_call_id}`}
               className="inline-flex h-8 items-center rounded-btn px-2 text-[12px] font-semibold text-link hover:bg-link/5"
             >
-              View casting
+              {t('auditions.viewCasting')}
             </Link>
           )}
         </div>
@@ -197,7 +203,7 @@ function AuditionCard({
                   )}
                 >
                   {done && <Check className="h-3 w-3" />}
-                  {APPLICATION_STATUS_LABEL[step]}
+                  {t(`status.${step}`)}
                 </span>
                 {index < APPLICATION_STEPS.length - 1 && (
                   <span className={cn('h-px w-3', done ? 'bg-signal-good/50' : 'bg-line')} />
@@ -210,14 +216,14 @@ function AuditionCard({
         <p className="flex items-center gap-2 text-[13px] text-muted">
           <X className="h-3.5 w-3.5" />
           {application.status === 'withdrawn'
-            ? 'You withdrew this application.'
-            : 'The production did not select you for this role.'}
+            ? t('auditions.withdrawn')
+            : t('auditions.notSelected')}
         </p>
       )}
 
       {application.note && (
         <p className="rounded-field bg-paper p-3 text-[13px] text-ink/90">
-          <span className="font-semibold">Your note: </span>
+          <span className="font-semibold">{t('auditions.yourNote')} </span>
           {application.note}
         </p>
       )}
@@ -236,7 +242,7 @@ function AuditionCard({
             disabled={withdraw.isPending}
             onClick={() => withdraw.mutate(application.id)}
           >
-            Withdraw
+            {t('auditions.withdraw')}
           </Button>
         </div>
       )}

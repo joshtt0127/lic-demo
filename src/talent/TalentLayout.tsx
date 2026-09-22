@@ -7,36 +7,38 @@ import { PageTransition } from '@/components/PageTransition'
 import { UserMenu } from '@/components/UserMenu'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useUnreadCounts } from '@/features/notifications/queries'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { useT, type Translate } from '@/lib/i18n'
 import { useLiveMessaging } from '@/features/messaging/useLiveMessaging'
 import { cn } from '@/lib/cn'
 
 /** Badge counts come from the database (see `useUnreadCounts`). */
-function navItems(unread: { messages: number; notifications: number }) {
+function navItems(unread: { messages: number; notifications: number }, t: Translate) {
   return [
-    { to: '/talent', label: 'Home', short: 'Home', icon: Home, end: true, badge: 0 },
+    { to: '/talent', label: t('nav.home'), short: t('nav.home.short'), icon: Home, end: true, badge: 0 },
     {
       to: '/talent/casting-calls',
-      label: 'Casting calls',
-      short: 'Castings',
+      label: t('nav.castings'),
+      short: t('nav.castings.short'),
       icon: Clapperboard,
       badge: 0,
     },
-    { to: '/talent/auditions', label: 'Auditions', short: 'Auditions', icon: Film, badge: 0 },
+    { to: '/talent/auditions', label: t('nav.auditions'), short: t('nav.auditions.short'), icon: Film, badge: 0 },
     {
       to: '/talent/messages',
-      label: 'Messages',
-      short: 'Inbox',
+      label: t('nav.messages'),
+      short: t('nav.messages.short'),
       icon: MessageCircle,
       badge: unread.messages,
     },
     {
       to: '/talent/notifications',
-      label: 'Notifications',
-      short: 'Alerts',
+      label: t('nav.notifications'),
+      short: t('nav.notifications.short'),
       icon: Bell,
       badge: unread.notifications,
     },
-    { to: '/talent/profile', label: 'My profile', short: 'Profile', icon: User, badge: 0 },
+    { to: '/talent/profile', label: t('nav.profile'), short: t('nav.profile.short'), icon: User, badge: 0 },
   ]
 }
 
@@ -52,12 +54,16 @@ export function TalentLayout() {
   const navigate = useNavigate()
   const { profile } = useAuth()
   const [search, setSearch] = useState('')
+  const t = useT()
   const unread = useUnreadCounts(profile?.id)
   useLiveMessaging(profile?.id)
-  const nav = navItems({
-    messages: unread.data?.messages ?? 0,
-    notifications: unread.data?.notifications ?? 0,
-  })
+  const nav = navItems(
+    {
+      messages: unread.data?.messages ?? 0,
+      notifications: unread.data?.notifications ?? 0,
+    },
+    t,
+  )
 
   return (
     <div className="flex min-h-screen flex-col bg-paper">
@@ -83,8 +89,8 @@ export function TalentLayout() {
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search castings"
-              aria-label="Search casting calls"
+              placeholder={t('nav.searchCastings')}
+              aria-label={t('nav.searchCastingsAria')}
               className="h-10 w-full rounded-btn border border-line bg-paper pl-9 pr-3 text-sm text-ink outline-none transition-colors placeholder:text-muted hover:border-ink/20 focus:border-ink/30 focus:bg-card"
             />
           </form>
@@ -123,11 +129,13 @@ export function TalentLayout() {
 
           <Link
             to="/talent/casting-calls"
-            aria-label="Search casting calls"
+            aria-label={t('nav.searchCastingsAria')}
             className="ml-auto flex h-10 w-10 items-center justify-center rounded-full text-muted transition-colors hover:bg-ink/5 hover:text-ink sm:hidden"
           >
             <Search className="h-[19px] w-[19px]" />
           </Link>
+
+          <LanguageSwitcher compact className="hidden shrink-0 sm:inline-flex" />
 
           <div className="shrink-0 border-l border-line pl-2 sm:pl-3">
             <UserMenu compact profileHref="/talent/profile" />

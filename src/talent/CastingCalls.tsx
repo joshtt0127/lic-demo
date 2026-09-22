@@ -9,6 +9,7 @@ import { useAuth } from '@/features/auth/AuthProvider'
 import { useOpenCastings, useSaveCasting, useSavedCastings } from '@/features/castings/queries'
 import { useMyApplications } from '@/features/applications/queries'
 import { deadlineLabel, isClosingSoon } from '@/lib/format'
+import { useT } from '@/lib/i18n'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 
@@ -19,6 +20,7 @@ import { cn } from '@/lib/cn'
  * is nothing to hide here.
  */
 export function CastingCalls() {
+  const t = useT()
   const { profile } = useAuth()
   const profileId = profile?.id
   const castings = useOpenCastings()
@@ -77,12 +79,12 @@ export function CastingCalls() {
     <div className="flex flex-col gap-5">
       <header>
         <h1 className="font-display text-[1.6rem] font-extrabold tracking-[-0.02em] text-ink sm:text-[1.9rem]">
-          Casting calls
+          {t('castings.title')}
         </h1>
         <p className="mt-1 text-[15px] text-muted">
           {castings.isLoading
-            ? 'Loading open castings…'
-            : `${castings.data?.length ?? 0} published casting call${(castings.data?.length ?? 0) === 1 ? '' : 's'} right now`}
+            ? t('castings.loading')
+            : t('castings.count', { count: castings.data?.length ?? 0 })}
         </p>
       </header>
 
@@ -90,16 +92,16 @@ export function CastingCalls() {
         <div className="min-w-[240px] flex-1">
           <Input
             icon={<Search className="h-4 w-4" />}
-            placeholder="Search a project, role or city…"
+            placeholder={t('castings.searchPlaceholder')}
             value={query}
             onChange={(event) => updateQuery(event.target.value)}
           />
         </div>
         <SegmentedControl
           options={[
-            { value: 'all', label: 'All' },
-            { value: 'saved', label: 'Saved' },
-            { value: 'applied', label: 'Applied' },
+            { value: 'all', label: t('castings.filter.all') },
+            { value: 'saved', label: t('castings.filter.saved') },
+            { value: 'applied', label: t('castings.filter.applied') },
           ]}
           value={scope}
           onChange={(value) => {
@@ -113,7 +115,7 @@ export function CastingCalls() {
         />
       </div>
 
-      {castings.error && <FormError>{errorMessage(castings.error, 'Could not load castings')}</FormError>}
+      {castings.error && <FormError>{errorMessage(castings.error, t('castings.loadFailed'))}</FormError>}
 
       {castings.isLoading ? (
         <div className="flex flex-col gap-3">
@@ -125,17 +127,15 @@ export function CastingCalls() {
           icon={<Clapperboard className="h-5 w-5" />}
           title={
             scope === 'saved'
-              ? 'Nothing saved yet'
+              ? t('castings.empty.saved')
               : scope === 'applied'
-                ? 'You have not applied to a casting yet'
+                ? t('castings.empty.applied')
                 : query
-                  ? 'No casting matches your search'
-                  : 'No casting call is open right now'
+                  ? t('castings.empty.search')
+                  : t('castings.empty.all')
           }
           description={
-            scope === 'all' && !query
-              ? 'When a production publishes a casting, it shows up here immediately.'
-              : undefined
+            scope === 'all' && !query ? t('castings.empty.allHint') : undefined
           }
         />
       ) : (
@@ -174,7 +174,7 @@ export function CastingCalls() {
                         )}
                         {appliedCount > 0 && (
                           <Tag tone="good">
-                            Applied to {appliedCount} role{appliedCount > 1 ? 's' : ''}
+                            {t('castings.appliedToRoles', { count: appliedCount })}
                           </Tag>
                         )}
                       </div>
@@ -190,7 +190,7 @@ export function CastingCalls() {
                         )}
                         <span className="inline-flex items-center gap-1.5">
                           <Users className="h-3.5 w-3.5" />
-                          {casting.roles.length} role{casting.roles.length === 1 ? '' : 's'}
+                          {t('post.roles', { count: casting.roles.length })}
                         </span>
                         {casting.compensation && <span>{casting.compensation}</span>}
                       </div>
@@ -216,11 +216,11 @@ export function CastingCalls() {
 
                     <div className="flex shrink-0 items-center gap-2 sm:flex-col sm:items-end">
                       <Tag tone={isClosingSoon(casting.deadline_at) ? 'no' : 'neutral'}>
-                        {deadlineLabel(casting.deadline_at)}
+                        {deadlineLabel(casting.deadline_at, t)}
                       </Tag>
                       <button
                         type="button"
-                        aria-label={isSaved ? 'Remove from saved' : 'Save this casting'}
+                        aria-label={isSaved ? t('post.unsaveAria') : t('post.saveAria')}
                         onClick={() =>
                           saveCasting.mutate({ castingId: casting.id, saved: isSaved })
                         }
@@ -237,7 +237,7 @@ export function CastingCalls() {
                         to={`/talent/casting/${casting.id}`}
                         className="inline-flex h-9 items-center rounded-field bg-ink px-4 text-[13px] font-bold text-white transition-colors hover:bg-ink/90"
                       >
-                        View roles
+                        {t('post.viewRoles')}
                       </Link>
                     </div>
                   </div>

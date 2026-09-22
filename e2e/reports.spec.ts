@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
-import { DEMO_PASSWORD, localEnv } from './env'
+import { DEMO_PASSWORD, localEnv, signInAs } from './env'
 
 /**
  * Reports must be arithmetic, not decoration: every figure is recomputed here
@@ -106,11 +106,7 @@ test('the reports count what really happened, and export it', async ({ page }) =
   )
   await admin.from('roles').update({ status: 'booked' }).eq('id', roles![0].id)
 
-  await page.goto('/auth/sign-in')
-  await page.getByLabel('Email').fill(productionEmail)
-  await page.getByLabel('Password', { exact: true }).fill(DEMO_PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await page.waitForURL('**/studio', { timeout: 30_000 })
+  await signInAs(page, productionEmail, 'studio')
 
   await page.getByRole('link', { name: 'Reports' }).click()
   await expect(page.getByRole('heading', { name: 'Reports' })).toBeVisible({ timeout: 20_000 })

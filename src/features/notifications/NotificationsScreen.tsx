@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useNotificationMutations, useNotifications } from '@/features/notifications/queries'
+import { useT } from '@/lib/i18n'
 import { relativeTime } from '@/lib/format'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
@@ -36,6 +37,7 @@ function destination(type: string, entityType: string | null, base: string): str
 }
 
 export function NotificationsScreen({ base }: { base: '/talent' | '/studio' }) {
+  const t = useT()
   const { profile } = useAuth()
   const profileId = profile?.id
   const notifications = useNotifications(profileId)
@@ -49,7 +51,7 @@ export function NotificationsScreen({ base }: { base: '/talent' | '/studio' }) {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-[1.6rem] font-extrabold tracking-[-0.02em] text-ink sm:text-[1.9rem]">
-            Notifications
+            {t('notifications.title')}
           </h1>
           <p className="mt-1 text-[15px] text-muted">
             {notifications.isLoading
@@ -66,7 +68,7 @@ export function NotificationsScreen({ base }: { base: '/talent' | '/studio' }) {
             disabled={markAllRead.isPending}
             onClick={() => markAllRead.mutate()}
           >
-            Mark all as read
+            {t('notifications.markAll')}
           </Button>
         )}
       </header>
@@ -83,7 +85,7 @@ export function NotificationsScreen({ base }: { base: '/talent' | '/studio' }) {
       ) : items.length === 0 ? (
         <EmptyState
           icon={<Zap className="h-5 w-5" />}
-          title="No notification yet"
+          title={t('notifications.empty')}
           description="You will be told here when a production views your audition, changes its status or messages you."
         />
       ) : (
@@ -113,7 +115,7 @@ export function NotificationsScreen({ base }: { base: '/talent' | '/studio' }) {
                   {item.body && <p className="text-[14px] text-muted">{item.body}</p>}
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1.5">
-                  <span className="text-[12px] text-muted">{relativeTime(item.created_at)}</span>
+                  <span className="text-[12px] text-muted">{relativeTime(item.created_at, t)}</span>
                   {!item.read_at && <span className="h-2 w-2 rounded-full bg-link" />}
                 </div>
               </Link>

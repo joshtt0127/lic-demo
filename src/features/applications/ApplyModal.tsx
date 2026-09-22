@@ -8,6 +8,7 @@ import { useAuth } from '@/features/auth/AuthProvider'
 import { useApplicationMutations } from '@/features/applications/queries'
 import { useTalentProfile } from '@/features/talent/queries'
 import { publicUrl } from '@/lib/storage'
+import { useT } from '@/lib/i18n'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 import type { RoleRow } from '@/types/database'
@@ -28,6 +29,7 @@ export function ApplyModal({
   castingTitle: string
   onClose: () => void
 }) {
+  const t = useT()
   const toast = useToast()
   const { profile } = useAuth()
   const profileId = profile?.id
@@ -53,21 +55,20 @@ export function ApplyModal({
         headshotId,
         showreelId,
       })
-      toast(`Application sent for ${role.name}`)
+      toast(t('apply.sent', { role: role.name }))
       setApplicationId(application.id)
     } catch (applyError) {
-      setError(errorMessage(applyError, 'Could not send your application'))
+      setError(errorMessage(applyError, t('apply.failed')))
     }
   }
 
   // ── Step 2: the tape, right now ──
   if (applicationId) {
     return (
-      <EditModal open title={`Self-tape — ${role.name}`} onClose={onClose}>
+      <EditModal open title={t('apply.tapeTitle', { role: role.name })} onClose={onClose}>
         <p className="flex items-center gap-2 text-[13px] text-muted">
           <Check className="h-4 w-4 text-signal-good" />
-          Your application is sent. A tape is what gets watched — record it now, or add it later
-          from Auditions.
+          {t('apply.tapeIntro')}
         </p>
 
         <SelfTapePanel
@@ -77,7 +78,7 @@ export function ApplyModal({
 
         <div className="flex justify-end">
           <Button variant="secondary" size="sm" onClick={onClose}>
-            Done
+            {t('common.done')}
           </Button>
         </div>
       </EditModal>
@@ -87,31 +88,30 @@ export function ApplyModal({
   return (
     <EditModal
       open
-      title={`Apply — ${role.name}`}
+      title={t('apply.title', { role: role.name })}
       onClose={onClose}
       onSave={submit}
-      saveLabel={apply.isPending ? 'Sending…' : 'Submit application'}
+      saveLabel={apply.isPending ? t('apply.sending') : t('apply.submit')}
     >
       {error && <FormError>{error}</FormError>}
 
       <p className="text-[13px] text-muted">
-        {castingTitle} · your profile is attached automatically. The production sees your name,
-        casting details, skills and credits.
+        {t('apply.intro', { casting: castingTitle })}
       </p>
 
-      <Field label="Note to the casting director">
+      <Field label={t('apply.note')}>
         <TextArea
           rows={3}
           value={note}
           onChange={(event) => setNote(event.target.value)}
-          placeholder="Optional — anything they should know."
+          placeholder={t('apply.notePlaceholder')}
         />
       </Field>
 
-      <FormField label="Headshot" plainLabel>
+      <FormField label={t('apply.headshot')} plainLabel>
         {headshots.length === 0 ? (
           <p className="text-[13px] text-muted">
-            No headshot on your profile yet — you can still apply and add one later.
+            {t('apply.noHeadshot')}
           </p>
         ) : (
           <div className="flex flex-wrap gap-2">
@@ -136,9 +136,9 @@ export function ApplyModal({
         )}
       </FormField>
 
-      <FormField label="Showreel" plainLabel>
+      <FormField label={t('apply.showreel')} plainLabel>
         {showreels.length === 0 ? (
-          <p className="text-[13px] text-muted">No showreel on your profile yet.</p>
+          <p className="text-[13px] text-muted">{t('apply.noShowreel')}</p>
         ) : (
           <div className="flex flex-col gap-2">
             {showreels.map((asset) => (
@@ -172,13 +172,15 @@ export function ApplyModal({
       {apply.isPending && (
         <span className="flex items-center gap-2 text-[13px] text-muted">
           <Spinner />
-          Sending your application…
+          {t('apply.sendingLong')}
         </span>
       )}
 
       <p className="flex items-center gap-2 text-[12px] text-muted">
         <Avatar src={profile?.avatar_url ?? undefined} name="You" size="xs" />
-        Submitted as {[profile?.first_name, profile?.last_name].filter(Boolean).join(' ')}
+        {t('apply.submittedAs', {
+          name: [profile?.first_name, profile?.last_name].filter(Boolean).join(' '),
+        })}
       </p>
     </EditModal>
   )

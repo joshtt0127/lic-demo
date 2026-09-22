@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { useT } from '@/lib/i18n'
 
 export type StepperItem = {
   label: string
@@ -18,6 +19,8 @@ export function VerticalStepper({
   /** 1-based index of the active step. */
   current: number
 }) {
+  const t = useT()
+
   return (
     <ol className="flex flex-col">
       {items.map((item, index) => {
@@ -49,10 +52,12 @@ export function VerticalStepper({
                   active || done ? 'text-ink' : 'text-muted',
                 )}
               >
-                {item.label}
+                {t(item.label)}
                 {done && <Check className="h-3.5 w-3.5 text-ink/60" />}
               </span>
-              {item.hint && <span className="mt-0.5 block text-[13px] text-muted">{item.hint}</span>}
+              {item.hint && (
+                <span className="mt-0.5 block text-[13px] text-muted">{t(item.hint)}</span>
+              )}
             </div>
           </li>
         )

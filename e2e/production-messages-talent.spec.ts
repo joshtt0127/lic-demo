@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
-import { DEMO_PASSWORD, localEnv } from './env'
+import { DEMO_PASSWORD, localEnv, signInAs } from './env'
 
 /**
  * A casting director can write to an actor whenever they want, and the actor
@@ -77,11 +77,7 @@ test('a casting director messages an actor, who receives it in their inbox', asy
   // ── The production writes to them from their profile ──
   const productionContext = await browser.newContext()
   const production = await productionContext.newPage()
-  await production.goto('/auth/sign-in')
-  await production.getByLabel('Email').fill(productionEmail)
-  await production.getByLabel('Password', { exact: true }).fill(DEMO_PASSWORD)
-  await production.getByRole('button', { name: 'Sign in' }).click()
-  await production.waitForURL('**/studio', { timeout: 30_000 })
+  await signInAs(production, productionEmail, 'studio')
 
   await production.goto(`/studio/talent/${talentId}`)
   await expect(production.getByRole('heading', { name: 'Livia Marsh' })).toBeVisible()
@@ -102,11 +98,7 @@ test('a casting director messages an actor, who receives it in their inbox', asy
   // ── The badge is live before anything is opened ──
   const talentContext = await browser.newContext()
   const talent = await talentContext.newPage()
-  await talent.goto('/auth/sign-in')
-  await talent.getByLabel('Email').fill(talentEmail)
-  await talent.getByLabel('Password', { exact: true }).fill(DEMO_PASSWORD)
-  await talent.getByRole('button', { name: 'Sign in' }).click()
-  await talent.waitForURL('**/talent', { timeout: 30_000 })
+  await signInAs(talent, talentEmail, 'talent')
 
   await expect(talent.locator('nav').getByText('1').first()).toBeVisible({ timeout: 20_000 })
 

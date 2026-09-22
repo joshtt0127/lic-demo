@@ -31,7 +31,8 @@ import {
 } from '@/features/castings/queries'
 import { useConversations, participantName } from '@/features/messaging/queries'
 import { useNotifications } from '@/features/notifications/queries'
-import { APPLICATION_STATUS_LABEL, APPLICATION_STATUS_TONE } from '@/lib/format'
+import { APPLICATION_STATUS_TONE } from '@/lib/format'
+import { useT } from '@/lib/i18n'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 import type { RoleRow } from '@/types/database'
@@ -54,6 +55,7 @@ type Scope = 'recent' | 'closing' | 'saved' | 'applied'
  * no estimated number.
  */
 export function TalentHome() {
+  const t = useT()
   const { profile, user } = useAuth()
   const navigate = useNavigate()
   const profileId = profile?.id
@@ -139,7 +141,7 @@ export function TalentHome() {
   }
 
   if (!talent.data) {
-    return <FormError>{errorMessage(talent.error, 'Could not load your profile')}</FormError>
+    return <FormError>{errorMessage(talent.error, t('castings.loadFailed'))}</FormError>
   }
 
   const data = talent.data
@@ -158,7 +160,7 @@ export function TalentHome() {
   return (
     <>
       {/* The feed has no visible page title — screen readers still need one. */}
-      <h1 className="sr-only">Your feed, {name}</h1>
+      <h1 className="sr-only">{t('feed.srTitle', { name })}</h1>
 
       <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[17rem_minmax(0,1fr)_19rem]">
         {/* ── Left rail: who you are ── */}
@@ -187,7 +189,7 @@ export function TalentHome() {
                 {name}
               </Link>
               <p className="mt-0.5 text-[13px] text-muted">
-                {data.talent.headline || 'Add a headline to your profile'}
+                {data.talent.headline || t('feed.headline')}
               </p>
               {(data.profile.city || data.talent.agency_name) && (
                 <p className="mt-2 flex items-center gap-1.5 text-[13px] text-muted">
@@ -196,7 +198,15 @@ export function TalentHome() {
                 </p>
               )}
 
-              <ProfileStrength percent={completion.percent} next={completion.missing[0]?.label} />
+              <ProfileStrength
+                label={t('feed.profile')}
+                percent={completion.percent}
+                next={
+                  completion.missing[0]
+                    ? t('feed.next', { item: t(completion.missing[0].label).toLowerCase() })
+                    : undefined
+                }
+              />
 
               <div className="mt-4 flex flex-col gap-2">
                 <Button
@@ -206,7 +216,7 @@ export function TalentHome() {
                   icon={<Pencil className="h-3.5 w-3.5" />}
                   onClick={() => navigate('/talent/profile')}
                 >
-                  Edit profile
+                  {t('feed.editProfile')}
                 </Button>
                 <Link
                   to="/talent/casting-calls?scope=saved"
@@ -214,7 +224,7 @@ export function TalentHome() {
                 >
                   <span className="inline-flex items-center gap-1.5">
                     <Bookmark className="h-3.5 w-3.5" />
-                    Saved castings
+                    {t('feed.savedCastings')}
                   </span>
                   <span className="font-mono text-[12px]">{savedIds.size}</span>
                 </Link>
@@ -223,12 +233,12 @@ export function TalentHome() {
           </Card>
 
           <Card className="flex flex-col gap-3">
-            <span className="tech-label">Your numbers</span>
-            <StatRow label="Auditions sent" value={stats.data?.submitted ?? 0} />
-            <StatRow label="Shortlisted" value={stats.data?.shortlisted ?? 0} />
-            <StatRow label="Booked" value={stats.data?.booked ?? 0} />
+            <span className="tech-label">{t('feed.yourNumbers')}</span>
+            <StatRow label={t('feed.auditionsSent')} value={stats.data?.submitted ?? 0} />
+            <StatRow label={t('feed.shortlisted')} value={stats.data?.shortlisted ?? 0} />
+            <StatRow label={t('feed.booked')} value={stats.data?.booked ?? 0} />
             <p className="text-[12px] text-muted">
-              Counted from your applications — nothing here is estimated.
+              {t('feed.counted')}
             </p>
           </Card>
         </aside>
@@ -263,7 +273,7 @@ export function TalentHome() {
               to="/talent/profile"
               className="inline-flex h-9 shrink-0 items-center rounded-btn px-2 text-[13px] font-semibold text-link hover:bg-link/5"
             >
-              Edit
+              {t('common.edit')}
             </Link>
           </Card>
 
@@ -273,10 +283,10 @@ export function TalentHome() {
               <SegmentedControl
                 wrap={false}
                 options={[
-                  { value: 'recent', label: 'Recent' },
-                  { value: 'closing', label: 'Closing' },
-                  { value: 'saved', label: 'Saved' },
-                  { value: 'applied', label: 'Applied' },
+                  { value: 'recent', label: t('feed.filter.recent') },
+                  { value: 'closing', label: t('feed.filter.closing') },
+                  { value: 'saved', label: t('feed.filter.saved') },
+                  { value: 'applied', label: t('feed.filter.applied') },
                 ]}
                 value={scope}
                 onChange={(value) => value && setScope(value as Scope)}
@@ -287,12 +297,12 @@ export function TalentHome() {
               className="hidden h-9 shrink-0 items-center gap-1.5 rounded-btn px-2 text-[13px] font-semibold text-link hover:bg-link/5 sm:inline-flex"
             >
               <Search className="h-3.5 w-3.5" />
-              Search all castings
+              {t('feed.searchAll')}
             </Link>
           </div>
 
           {castings.error && (
-            <FormError>{errorMessage(castings.error, 'Could not load the feed')}</FormError>
+            <FormError>{errorMessage(castings.error, t('castings.loadFailed'))}</FormError>
           )}
 
           {castings.isLoading ? (
@@ -305,24 +315,24 @@ export function TalentHome() {
               icon={<Clapperboard className="h-5 w-5" />}
               title={
                 scope === 'saved'
-                  ? 'Nothing saved yet'
+                  ? t('feed.empty.saved')
                   : scope === 'applied'
-                    ? 'You have not applied to a casting yet'
+                    ? t('feed.empty.applied')
                     : scope === 'closing'
-                      ? 'No casting call has a deadline right now'
-                      : 'Your feed is empty for now'
+                      ? t('feed.empty.closing')
+                      : t('feed.empty.recent')
               }
               description={
                 scope === 'recent'
-                  ? 'As soon as a production publishes a casting call, it appears here as a post.'
+                  ? t('feed.empty.recentHint')
                   : scope === 'saved'
-                    ? 'Save a casting from its post and it lands here.'
+                    ? t('feed.empty.savedHint')
                     : undefined
               }
               action={
                 scope !== 'recent' ? (
                   <Button size="sm" variant="secondary" onClick={() => setScope('recent')}>
-                    Back to the feed
+                    {t('feed.backToFeed')}
                   </Button>
                 ) : undefined
               }
@@ -363,8 +373,7 @@ export function TalentHome() {
           )}
 
           <p className="pb-2 text-[12px] text-muted">
-            Signed in as {user?.email}. Every post above is a casting call published in the
-            database.
+            {t('feed.footer', { email: user?.email ?? '' })}
           </p>
         </div>
 
@@ -373,13 +382,13 @@ export function TalentHome() {
           <Card className="flex flex-col gap-3.5">
             <RailHead
               icon={<Film className="h-4 w-4" />}
-              title="Auditions"
+              title={t('feed.rail.auditions')}
               to="/talent/auditions"
               count={activeApplications.length}
             />
             {activeApplications.length === 0 ? (
               <p className="text-[13px] text-muted">
-                Apply from a post and the audition shows up here with its status.
+                {t('feed.rail.auditionsEmpty')}
               </p>
             ) : (
               <ul className="flex flex-col gap-3">
@@ -394,7 +403,7 @@ export function TalentHome() {
                       </span>
                     </span>
                     <Tag tone={APPLICATION_STATUS_TONE[application.status]}>
-                      {APPLICATION_STATUS_LABEL[application.status]}
+                      {t(`status.${application.status}`)}
                     </Tag>
                   </li>
                 ))}
@@ -405,13 +414,13 @@ export function TalentHome() {
           <Card className="flex flex-col gap-3.5">
             <RailHead
               icon={<Bell className="h-4 w-4" />}
-              title="Notifications"
+              title={t('feed.rail.notifications')}
               to="/talent/notifications"
               count={unreadNotifications.length}
             />
             {(notifications.data ?? []).length === 0 ? (
               <p className="text-[13px] text-muted">
-                Status changes and messages show up here.
+                {t('feed.rail.notificationsEmpty')}
               </p>
             ) : (
               <ul className="flex flex-col gap-3">
@@ -438,12 +447,12 @@ export function TalentHome() {
           <Card className="flex flex-col gap-3.5">
             <RailHead
               icon={<MessageCircle className="h-4 w-4" />}
-              title="Messages"
+              title={t('feed.rail.messages')}
               to="/talent/messages"
             />
             {(conversations.data ?? []).length === 0 ? (
               <p className="text-[13px] text-muted">
-                Productions can message you once you apply.
+                {t('feed.rail.messagesEmpty')}
               </p>
             ) : (
               <ul className="flex flex-col gap-3">
@@ -500,11 +509,19 @@ function sortFeed(items: FeedItem[], scope: Scope): FeedItem[] {
   return [...items].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
 }
 
-function ProfileStrength({ percent, next }: { percent: number; next?: string }) {
+function ProfileStrength({
+  label,
+  percent,
+  next,
+}: {
+  label: string
+  percent: number
+  next?: string
+}) {
   return (
     <div className="mt-4 rounded-field bg-paper p-3">
       <div className="flex items-center justify-between text-[12px] font-semibold text-ink">
-        <span className="uppercase tracking-[0.18em] text-muted">Profile</span>
+        <span className="uppercase tracking-[0.18em] text-muted">{label}</span>
         <span className="font-mono">{percent}%</span>
       </div>
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-line">
@@ -513,7 +530,7 @@ function ProfileStrength({ percent, next }: { percent: number; next?: string }) 
           style={{ width: `${percent}%` }}
         />
       </div>
-      {next && <p className="mt-2 text-[12px] text-muted">Next: {next.toLowerCase()}</p>}
+      {next && <p className="mt-2 text-[12px] text-muted">{next}</p>}
     </div>
   )
 }
@@ -529,6 +546,8 @@ function RailHead({
   to: string
   count?: number
 }) {
+  const t = useT()
+
   return (
     <div className="flex min-w-0 items-center justify-between gap-2">
       <span className="tech-label inline-flex min-w-0 items-center gap-1.5">
@@ -544,7 +563,7 @@ function RailHead({
         to={to}
         className="inline-flex h-8 shrink-0 items-center rounded-btn px-1.5 text-[12.5px] font-semibold text-link hover:bg-link/5"
       >
-        See all
+        {t('common.seeAll')}
       </Link>
     </div>
   )

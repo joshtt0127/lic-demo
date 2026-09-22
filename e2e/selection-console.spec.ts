@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
-import { DEMO_PASSWORD, localEnv } from './env'
+import { DEMO_PASSWORD, localEnv, signInAs } from './env'
 
 /**
  * The selection console: the board is the casting decision, not a view of it.
@@ -108,11 +108,7 @@ test('the console moves a candidate, and the wall shows who is cast', async ({ p
   )
   const [lina, omar] = applicants
 
-  await page.goto('/auth/sign-in')
-  await page.getByLabel('Email').fill(productionEmail)
-  await page.getByLabel('Password', { exact: true }).fill(DEMO_PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await page.waitForURL('**/studio', { timeout: 30_000 })
+  await signInAs(page, productionEmail, 'studio')
 
   await page.goto(`/studio/casting/${casting!.id}/console`)
   await expect(page.getByRole('heading', { name: 'Selection console' })).toBeVisible()
@@ -169,11 +165,7 @@ test('the console moves a candidate, and the wall shows who is cast', async ({ p
   // Their own browser: the production is signed in on this one.
   const talentContext = await browser.newContext()
   const talentPage = await talentContext.newPage()
-  await talentPage.goto('/auth/sign-in')
-  await talentPage.getByLabel('Email').fill(`e2e.console.lina.${stamp}@letitcast.dev`)
-  await talentPage.getByLabel('Password', { exact: true }).fill(DEMO_PASSWORD)
-  await talentPage.getByRole('button', { name: 'Sign in' }).click()
-  await talentPage.waitForURL('**/talent', { timeout: 30_000 })
+  await signInAs(talentPage, `e2e.console.lina.${stamp}@letitcast.dev`, 'talent')
   await talentPage.goto('/talent/auditions')
   await expect(talentPage.getByText('Cast').first()).toBeVisible({ timeout: 20_000 })
 

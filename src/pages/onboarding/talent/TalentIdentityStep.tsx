@@ -14,6 +14,7 @@ import {
 import { displayName } from '@/lib/access'
 import { errorMessage } from '@/lib/supabase'
 import { CountryField } from '../CountryField'
+import { useT } from '@/lib/i18n'
 
 /** Step 1 — photo, name, stage name, headline, location. */
 export function TalentIdentityStep() {
@@ -39,6 +40,7 @@ export function TalentIdentityStep() {
 }
 
 function IdentityForm({ data }: { data: TalentProfileFull }) {
+  const t = useT()
   const profileId = data.profile.id
   const nav = useOnboardingNav()
   const updateAccount = useUpdateAccountProfile(profileId)
@@ -93,7 +95,7 @@ function IdentityForm({ data }: { data: TalentProfileFull }) {
 
       <section className="flex flex-col gap-4">
         <div>
-          <h2 className="font-display text-[19px] font-bold text-ink">Profile photo</h2>
+          <h2 className="font-display text-[19px] font-bold text-ink">{t('onb.photo')}</h2>
           <p className="mt-1 text-[14px] text-muted">
             A clear photo helps casting directors remember you.
           </p>
@@ -107,7 +109,7 @@ function IdentityForm({ data }: { data: TalentProfileFull }) {
 
       <div className="grid gap-5 sm:grid-cols-2">
         <TextField
-          label="First name"
+          label={t('onb.firstName')}
           plainLabel
           fieldSize="lg"
           autoComplete="given-name"
@@ -116,7 +118,7 @@ function IdentityForm({ data }: { data: TalentProfileFull }) {
           error={errors.firstName}
         />
         <TextField
-          label="Last name"
+          label={t('onb.lastName')}
           plainLabel
           fieldSize="lg"
           autoComplete="family-name"
@@ -127,21 +129,21 @@ function IdentityForm({ data }: { data: TalentProfileFull }) {
       </div>
 
       <TextField
-        label="Professional name"
+        label={t('onb.professionalName')}
         plainLabel
         optional
         fieldSize="lg"
-        placeholder="The name you are credited under"
+        placeholder={t('onb.professionalNamePlaceholder')}
         value={form.professionalName}
         onChange={set('professionalName')}
       />
 
       <FormField
-        label="Headline"
+        label={t('onb.headline')}
         htmlFor="onboarding-headline"
         plainLabel
         optional
-        hint="One line, shown under your name."
+        hint={t('onb.headlineHint')}
       >
         <Input
           id="onboarding-headline"
@@ -155,7 +157,7 @@ function IdentityForm({ data }: { data: TalentProfileFull }) {
 
       <div className="grid gap-5 sm:grid-cols-2">
         <TextField
-          label="City"
+          label={t('onb.city')}
           plainLabel
           optional
           fieldSize="lg"

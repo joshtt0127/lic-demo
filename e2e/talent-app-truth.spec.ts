@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
-import { DEMO_PASSWORD, localEnv } from './env'
+import { DEMO_PASSWORD, localEnv, signInAs } from './env'
 
 /**
  * Regression guard: a fresh talent account must see *its own* data — and none
@@ -55,11 +55,7 @@ test('a fresh talent account sees only its own data', async ({ page }) => {
     .from('talent_profiles')
     .upsert({ profile_id: userId, headline: 'Actress · stage & screen' }, { onConflict: 'profile_id' })
 
-  await page.goto('/auth/sign-in')
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password', { exact: true }).fill(DEMO_PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await page.waitForURL('**/talent', { timeout: 30_000 })
+  await signInAs(page, email, 'talent')
 
   // ── Her own identity, in the feed's own rail ──
   await expect(page.getByRole('heading', { name: /Nora/, level: 1 })).toBeAttached()

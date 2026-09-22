@@ -14,6 +14,7 @@ import {
   type ConversationSummary,
 } from '@/features/messaging/queries'
 import { formatTime, relativeTime } from '@/lib/format'
+import { useT } from '@/lib/i18n'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 
@@ -23,6 +24,7 @@ import { cn } from '@/lib/cn'
  * thread marks it read for this account everywhere.
  */
 export function MessagesScreen() {
+  const t = useT()
   const { profile } = useAuth()
   const profileId = profile?.id
   const isProduction = profile?.account_type === 'production'
@@ -71,7 +73,7 @@ export function MessagesScreen() {
       await send.mutateAsync({ conversationId: active.id, body: draft })
       setDraft('')
     } catch (sendError) {
-      setError(errorMessage(sendError, 'Could not send your message'))
+      setError(errorMessage(sendError, t('messages.sendFailed')))
     }
   }
 
@@ -94,7 +96,7 @@ export function MessagesScreen() {
           Messages
         </h1>
         <FormError>
-          {errorMessage(conversations.error, 'Could not load your conversations')}
+          {errorMessage(conversations.error, t('messages.loadFailed'))}
         </FormError>
         <Button
           variant="secondary"
@@ -102,7 +104,7 @@ export function MessagesScreen() {
           className="w-fit"
           onClick={() => conversations.refetch()}
         >
-          Try again
+          {t('common.retry')}
         </Button>
       </div>
     )
@@ -116,11 +118,11 @@ export function MessagesScreen() {
         </h1>
         <EmptyState
           icon={<MessageCircle className="h-5 w-5" />}
-          title="No conversation yet"
+          title={t('messages.empty')}
           description={
             isProduction
               ? 'Open an actor’s profile, or a candidate in a casting, and use Message — the thread lands here.'
-              : 'A production can write to you at any time. Their message, and your answer, stay in this inbox.'
+              : t('messages.emptyTalent')
           }
           action={
             isProduction ? (
@@ -136,7 +138,7 @@ export function MessagesScreen() {
                 to="/talent/casting-calls"
                 className="inline-flex h-10 items-center rounded-field bg-ink px-4 text-[14px] font-bold text-white"
               >
-                Browse casting calls
+                {t('messages.browse')}
               </Link>
             )
           }
@@ -148,7 +150,7 @@ export function MessagesScreen() {
   return (
     <div className="flex flex-col gap-5">
       <h1 className="font-display text-[1.6rem] font-extrabold tracking-[-0.02em] text-ink sm:text-[1.9rem]">
-        Messages
+        {t('messages.title')}
       </h1>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
@@ -181,7 +183,7 @@ export function MessagesScreen() {
                           {participantName(other)}
                         </span>
                         <span className="shrink-0 text-[11px] text-muted">
-                          {relativeTime(conversation.lastMessageAt)}
+                          {relativeTime(conversation.lastMessageAt, t)}
                         </span>
                       </span>
                       {conversation.subject && (
@@ -195,8 +197,10 @@ export function MessagesScreen() {
                           conversation.unread > 0 ? 'font-semibold text-ink' : 'text-muted',
                         )}
                       >
-                        {conversation.lastMessage?.sender_id === profileId ? 'You: ' : ''}
-                        {conversation.lastMessage?.body ?? 'No message yet'}
+                        {conversation.lastMessage?.sender_id === profileId
+                          ? `${t('messages.you')} `
+                          : ''}
+                        {conversation.lastMessage?.body ?? t('messages.none')}
                       </span>
                     </span>
                     {conversation.unread > 0 && (
@@ -218,7 +222,7 @@ export function MessagesScreen() {
               <header className="flex items-center gap-3 border-b border-line px-5 py-4">
                 <button
                   onClick={() => setShowThread(false)}
-                  aria-label="Back to conversations"
+                  aria-label={t('messages.back')}
                   className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-ink/5 hover:text-ink lg:hidden"
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -270,12 +274,12 @@ export function MessagesScreen() {
                             active.othersLastReadAt >= message.created_at ? (
                               <>
                                 <CheckCheck className="h-3 w-3" />
-                                Read
+                                {t('messages.read')}
                               </>
                             ) : (
                               <>
                                 <Check className="h-3 w-3" />
-                                Sent
+                                {t('messages.sent')}
                               </>
                             ))}
                         </span>
@@ -295,13 +299,13 @@ export function MessagesScreen() {
                   <Input
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
-                    placeholder="Write a message…"
+                    placeholder={t('messages.write')}
                     className="flex-1"
                   />
                   <button
                     type="submit"
                     disabled={!draft.trim() || send.isPending}
-                    aria-label="Send"
+                    aria-label={t('messages.send')}
                     className="flex h-11 w-11 shrink-0 items-center justify-center rounded-btn bg-ink text-white transition-colors hover:bg-ink/90 disabled:opacity-50"
                   >
                     {send.isPending ? <Spinner /> : <Send className="h-4 w-4" />}

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
-import { DEMO_PASSWORD, localEnv } from './env'
+import { DEMO_PASSWORD, localEnv, signInAs } from './env'
 
 /**
  * A casting is reviewed by a team, not by one person.
@@ -110,11 +110,7 @@ test('a team reviews together, and a viewer stays read-only', async ({ browser }
   async function signIn(email: string) {
     const context = await browser.newContext()
     const page = await context.newPage()
-    await page.goto('/auth/sign-in')
-    await page.getByLabel('Email').fill(email)
-    await page.getByLabel('Password', { exact: true }).fill(DEMO_PASSWORD)
-    await page.getByRole('button', { name: 'Sign in' }).click()
-    await page.waitForURL('**/studio', { timeout: 30_000 })
+    await signInAs(page, email, 'studio')
     return page
   }
 

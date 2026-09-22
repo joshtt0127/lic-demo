@@ -11,6 +11,7 @@ import { SkillsStep } from './talent/SkillsStep'
 import { MediaStep } from './talent/MediaStep'
 import { ProductionIdentityStep } from './production/ProductionIdentityStep'
 import { OrganizationStep } from './production/OrganizationStep'
+import { useT } from '@/lib/i18n'
 
 /**
  * Common onboarding entry point — one route, driven by the profile's own state
@@ -27,13 +28,14 @@ const PRODUCTION_STEPPER: StepperItem[] = [
 ]
 
 const TALENT_STEPPER: StepperItem[] = [
-  { label: 'Your identity', hint: 'Basic information' },
-  { label: 'Casting profile', hint: 'Help us match you' },
-  { label: 'Your experience', hint: 'Skills and credits' },
-  { label: 'You’re all set', hint: 'Photos & showreel' },
+  { label: 'onb.steps.identity', hint: 'onb.steps.identityHint' },
+  { label: 'onb.steps.casting', hint: 'onb.steps.castingHint' },
+  { label: 'onb.steps.experience', hint: 'onb.steps.experienceHint' },
+  { label: 'onb.steps.media', hint: 'onb.steps.mediaHint' },
 ]
 
 export function Onboarding() {
+  const t = useT()
   const { profile } = useAuth()
   // Used only for the header's "Skip for now" on the split steps; each step
   // owns its own navigation for Back / Continue.
@@ -46,8 +48,8 @@ export function Onboarding() {
     return (
       <OnboardingShell
         eyebrow="Welcome to Let It Cast"
-        title="How are you using Let It Cast?"
-        subtitle="This shapes your whole experience — and it’s the only thing we need up front."
+        title={t('onb.accountType.title')}
+        subtitle={t('onb.accountType.subtitle')}
         step={1}
         totalSteps={2}
         progressPlacement="header"
@@ -84,8 +86,8 @@ export function Onboarding() {
     return (
       <OnboardingShell
         eyebrow="Production onboarding"
-        title="Tell us who you are"
-        subtitle="Your name and role are how talents and teammates will recognise you."
+        title={t('onb.identity.title')}
+        subtitle={t('onb.identity.subtitle')}
         step={productionStep}
         totalSteps={productionTotal}
         stepperItems={PRODUCTION_STEPPER}
@@ -104,8 +106,8 @@ export function Onboarding() {
     case 'casting':
       return (
         <OnboardingShell
-          title="Your casting profile"
-          subtitle="What productions filter on. Everything here is optional and editable later."
+          title={t('onb.casting.title')}
+          subtitle={t('onb.casting.subtitle')}
           step={talentStep}
           totalSteps={talentTotal}
           stepperItems={TALENT_STEPPER}
@@ -118,8 +120,8 @@ export function Onboarding() {
       return (
         <OnboardingShell
           variant="centered"
-          title="What can you do?"
-          subtitle="Add your skills and how strong you are at each — this is how roles find you."
+          title={t('onb.skills.title')}
+          subtitle={t('onb.skills.subtitle')}
           step={talentStep}
           totalSteps={talentTotal}
         >
@@ -130,8 +132,8 @@ export function Onboarding() {
       return (
         <OnboardingShell
           variant="centered"
-          title="You’re all set"
-          subtitle="Add your photos and a showreel — this is what productions see first."
+          title={t('onb.media.title')}
+          subtitle={t('onb.media.subtitle')}
           step={talentStep}
           totalSteps={talentTotal}
         >

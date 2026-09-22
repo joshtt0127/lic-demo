@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
-import { DEMO_PASSWORD, localEnv } from './env'
+import { DEMO_PASSWORD, localEnv, signInAs } from './env'
 
 /**
  * The North Star of the POC (brief §44), end to end in a real browser, against
@@ -107,11 +107,7 @@ test('a casting reaches a talent, and their application reaches the production b
   await expect(production.getByText('published').first()).toBeVisible()
 
   // ── 2. Talent: sees the role and applies ──
-  await talent.goto('/auth/sign-in')
-  await talent.getByLabel('Email').fill(talentEmail)
-  await talent.getByLabel('Password', { exact: true }).fill(DEMO_PASSWORD)
-  await talent.getByRole('button', { name: 'Sign in' }).click()
-  await talent.waitForURL('**/talent', { timeout: 30_000 })
+  await signInAs(talent, talentEmail, 'talent')
 
   await talent.goto('/talent/casting-calls')
   await expect(talent.getByText(projectTitle).first()).toBeVisible()

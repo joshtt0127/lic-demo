@@ -7,6 +7,7 @@ import { useOnboardingNav } from '@/features/onboarding/steps'
 import { profileCompletion } from '@/features/talent/completion'
 import { useTalentProfile } from '@/features/talent/queries'
 import { errorMessage } from '@/lib/supabase'
+import { useT } from '@/lib/i18n'
 
 /**
  * Step 4 — headshots and a showreel, then into the product.
@@ -17,6 +18,7 @@ import { errorMessage } from '@/lib/supabase'
  * before entering.
  */
 export function MediaStep() {
+  const t = useT()
   const { profile } = useAuth()
   const { data, isLoading, error } = useTalentProfile(profile?.id)
   const nav = useOnboardingNav()
@@ -46,7 +48,7 @@ export function MediaStep() {
         <section className="flex flex-col gap-4">
           <div className="flex items-center gap-2.5">
             <ImageIcon className="h-[18px] w-[18px] text-muted" />
-            <h2 className="font-display text-[19px] font-bold text-ink">Headshots</h2>
+            <h2 className="font-display text-[19px] font-bold text-ink">{t('onb.headshots')}</h2>
           </div>
           <p className="-mt-3 text-[14px] text-muted">
             Your primary photos — productions look at these first.
@@ -62,7 +64,7 @@ export function MediaStep() {
         <section className="mt-8 flex flex-col gap-4 border-t border-line pt-7">
           <div className="flex items-center gap-2.5">
             <Video className="h-[18px] w-[18px] text-muted" />
-            <h2 className="font-display text-[19px] font-bold text-ink">Showreel</h2>
+            <h2 className="font-display text-[19px] font-bold text-ink">{t('onb.showreel')}</h2>
           </div>
           <p className="-mt-3 text-[14px] text-muted">
             One reel is enough to get started. Self-tapes you submit to a casting stay private to

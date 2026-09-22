@@ -8,6 +8,8 @@ import { useAuth } from '@/features/auth/AuthProvider'
 import { cn } from '@/lib/cn'
 import { StepProgress } from './StepProgress'
 import { VerticalStepper, type StepperItem } from './VerticalStepper'
+import { useT } from '@/lib/i18n'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 const animate = typeof document === 'undefined' || document.visibilityState === 'visible'
 
@@ -23,7 +25,7 @@ const animate = typeof document === 'undefined' || document.visibilityState === 
  */
 export function OnboardingShell({
   variant = 'split',
-  eyebrow = 'Talent onboarding',
+  eyebrow,
   title,
   subtitle,
   step,
@@ -53,6 +55,7 @@ export function OnboardingShell({
   /** Where the segmented progress goes. Defaults to the panel on `split`. */
   progressPlacement?: 'header' | 'panel'
 }) {
+  const t = useT()
   const progressIn = progressPlacement ?? (variant === 'centered' ? 'header' : 'panel')
   const { signOut } = useAuth()
 
@@ -95,17 +98,18 @@ export function OnboardingShell({
               onClick={onSkip}
               className="text-sm font-semibold text-muted transition-colors hover:text-ink"
             >
-              Skip for now
+              {t('onb.skip')}
             </button>
           )}
           {progressIn === 'header' && step && totalSteps && (
             <>
               <span className="hidden text-[11px] font-semibold uppercase tracking-[0.22em] text-muted sm:inline">
-                Step {step} / {totalSteps}
+                {t('onb.stepOf', { step, total: totalSteps })}
               </span>
               <span className="hidden h-5 w-px bg-line sm:block" />
             </>
           )}
+          <LanguageSwitcher compact />
           {signOutButton}
         </div>
       </header>
@@ -120,7 +124,7 @@ export function OnboardingShell({
           >
             <div className="text-center">
               <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted">
-                {eyebrow}
+                {eyebrow ?? t('onb.eyebrow')}
               </span>
               <h1 className="mt-4 font-display text-[2rem] font-extrabold leading-[1.08] tracking-[-0.03em] text-ink sm:text-[2.5rem] lg:text-[2.85rem]">
                 {title}
@@ -153,7 +157,7 @@ export function OnboardingShell({
           >
             <span className="mb-4 block h-[2px] w-9 bg-ink/70" />
             <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted">
-              {eyebrow}
+              {eyebrow ?? t('onb.eyebrow')}
             </span>
 
             <h1 className="mt-4 max-w-[22ch] font-display text-[1.9rem] font-extrabold leading-[1.08] tracking-[-0.03em] text-ink sm:text-[2.3rem] lg:max-w-[12ch] lg:text-[2.6rem] xl:text-[3.1rem]">

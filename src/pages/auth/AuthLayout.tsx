@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Star, Users, Zap } from 'lucide-react'
@@ -82,6 +83,8 @@ export function AuthLayout({
         <Link to="/" aria-label="Let It Cast — home">
           <Logo size={36} />
         </Link>
+        <LanguageSwitcher compact className="ml-auto mr-3 shrink-0" />
+
         {/* The card footer carries the same link, so this one can go on phones. */}
         {topRight && (
           <div className="hidden flex-wrap items-center gap-1.5 text-sm text-muted sm:flex">

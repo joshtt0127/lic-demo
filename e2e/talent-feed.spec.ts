@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
-import { DEMO_PASSWORD, localEnv } from './env'
+import { DEMO_PASSWORD, localEnv, signInAs } from './env'
 
 /**
  * The talent home is a feed: every published casting call is a post authored by
@@ -105,11 +105,7 @@ test('a published casting appears in the feed as a post, and applying works from
     .from('talent_profiles')
     .upsert({ profile_id: talentId, headline: 'Actress' }, { onConflict: 'profile_id' })
 
-  await page.goto('/auth/sign-in')
-  await page.getByLabel('Email').fill(talentEmail)
-  await page.getByLabel('Password', { exact: true }).fill(DEMO_PASSWORD)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await page.waitForURL('**/talent', { timeout: 30_000 })
+  await signInAs(page, talentEmail, 'talent')
 
   // ── The post: the organization is the author, the role is the action ──
   const post = page.locator('li', { hasText: projectTitle }).first()

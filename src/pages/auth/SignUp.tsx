@@ -4,6 +4,7 @@ import { ArrowRight, Lock, Mail } from 'lucide-react'
 import { FormError, FormField, Input, PasswordInput, Spinner, TextField } from '@/components/ui'
 import { fieldErrors, signUpSchema } from '@/features/auth/validation'
 import { useAuth } from '@/features/auth/AuthProvider'
+import { useT } from '@/lib/i18n'
 import { track } from '@/lib/analytics'
 import { AuthLayout } from './AuthLayout'
 
@@ -13,6 +14,7 @@ import { AuthLayout } from './AuthLayout'
  * marketplace share one entry point.
  */
 export function SignUp() {
+  const t = useT()
   const { signUp, signIn } = useAuth()
   const navigate = useNavigate()
 
@@ -59,21 +61,21 @@ export function SignUp() {
 
   return (
     <AuthLayout
-      title="Create your account"
+      title={t('auth.signUp.title')}
       subtitle="One account, whether you cast or audition."
       topRight={
         <>
-          Already have an account?{' '}
+          {t('auth.hasAccount')}{' '}
           <Link to="/auth/sign-in" className="inline-flex min-h-[34px] items-center font-semibold text-link hover:underline">
-            Sign in
+            {t('auth.toSignIn')}
           </Link>
         </>
       }
       footer={
         <>
-          Already have an account?{' '}
+          {t('auth.hasAccount')}{' '}
           <Link to="/auth/sign-in" className="inline-flex min-h-[34px] items-center font-semibold text-link hover:underline">
-            Sign in
+            {t('auth.toSignIn')}
           </Link>
         </>
       }
@@ -83,7 +85,7 @@ export function SignUp() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <TextField
-            label="First name"
+            label={t('auth.firstName')}
             plainLabel
             fieldSize="lg"
             autoComplete="given-name"
@@ -93,7 +95,7 @@ export function SignUp() {
             autoFocus
           />
           <TextField
-            label="Last name"
+            label={t('auth.lastName')}
             plainLabel
             fieldSize="lg"
             autoComplete="family-name"
@@ -103,13 +105,13 @@ export function SignUp() {
           />
         </div>
 
-        <FormField label="Email" htmlFor="signup-email" plainLabel error={errors.email}>
+        <FormField label={t('auth.email')} htmlFor="signup-email" plainLabel error={errors.email}>
           <Input
             id="signup-email"
             fieldSize="lg"
             type="email"
             autoComplete="email"
-            placeholder="you@example.com"
+            placeholder={t('auth.emailPlaceholder')}
             icon={<Mail className="h-[18px] w-[18px]" />}
             invalid={Boolean(errors.email)}
             value={form.email}
@@ -118,7 +120,7 @@ export function SignUp() {
         </FormField>
 
         <FormField
-          label="Password"
+          label={t('auth.password')}
           htmlFor="signup-password"
           plainLabel
           error={errors.password}
@@ -142,7 +144,7 @@ export function SignUp() {
           className="mt-1 inline-flex h-14 w-full items-center justify-center gap-2.5 rounded-field bg-ink text-[15px] font-bold text-white transition-all hover:bg-ink/90 active:scale-[0.99] disabled:opacity-60"
         >
           {pending && <Spinner className="h-[18px] w-[18px]" />}
-          Create account
+          {t('auth.signUp.submit')}
           {!pending && <ArrowRight className="h-[18px] w-[18px]" />}
         </button>
       </form>

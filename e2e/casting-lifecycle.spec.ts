@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
-import { DEMO_PASSWORD, localEnv } from './env'
+import { DEMO_PASSWORD, localEnv, signInAs } from './env'
 
 /**
  * The whole lifecycle of a casting, on the real database:
@@ -85,11 +85,7 @@ test('a casting goes from draft to cast, and the talent sees the truth at each s
 
   const productionContext = await browser.newContext()
   const production = await productionContext.newPage()
-  await production.goto('/auth/sign-in')
-  await production.getByLabel('Email').fill(productionEmail)
-  await production.getByLabel('Password', { exact: true }).fill(DEMO_PASSWORD)
-  await production.getByRole('button', { name: 'Sign in' }).click()
-  await production.waitForURL('**/studio', { timeout: 30_000 })
+  await signInAs(production, productionEmail, 'studio')
 
   // ── 1. Create a casting and a role through the UI: it starts as a draft ──
   await production.goto('/studio/casting-calls/new')
@@ -115,11 +111,7 @@ test('a casting goes from draft to cast, and the talent sees the truth at each s
   // A draft is invisible to talents.
   const talentContext = await browser.newContext()
   const talent = await talentContext.newPage()
-  await talent.goto('/auth/sign-in')
-  await talent.getByLabel('Email').fill(applicant.email)
-  await talent.getByLabel('Password', { exact: true }).fill(DEMO_PASSWORD)
-  await talent.getByRole('button', { name: 'Sign in' }).click()
-  await talent.waitForURL('**/talent', { timeout: 30_000 })
+  await signInAs(talent, applicant.email, 'talent')
   await talent.goto('/talent/casting-calls')
   await expect(talent.getByText(projectTitle)).toHaveCount(0)
 
@@ -175,11 +167,7 @@ test('a casting goes from draft to cast, and the talent sees the truth at each s
   // A role that is cast must not offer an Apply button to anyone else.
   const bystanderContext = await browser.newContext()
   const watcher = await bystanderContext.newPage()
-  await watcher.goto('/auth/sign-in')
-  await watcher.getByLabel('Email').fill(bystander.email)
-  await watcher.getByLabel('Password', { exact: true }).fill(DEMO_PASSWORD)
-  await watcher.getByRole('button', { name: 'Sign in' }).click()
-  await watcher.waitForURL('**/talent', { timeout: 30_000 })
+  await signInAs(watcher, bystander.email, 'talent')
   await watcher.goto('/talent')
   const watchedPost = watcher.locator('li', { hasText: projectTitle }).first()
   await expect(watchedPost.getByText('This role is cast')).toBeVisible({ timeout: 20_000 })

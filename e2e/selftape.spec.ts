@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
-import { DEMO_PASSWORD, localEnv } from './env'
+import { DEMO_PASSWORD, localEnv, signInAs } from './env'
 
 /**
  * Self-tapes, end to end and for real.
@@ -110,11 +110,7 @@ test('a talent sends a self-tape, replaces it, and the production plays it', asy
   // ── The talent uploads their tape from the audition ──
   const talentContext = await browser.newContext()
   const talent = await talentContext.newPage()
-  await talent.goto('/auth/sign-in')
-  await talent.getByLabel('Email').fill(talentEmail)
-  await talent.getByLabel('Password', { exact: true }).fill(DEMO_PASSWORD)
-  await talent.getByRole('button', { name: 'Sign in' }).click()
-  await talent.waitForURL('**/talent', { timeout: 30_000 })
+  await signInAs(talent, talentEmail, 'talent')
 
   await talent.goto('/talent/auditions')
   await expect(talent.getByText('No self-tape')).toBeVisible({ timeout: 20_000 })
@@ -165,11 +161,7 @@ test('a talent sends a self-tape, replaces it, and the production plays it', asy
   // ── The production sees and can open it ──
   const productionContext = await browser.newContext()
   const production = await productionContext.newPage()
-  await production.goto('/auth/sign-in')
-  await production.getByLabel('Email').fill(`e2e.tape.prod.${stamp}@letitcast.dev`)
-  await production.getByLabel('Password', { exact: true }).fill(DEMO_PASSWORD)
-  await production.getByRole('button', { name: 'Sign in' }).click()
-  await production.waitForURL('**/studio', { timeout: 30_000 })
+  await signInAs(production, `e2e.tape.prod.${stamp}@letitcast.dev`, 'studio')
 
   await production.goto(`/studio/casting/${casting!.id}`)
   await production.getByRole('button', { name: /^Submissions/ }).click()
@@ -273,11 +265,7 @@ test.describe('camera', () => {
       .select('id')
       .single()
 
-    await page.goto('/auth/sign-in')
-    await page.getByLabel('Email').fill(talentEmail)
-    await page.getByLabel('Password', { exact: true }).fill(DEMO_PASSWORD)
-    await page.getByRole('button', { name: 'Sign in' }).click()
-    await page.waitForURL('**/talent', { timeout: 30_000 })
+    await signInAs(page, talentEmail, 'talent')
 
     await page.goto('/talent/auditions')
     await page.getByRole('button', { name: 'Record my self-tape' }).click()

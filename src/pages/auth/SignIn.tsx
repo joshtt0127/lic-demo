@@ -4,10 +4,12 @@ import { ArrowRight, Lock, Mail } from 'lucide-react'
 import { Checkbox, FormError, FormField, Input, PasswordInput, Spinner } from '@/components/ui'
 import { fieldErrors, signInSchema } from '@/features/auth/validation'
 import { useAuth } from '@/features/auth/AuthProvider'
+import { useT } from '@/lib/i18n'
 import { track } from '@/lib/analytics'
 import { AuthLayout } from './AuthLayout'
 
 export function SignIn() {
+  const t = useT()
   const { signIn } = useAuth()
   const navigate = useNavigate()
   const [params] = useSearchParams()
@@ -44,21 +46,21 @@ export function SignIn() {
 
   return (
     <AuthLayout
-      title="Welcome back"
-      subtitle="Sign in to your account"
+      title={t('auth.signIn.title')}
+      subtitle={t('auth.signIn.subtitle')}
       topRight={
         <>
-          Don&apos;t have an account?{' '}
+          {t('auth.noAccount')}{' '}
           <Link to="/auth/sign-up" className="inline-flex min-h-[34px] items-center font-semibold text-link hover:underline">
-            Sign up
+            {t('auth.toSignUp')}
           </Link>
         </>
       }
       footer={
         <>
-          Don&apos;t have an account?{' '}
+          {t('auth.noAccount')}{' '}
           <Link to="/auth/sign-up" className="inline-flex min-h-[34px] items-center font-semibold text-link hover:underline">
-            Sign up
+            {t('auth.toSignUp')}
           </Link>
         </>
       }
@@ -66,13 +68,13 @@ export function SignIn() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
         {formError && <FormError>{formError}</FormError>}
 
-        <FormField label="Email" htmlFor="signin-email" plainLabel error={errors.email}>
+        <FormField label={t('auth.email')} htmlFor="signin-email" plainLabel error={errors.email}>
           <Input
             id="signin-email"
             fieldSize="lg"
             type="email"
             autoComplete="email"
-            placeholder="you@example.com"
+            placeholder={t('auth.emailPlaceholder')}
             icon={<Mail className="h-[18px] w-[18px]" />}
             invalid={Boolean(errors.email)}
             value={email}
@@ -81,12 +83,12 @@ export function SignIn() {
           />
         </FormField>
 
-        <FormField label="Password" htmlFor="signin-password" plainLabel error={errors.password}>
+        <FormField label={t('auth.password')} htmlFor="signin-password" plainLabel error={errors.password}>
           <PasswordInput
             id="signin-password"
             fieldSize="lg"
             autoComplete="current-password"
-            placeholder="Your password"
+            placeholder={t('auth.passwordPlaceholder')}
             icon={<Lock className="h-[18px] w-[18px]" />}
             invalid={Boolean(errors.password)}
             value={password}
@@ -99,13 +101,13 @@ export function SignIn() {
             id="keep-signed-in"
             checked={keepSignedIn}
             onChange={setKeepSignedIn}
-            label="Keep me signed in"
+            label={t('auth.keepSignedIn')}
           />
           <Link
             to="/auth/forgot-password"
             className="inline-flex min-h-[34px] items-center font-semibold text-link hover:underline text-sm"
           >
-            Forgot password?
+            {t('auth.forgot')}
           </Link>
         </div>
 
@@ -115,7 +117,7 @@ export function SignIn() {
           className="mt-1 inline-flex h-14 w-full items-center justify-center gap-2.5 rounded-field bg-ink text-[15px] font-bold text-white transition-all hover:bg-ink/90 active:scale-[0.99] disabled:opacity-60"
         >
           {pending && <Spinner className="h-[18px] w-[18px]" />}
-          Sign in
+          {t('auth.signIn.submit')}
           {!pending && <ArrowRight className="h-[18px] w-[18px]" />}
         </button>
       </form>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Camera, CircleStop, RotateCcw, Upload, Video } from 'lucide-react'
 import { Button, FormError, Spinner } from '@/components/ui'
 import { formatBytes } from '@/lib/storage'
+import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/cn'
 
 /**
@@ -44,6 +45,7 @@ export function SelfTapeRecorder({
   onCancel: () => void
   busy?: boolean
 }) {
+  const t = useT()
   const previewRef = useRef<HTMLVideoElement>(null)
   const playbackRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -64,11 +66,11 @@ export function SelfTapeRecorder({
   useEffect(() => {
     let cancelled = false
     if (!support) {
-      setError('This browser cannot record video — you can still upload a file.')
+      setError(t('recorder.unsupported'))
       return
     }
     if (!navigator.mediaDevices?.getUserMedia) {
-      setError('No camera available here — you can still upload a file.')
+      setError(t('recorder.noCamera'))
       return
     }
 
@@ -92,9 +94,7 @@ export function SelfTapeRecorder({
       .catch((cameraError: DOMException) => {
         if (cancelled) return
         setError(
-          cameraError?.name === 'NotAllowedError'
-            ? 'Camera access was refused. Allow it in your browser, or upload a file instead.'
-            : 'No camera could be started — you can still upload a file.',
+          cameraError?.name === 'NotAllowedError' ? t('recorder.refused') : t('recorder.noCamera'),
         )
       })
 
@@ -157,7 +157,7 @@ export function SelfTapeRecorder({
       setTake({ file, url: URL.createObjectURL(blob) })
       setPhase('review')
     }
-    recorder.onerror = () => setError('The recording stopped unexpectedly. Try again.')
+    recorder.onerror = () => setError(t('recorder.failed'))
 
     recorderRef.current = recorder
     recorder.start()
@@ -182,7 +182,7 @@ export function SelfTapeRecorder({
       <div className="flex flex-col gap-3">
         <FormError>{error}</FormError>
         <Button variant="secondary" size="sm" className="w-fit" onClick={onCancel}>
-          Use a file instead
+          {t('recorder.useFile')}
         </Button>
       </div>
     )
@@ -211,13 +211,13 @@ export function SelfTapeRecorder({
         {phase === 'starting' && (
           <span className="absolute inset-0 flex items-center justify-center gap-2 text-[13px] text-white">
             <Spinner />
-            Starting your camera…
+            {t('recorder.starting')}
           </span>
         )}
 
         {phase === 'countdown' && (
           <span className="absolute inset-0 flex items-center justify-center font-display text-[5rem] font-extrabold text-white drop-shadow">
-            {countdown === 0 ? 'Go' : countdown}
+            {countdown === 0 ? t('recorder.go') : countdown}
           </span>
         )}
 
@@ -232,7 +232,10 @@ export function SelfTapeRecorder({
       {phase === 'review' && take ? (
         <>
           <p className="text-[12.5px] text-muted">
-            Take of {clock(elapsed)} · {formatBytes(take.file.size)} — watch it before sending.
+            {t('recorder.take', {
+              duration: clock(elapsed),
+              size: formatBytes(take.file.size),
+            })}
           </p>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -241,7 +244,7 @@ export function SelfTapeRecorder({
               icon={busy ? <Spinner /> : <Upload className="h-3.5 w-3.5" />}
               onClick={() => onUse(take.file)}
             >
-              {busy ? 'Sending…' : 'Use this take'}
+              {busy ? t('recorder.sending') : t('recorder.use')}
             </Button>
             <Button
               size="sm"
@@ -250,10 +253,10 @@ export function SelfTapeRecorder({
               icon={<RotateCcw className="h-3.5 w-3.5" />}
               onClick={retake}
             >
-              Record again
+              {t('recorder.retake')}
             </Button>
             <Button size="sm" variant="ghost" disabled={busy} onClick={onCancel}>
-              Cancel
+              {t('common.cancel')}
             </Button>
           </div>
         </>
@@ -265,7 +268,7 @@ export function SelfTapeRecorder({
               icon={<CircleStop className="h-3.5 w-3.5" />}
               onClick={stop}
             >
-              Stop recording
+              {t('recorder.stop')}
             </Button>
           ) : (
             <Button
@@ -277,15 +280,15 @@ export function SelfTapeRecorder({
                 setPhase('countdown')
               }}
             >
-              Start recording
+              {t('recorder.start')}
             </Button>
           )}
           <Button size="sm" variant="ghost" onClick={onCancel}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <span className="inline-flex items-center gap-1.5 text-[12px] text-muted">
             <Video className="h-3.5 w-3.5" />
-            Up to {MAX_SECONDS / 60} minutes
+            {t('recorder.limit', { minutes: MAX_SECONDS / 60 })}
           </span>
         </div>
       )}

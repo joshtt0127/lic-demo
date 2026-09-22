@@ -2,8 +2,9 @@ import { Link } from 'react-router-dom'
 import { CheckCircle2, Send, Sparkles, XCircle } from 'lucide-react'
 import { Card, Tag } from '@/components/ui'
 import type { MyApplication } from '@/features/applications/queries'
-import { APPLICATION_STATUS_LABEL, APPLICATION_STATUS_TONE, relativeTime } from '@/lib/format'
+import { APPLICATION_STATUS_TONE, relativeTime } from '@/lib/format'
 import { asset } from '@/lib/asset'
+import { useT } from '@/lib/i18n'
 
 /**
  * Your own activity in the feed: an application you sent, or a decision a
@@ -18,6 +19,7 @@ export function ActivityPost({
   at: string
   event: 'applied' | 'decision'
 }) {
+  const t = useT()
   const icon =
     event === 'applied' ? (
       <Send className="h-4 w-4" />
@@ -29,14 +31,15 @@ export function ActivityPost({
       <Sparkles className="h-4 w-4" />
     )
 
-  const headline =
+  const headline = t(
     event === 'applied'
-      ? 'You applied'
+      ? 'activity.applied'
       : application.status === 'not_selected'
-        ? 'A production closed your audition'
+        ? 'activity.closed'
         : application.status === 'cast'
-          ? 'You are cast'
-          : 'Your audition moved forward'
+          ? 'activity.cast'
+          : 'activity.moved',
+  )
 
   return (
     <Card flush className="overflow-hidden">
@@ -44,7 +47,7 @@ export function ActivityPost({
         <span className="text-ink/70">{icon}</span>
         <span className="min-w-0 truncate">{headline}</span>
         <span aria-hidden>·</span>
-        <span className="shrink-0 font-normal">{relativeTime(at)}</span>
+        <span className="shrink-0 font-normal">{relativeTime(at, t)}</span>
       </div>
 
       <Link to="/talent/auditions" className="flex items-center gap-4 px-4 py-4 sm:px-5">
@@ -59,15 +62,15 @@ export function ActivityPost({
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate font-display text-[15px] font-bold text-ink">
-            {application.role?.name ?? 'Role'}
+            {application.role?.name ?? t('activity.role')}
           </span>
           <span className="block truncate text-[13px] text-muted">
-            {application.project?.title ?? application.casting?.title ?? 'Project'}
-            {application.hasSelfTape ? ' · self-tape sent' : ''}
+            {application.project?.title ?? application.casting?.title ?? t('activity.project')}
+            {application.hasSelfTape ? ` · ${t('activity.tapeSent')}` : ''}
           </span>
         </span>
         <Tag tone={APPLICATION_STATUS_TONE[application.status]}>
-          {APPLICATION_STATUS_LABEL[application.status]}
+          {t(`status.${application.status}`)}
         </Tag>
       </Link>
     </Card>
