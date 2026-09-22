@@ -91,9 +91,10 @@ test('a casting director messages an actor, who receives it in their inbox', asy
 
   // It lands in the production's own inbox, thread open.
   await production.waitForURL(/\/studio\/messages/, { timeout: 30_000 })
-  await expect(production.getByText('Hi Livia — free for a callback on Tuesday?')).toBeVisible({
-    timeout: 20_000,
-  })
+  // The text shows twice: in the list preview and in the bubble.
+  await expect(
+    production.getByText('Hi Livia — free for a callback on Tuesday?').first(),
+  ).toBeVisible({ timeout: 20_000 })
 
   // ── The badge is live before anything is opened ──
   const talentContext = await browser.newContext()

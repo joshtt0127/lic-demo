@@ -1,7 +1,15 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Lock, Mail } from 'lucide-react'
-import { FormError, FormField, Input, PasswordInput, Spinner, TextField } from '@/components/ui'
+import { ArrowRight, Lock, Mail, MailCheck } from 'lucide-react'
+import {
+  Button,
+  FormError,
+  FormField,
+  Input,
+  PasswordInput,
+  Spinner,
+  TextField,
+} from '@/components/ui'
 import { fieldErrors, signUpSchema } from '@/features/auth/validation'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useT } from '@/lib/i18n'
@@ -15,13 +23,15 @@ import { AuthLayout } from './AuthLayout'
  */
 export function SignUp() {
   const t = useT()
-  const { signUp, signIn } = useAuth()
+  const { signUp, signIn, resendConfirmation } = useAuth()
   const navigate = useNavigate()
 
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '' })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState<string | null>(null)
+  const [resent, setResent] = useState<string | null>(null)
 
   const set = (key: keyof typeof form) => (event: React.ChangeEvent<HTMLInputElement>) =>
     setForm((current) => ({ ...current, [key]: event.target.value }))
@@ -35,7 +45,7 @@ export function SignUp() {
     if (!parsed.success) return
 
     setPending(true)
-    const { error } = await signUp(parsed.data)
+    const { error, needsConfirmation } = await signUp(parsed.data)
     if (error) {
       setPending(false)
       setFormError(error)
@@ -44,8 +54,14 @@ export function SignUp() {
 
     track('account_created')
 
-    // Projects with email confirmation disabled return an active session right
-    // away; otherwise sign in explicitly so the user lands in the onboarding.
+    // With email confirmation on, there is no session yet: the account waits
+    // for the link. Otherwise sign in so the user lands in the onboarding.
+    if (needsConfirmation) {
+      setPending(false)
+      setAwaitingConfirmation(parsed.data.email)
+      return
+    }
+
     const { error: signInError } = await signIn({
       email: parsed.data.email,
       password: parsed.data.password,
@@ -53,10 +69,47 @@ export function SignUp() {
     setPending(false)
 
     if (signInError) {
-      setFormError('Your account is created. Confirm your email address, then sign in to continue.')
+      setAwaitingConfirmation(parsed.data.email)
       return
     }
     navigate('/continue', { replace: true })
+  }
+
+  async function resend() {
+    if (!awaitingConfirmation) return
+    setResent(null)
+    const { error } = await resendConfirmation(awaitingConfirmation)
+    setResent(error ?? t('auth.confirm.resent'))
+  }
+
+  if (awaitingConfirmation) {
+    return (
+      <AuthLayout
+        title={t('auth.confirm.title')}
+        subtitle={t('auth.confirm.subtitle', { email: awaitingConfirmation })}
+      >
+        <div className="flex flex-col gap-4">
+          <p className="flex items-start gap-2.5 rounded-field bg-paper p-3.5 text-[13.5px] leading-relaxed text-ink/90">
+            <MailCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
+            {t('auth.confirm.hint')}
+          </p>
+
+          {resent && <p className="text-[13px] text-muted">{resent}</p>}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={resend}>
+              {t('auth.confirm.resend')}
+            </Button>
+            <Link
+              to="/auth/sign-in"
+              className="inline-flex min-h-[36px] items-center rounded-btn px-2 text-[13px] font-semibold text-link hover:bg-link/5"
+            >
+              {t('auth.toSignIn')}
+            </Link>
+          </div>
+        </div>
+      </AuthLayout>
+    )
   }
 
   return (

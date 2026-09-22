@@ -27,6 +27,9 @@ import type { AccountType, ProfileRow } from '@/types/database'
 
 type Result = { error: string | null }
 
+/** `needsConfirmation` is true when the project requires a confirmed address. */
+type SignUpResult = Result & { needsConfirmation?: boolean }
+
 export type SignUpInput = {
   email: string
   password: string
@@ -43,7 +46,8 @@ type AuthValue = {
   profile: ProfileRow | null
   profileLoading: boolean
   profileError: string | null
-  signUp: (input: SignUpInput) => Promise<Result>
+  signUp: (input: SignUpInput) => Promise<SignUpResult>
+  resendConfirmation: (email: string) => Promise<Result>
   signIn: (input: { email: string; password: string; keepSignedIn?: boolean }) => Promise<Result>
   signOut: () => Promise<void>
   requestPasswordReset: (email: string) => Promise<Result>
@@ -119,11 +123,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await queryClient.invalidateQueries({ queryKey: [PROFILE_QUERY_KEY] })
   }, [queryClient])
 
-  const signUp = useCallback(async (input: SignUpInput): Promise<Result> => {
-    const { error } = await supabase.auth.signUp({
+  const signUp = useCallback(async (input: SignUpInput): Promise<SignUpResult> => {
+    const { data, error } = await supabase.auth.signUp({
       email: input.email.trim(),
       password: input.password,
       options: {
+        // Where the confirmation link lands: /continue routes to the right space.
+        emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}continue`,
         data: {
           first_name: input.firstName.trim(),
           last_name: input.lastName.trim(),
@@ -132,6 +138,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     })
     if (error) return { error: errorMessage(error, 'Could not create your account') }
+    // No session means the project requires a confirmed address first.
+    return { error: null, needsConfirmation: !data.session }
+  }, [])
+
+  /** Sends the confirmation link again — same address, same account. */
+  const resendConfirmation = useCallback(async (email: string): Promise<Result> => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim(),
+      options: {
+        emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}continue`,
+      },
+    })
+    if (error) return { error: errorMessage(error, 'Could not send the email again') }
     return { error: null }
   }, [])
 
@@ -210,6 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profileLoading: profileQuery.isLoading,
       profileError: profileQuery.error ? errorMessage(profileQuery.error) : null,
       signUp,
+      resendConfirmation,
       signIn,
       signOut,
       requestPasswordReset,

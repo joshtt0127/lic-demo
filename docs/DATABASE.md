@@ -176,6 +176,34 @@ d'outbox passe en `failed` avec ce message exact. Vérifié : un message envoyé
 dans l'app a traversé outbox → `pg_net` → fonction et est revenu avec ce 503,
 enregistré tel quel par `reconcile_email_outbox()`.
 
+### E-mail de confirmation à l'inscription : mesuré, puis remis comme avant
+
+Supabase envoie bien les e-mails d'**auth** sans aucun serveur à brancher. Il
+suffit de passer `mailer_autoconfirm` à `false`. Essayé sur ce projet, puis
+**annulé** — voici exactement pourquoi (tout est mesuré, pas supposé) :
+
+1. `PATCH mailer_subjects_confirmation` → **400** :
+   *« Email template modification is not available for free tier projects using
+   the default email provider. »* Impossible de personnaliser le texte ni
+   l'expéditeur : l'e-mail part au nom de Supabase, avec sa formulation.
+2. `rate_limit_email_sent: 2` — **deux e-mails par heure**. Trois inscriptions
+   d'affilée et la troisième échoue avec `email rate limit exceeded`, **côté
+   inscription** : le compte n'est pas créé du tout.
+3. Avec le mailer par défaut, Supabase vérifie la délivrabilité du domaine :
+   une adresse en `@letitcast.dev` (nos comptes de test) est refusée
+   *« Email address is invalid »*.
+
+Autrement dit, sur le plan gratuit et sans SMTP, activer la confirmation casse
+l'inscription au bout de deux comptes par heure. Le projet est donc revenu à
+`mailer_autoconfirm: true`.
+
+Ce qui est **déjà prêt côté app** : `signUp` passe `emailRedirectTo` vers
+`/continue`, et quand le serveur ne rend pas de session, l'écran d'inscription
+affiche un panneau « Confirmez votre e-mail » avec un bouton *Renvoyer*. Le jour
+où un SMTP est configuré (`npm run email:setup`), il suffit de repasser
+`mailer_autoconfirm` à `false` : les trois limites ci-dessus disparaissent en
+même temps (expéditeur à soi, templates personnalisables, quota du serveur).
+
 ### Limite assumée
 
 Les e-mails sont **en anglais** : les lignes de `notifications` sont écrites en
