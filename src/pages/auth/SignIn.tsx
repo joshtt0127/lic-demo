@@ -48,14 +48,7 @@ export function SignIn() {
     <AuthLayout
       title={t('auth.signIn.title')}
       subtitle={t('auth.signIn.subtitle')}
-      topRight={
-        <>
-          {t('auth.noAccount')}{' '}
-          <Link to="/auth/sign-up" className="inline-flex min-h-[34px] items-center font-semibold text-link hover:underline">
-            {t('auth.toSignUp')}
-          </Link>
-        </>
-      }
+      // The same link sits in the card footer — one is enough.
       footer={
         <>
           {t('auth.noAccount')}{' '}
