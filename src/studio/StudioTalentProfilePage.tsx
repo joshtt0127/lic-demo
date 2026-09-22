@@ -1,15 +1,22 @@
-import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Briefcase, GraduationCap, MapPin, MessageSquare } from 'lucide-react'
-import { Avatar, Button, Card, FormError, Tag } from '@/components/ui'
-import { Skeleton } from '@/components/Skeleton'
-import { EmptyState } from '@/components/EmptyState'
-import { useAuth } from '@/features/auth/AuthProvider'
-import { MessageTalentModal } from '@/features/messaging/MessageTalentModal'
-import { useCurrentOrganization } from '@/features/organizations/queries'
-import { useTalentProfile } from '@/features/talent/queries'
-import { publicUrl } from '@/lib/storage'
-import { errorMessage } from '@/lib/supabase'
+import { useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  ArrowLeft,
+  Briefcase,
+  GraduationCap,
+  MapPin,
+  MessageSquare,
+} from "lucide-react";
+import { Avatar, Button, Card, FormError, Tag } from "@/components/ui";
+import { Skeleton } from "@/components/Skeleton";
+import { EmptyState } from "@/components/EmptyState";
+import { useAuth } from "@/features/auth/AuthProvider";
+import { MessageTalentModal } from "@/features/messaging/MessageTalentModal";
+import { useCurrentOrganization } from "@/features/organizations/queries";
+import { can } from "@/lib/access";
+import { useTalentProfile } from "@/features/talent/queries";
+import { publicUrl } from "@/lib/storage";
+import { errorMessage } from "@/lib/supabase";
 
 /**
  * A talent's professional profile as the production side sees it: the public
@@ -18,12 +25,12 @@ import { errorMessage } from '@/lib/supabase'
  * RLS decides, not the UI.
  */
 export function StudioTalentProfilePage() {
-  const { profileId } = useParams()
-  const navigate = useNavigate()
-  const { profile: me } = useAuth()
-  const { organization } = useCurrentOrganization(me?.id)
-  const talent = useTalentProfile(profileId)
-  const [messaging, setMessaging] = useState(false)
+  const { profileId } = useParams();
+  const navigate = useNavigate();
+  const { profile: me } = useAuth();
+  const { organization } = useCurrentOrganization(me?.id);
+  const talent = useTalentProfile(profileId);
+  const [messaging, setMessaging] = useState(false);
 
   if (talent.isLoading || (!talent.data && !talent.error)) {
     return (
@@ -31,31 +38,46 @@ export function StudioTalentProfilePage() {
         <Skeleton className="h-40" />
         <Skeleton className="h-64" />
       </div>
-    )
+    );
   }
 
   if (!talent.data) {
     return (
       <div className="mx-auto flex w-full max-w-[900px] flex-col gap-4">
-        <FormError>{errorMessage(talent.error, 'This profile is not available')}</FormError>
-        <Link to="/studio/talent" className="text-sm font-semibold text-link hover:underline">
+        <FormError>
+          {errorMessage(talent.error, "This profile is not available")}
+        </FormError>
+        <Link
+          to="/studio/talent"
+          className="text-sm font-semibold text-link hover:underline"
+        >
           Back to talent search
         </Link>
       </div>
-    )
+    );
   }
 
-  const { profile, talent: details, skills, languages, credits, training, media } = talent.data
+  const {
+    profile,
+    talent: details,
+    skills,
+    languages,
+    credits,
+    training,
+    media,
+  } = talent.data;
   const name =
     details.professional_name ||
-    [profile.first_name, profile.last_name].filter(Boolean).join(' ') ||
-    'Talent'
-  const headshots = media.filter((asset) => asset.kind === 'headshot' || asset.kind === 'portfolio')
+    [profile.first_name, profile.last_name].filter(Boolean).join(" ") ||
+    "Talent";
+  const headshots = media.filter(
+    (asset) => asset.kind === "headshot" || asset.kind === "portfolio",
+  );
 
   return (
     <div className="mx-auto flex w-full max-w-[900px] flex-col gap-5">
       <button
-        onClick={() => navigate('/studio/talent')}
+        onClick={() => navigate("/studio/talent")}
         className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-muted transition-colors hover:text-ink"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -68,12 +90,14 @@ export function StudioTalentProfilePage() {
           <h1 className="font-display text-[1.5rem] font-extrabold tracking-[-0.02em] text-ink">
             {name}
           </h1>
-          <p className="mt-0.5 text-[15px] text-muted">{details.headline ?? 'Talent'}</p>
+          <p className="mt-0.5 text-[15px] text-muted">
+            {details.headline ?? "Talent"}
+          </p>
           <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted">
             {(profile.city || profile.country) && (
               <span className="inline-flex items-center gap-1.5">
                 <MapPin className="h-3.5 w-3.5" />
-                {[profile.city, profile.country].filter(Boolean).join(', ')}
+                {[profile.city, profile.country].filter(Boolean).join(", ")}
               </span>
             )}
             {details.agency_name && <span>{details.agency_name}</span>}
@@ -82,13 +106,16 @@ export function StudioTalentProfilePage() {
 
           <div className="mt-3 flex flex-wrap gap-1.5">
             {details.gender && <Tag>{details.gender}</Tag>}
-            {details.playing_age_min !== null && details.playing_age_max !== null && (
-              <Tag>
-                Plays {details.playing_age_min}–{details.playing_age_max}
-              </Tag>
-            )}
+            {details.playing_age_min !== null &&
+              details.playing_age_max !== null && (
+                <Tag>
+                  Plays {details.playing_age_min}–{details.playing_age_max}
+                </Tag>
+              )}
             {details.height_cm && <Tag>{details.height_cm} cm</Tag>}
-            {details.experience_level && <Tag tone="cream">{details.experience_level}</Tag>}
+            {details.experience_level && (
+              <Tag tone="cream">{details.experience_level}</Tag>
+            )}
             {languages.map((language) => (
               <Tag key={language.code}>{language.name}</Tag>
             ))}
@@ -96,15 +123,17 @@ export function StudioTalentProfilePage() {
         </div>
 
         {/* Writing to an actor is allowed at any point — it opens a real thread. */}
-        <Button
-          variant="secondary"
-          size="sm"
-          className="shrink-0"
-          icon={<MessageSquare className="h-4 w-4" />}
-          onClick={() => setMessaging(true)}
-        >
-          Message
-        </Button>
+        {can(organization?.role, "message:send") && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="shrink-0"
+            icon={<MessageSquare className="h-4 w-4" />}
+            onClick={() => setMessaging(true)}
+          >
+            Message
+          </Button>
+        )}
       </Card>
 
       {messaging && profileId && (
@@ -130,9 +159,13 @@ export function StudioTalentProfilePage() {
           <ul className="flex flex-wrap gap-1.5">
             {skills.map((skill) => (
               <li key={skill.skillId}>
-                <Tag tone={skill.level === 3 ? 'good' : 'neutral'}>
+                <Tag tone={skill.level === 3 ? "good" : "neutral"}>
                   {skill.name}
-                  {skill.level === 3 ? ' · expert' : skill.level === 1 ? ' · training' : ''}
+                  {skill.level === 3
+                    ? " · expert"
+                    : skill.level === 1
+                      ? " · training"
+                      : ""}
                 </Tag>
               </li>
             ))}
@@ -168,12 +201,18 @@ export function StudioTalentProfilePage() {
             {credits.map((credit) => (
               <li key={credit.id} className="py-2.5 first:pt-0">
                 <p className="text-[14px] font-semibold text-ink">
-                  {credit.role_name ?? 'Role'} · <span className="text-muted">{credit.title}</span>
+                  {credit.role_name ?? "Role"} ·{" "}
+                  <span className="text-muted">{credit.title}</span>
                 </p>
                 <p className="text-[12px] text-muted">
-                  {[credit.category, credit.year, credit.company, credit.director && `dir. ${credit.director}`]
+                  {[
+                    credit.category,
+                    credit.year,
+                    credit.company,
+                    credit.director && `dir. ${credit.director}`,
+                  ]
                     .filter(Boolean)
-                    .join(' · ')}
+                    .join(" · ")}
                 </p>
               </li>
             ))}
@@ -190,11 +229,18 @@ export function StudioTalentProfilePage() {
           <ul className="flex flex-col gap-2">
             {training.map((entry) => (
               <li key={entry.id}>
-                <p className="text-[14px] font-semibold text-ink">{entry.school}</p>
+                <p className="text-[14px] font-semibold text-ink">
+                  {entry.school}
+                </p>
                 <p className="text-[12px] text-muted">
-                  {[entry.program, [entry.start_year, entry.end_year].filter(Boolean).join('–')]
+                  {[
+                    entry.program,
+                    [entry.start_year, entry.end_year]
+                      .filter(Boolean)
+                      .join("–"),
+                  ]
                     .filter(Boolean)
-                    .join(' · ')}
+                    .join(" · ")}
                 </p>
               </li>
             ))}
@@ -202,5 +248,5 @@ export function StudioTalentProfilePage() {
         </Card>
       )}
     </div>
-  )
+  );
 }

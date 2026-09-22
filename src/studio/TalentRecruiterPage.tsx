@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   Bookmark,
   Download,
@@ -14,7 +14,7 @@ import {
   Sparkles,
   Trash2,
   X,
-} from 'lucide-react'
+} from "lucide-react";
 import {
   Avatar,
   Button,
@@ -24,13 +24,14 @@ import {
   SelectInput,
   Spinner,
   Tag,
-} from '@/components/ui'
-import { Skeleton } from '@/components/Skeleton'
-import { EmptyState } from '@/components/EmptyState'
-import { useToast } from '@/components/Toast'
-import { useAuth } from '@/features/auth/AuthProvider'
-import { useCurrentOrganization } from '@/features/organizations/queries'
-import { MessageTalentModal } from '@/features/messaging/MessageTalentModal'
+} from "@/components/ui";
+import { Skeleton } from "@/components/Skeleton";
+import { EmptyState } from "@/components/EmptyState";
+import { useToast } from "@/components/Toast";
+import { useAuth } from "@/features/auth/AuthProvider";
+import { useCurrentOrganization } from "@/features/organizations/queries";
+import { MessageTalentModal } from "@/features/messaging/MessageTalentModal";
+import { can } from "@/lib/access";
 import {
   matchTalentToRole,
   useCandidatesForRoles,
@@ -41,12 +42,15 @@ import {
   useSaveTalent,
   useTalentSearch,
   type TalentSearchResult,
-} from '@/features/studio/queries'
-import { useLanguagesCatalog, useSkillsCatalog } from '@/features/talent/queries'
-import { relativeTime } from '@/lib/format'
-import { errorMessage } from '@/lib/supabase'
-import { cn } from '@/lib/cn'
-import type { RoleRow } from '@/types/database'
+} from "@/features/studio/queries";
+import {
+  useLanguagesCatalog,
+  useSkillsCatalog,
+} from "@/features/talent/queries";
+import { relativeTime } from "@/lib/format";
+import { errorMessage } from "@/lib/supabase";
+import { cn } from "@/lib/cn";
+import type { RoleRow } from "@/types/database";
 
 /**
  * Talent Recruiter — search the platform's real talent profiles.
@@ -57,69 +61,72 @@ import type { RoleRow } from '@/types/database'
  * criteria scores everyone the same, which is the honest answer.
  */
 
-const TABS = ['search', 'campaigns', 'pipeline', 'saved'] as const
-type Tab = (typeof TABS)[number]
+const TABS = ["search", "campaigns", "pipeline", "saved"] as const;
+type Tab = (typeof TABS)[number];
 
 const TAB_LABEL: Record<Tab, string> = {
-  search: 'Search',
-  campaigns: 'My campaigns',
-  pipeline: 'Pipeline',
-  saved: 'Saved searches',
-}
+  search: "Search",
+  campaigns: "My campaigns",
+  pipeline: "Pipeline",
+  saved: "Saved searches",
+};
 
 type Filters = {
-  query: string
-  city: string
-  gender: string
-  playingAge: string
-  language: string
-  skill: string
-  experience: string
-  hasReel: boolean
-  savedOnly: boolean
-}
+  query: string;
+  city: string;
+  gender: string;
+  playingAge: string;
+  language: string;
+  skill: string;
+  experience: string;
+  hasReel: boolean;
+  savedOnly: boolean;
+};
 
 const EMPTY_FILTERS: Filters = {
-  query: '',
-  city: '',
-  gender: '',
-  playingAge: '',
-  language: '',
-  skill: '',
-  experience: '',
+  query: "",
+  city: "",
+  gender: "",
+  playingAge: "",
+  language: "",
+  skill: "",
+  experience: "",
   hasReel: false,
   savedOnly: false,
-}
+};
 
 export function TalentRecruiterPage() {
-  const toast = useToast()
-  const [params, setParams] = useSearchParams()
-  const { profile } = useAuth()
-  const profileId = profile?.id
-  const { organization } = useCurrentOrganization(profileId)
+  const toast = useToast();
+  const [params, setParams] = useSearchParams();
+  const { profile } = useAuth();
+  const profileId = profile?.id;
+  const { organization } = useCurrentOrganization(profileId);
 
-  const [tab, setTab] = useState<Tab>('search')
+  const [tab, setTab] = useState<Tab>("search");
   const [filters, setFilters] = useState<Filters>({
     ...EMPTY_FILTERS,
-    query: params.get('q') ?? '',
-  })
-  const [roleId, setRoleId] = useState<string>('')
-  const [view, setView] = useState<'list' | 'grid'>('list')
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [searchName, setSearchName] = useState('')
-  const [filtersOpen, setFiltersOpen] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [messageTo, setMessageTo] = useState<{ id: string; name: string; avatarUrl: string | null } | null>(
-    null,
-  )
+    query: params.get("q") ?? "",
+  });
+  const [roleId, setRoleId] = useState<string>("");
+  const [view, setView] = useState<"list" | "grid">("list");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [searchName, setSearchName] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [messageTo, setMessageTo] = useState<{
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+  } | null>(null);
+  const mayMessage = can(organization?.role, "message:send");
 
-  const skills = useSkillsCatalog()
-  const languages = useLanguagesCatalog()
-  const castings = useOrgCastings(organization?.id)
-  const savedTalents = useSavedTalents(profileId)
-  const saveTalent = useSaveTalent(profileId)
-  const savedSearches = useSavedSearches(profileId)
-  const savedSearchMutations = useSavedSearchMutations(profileId)
+  const skills = useSkillsCatalog();
+  const languages = useLanguagesCatalog();
+  const castings = useOrgCastings(organization?.id);
+  const savedTalents = useSavedTalents(profileId);
+  const saveTalent = useSaveTalent(profileId);
+  const savedSearches = useSavedSearches(profileId);
+  const savedSearchMutations = useSavedSearchMutations(profileId);
 
   const results = useTalentSearch({
     query: filters.query,
@@ -128,91 +135,120 @@ export function TalentRecruiterPage() {
     playingAge: filters.playingAge ? Number(filters.playingAge) : null,
     language: filters.language || null,
     skill: filters.skill || null,
-  })
+  });
 
-  const roles: RoleRow[] = (castings.data ?? []).flatMap((casting) => casting.roles)
-  const role = roles.find((item) => item.id === roleId) ?? null
+  const roles: RoleRow[] = (castings.data ?? []).flatMap(
+    (casting) => casting.roles,
+  );
+  const role = roles.find((item) => item.id === roleId) ?? null;
   const languageName = (code: string) =>
-    (languages.data ?? []).find((language) => language.code === code)?.name ?? code
+    (languages.data ?? []).find((language) => language.code === code)?.name ??
+    code;
 
-  const savedIds = useMemo(() => new Set(savedTalents.data ?? []), [savedTalents.data])
+  const savedIds = useMemo(
+    () => new Set(savedTalents.data ?? []),
+    [savedTalents.data],
+  );
 
   const rows = useMemo(() => {
     const list = (results.data ?? [])
-      .filter((talent) => (filters.savedOnly ? savedIds.has(talent.profileId) : true))
       .filter((talent) =>
-        filters.experience ? talent.experienceLevel === filters.experience : true,
+        filters.savedOnly ? savedIds.has(talent.profileId) : true,
+      )
+      .filter((talent) =>
+        filters.experience
+          ? talent.experienceLevel === filters.experience
+          : true,
       )
       .map((talent) => ({
         talent,
         match: role ? matchTalentToRole(talent, role, languageName) : null,
-      }))
+      }));
 
-    if (role) list.sort((a, b) => (b.match?.score ?? 0) - (a.match?.score ?? 0))
-    return list
+    if (role)
+      list.sort((a, b) => (b.match?.score ?? 0) - (a.match?.score ?? 0));
+    return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [results.data, role, filters.savedOnly, filters.experience, savedIds, languages.data])
+  }, [
+    results.data,
+    role,
+    filters.savedOnly,
+    filters.experience,
+    savedIds,
+    languages.data,
+  ]);
 
-  const roleIds = roles.map((item) => item.id)
-  const candidates = useCandidatesForRoles(roleIds)
+  const roleIds = roles.map((item) => item.id);
+  const candidates = useCandidatesForRoles(roleIds);
 
   /** What this talent has already done with *this* organization. */
   const historyOf = (talentId: string) => {
-    const own = (candidates.data ?? []).filter((candidate) => candidate.talent_id === talentId)
+    const own = (candidates.data ?? []).filter(
+      (candidate) => candidate.talent_id === talentId,
+    );
     return {
       auditions: own.length,
       callbacks: own.filter((candidate) =>
-        ['callback', 'offer', 'cast'].includes(candidate.status),
+        ["callback", "offer", "cast"].includes(candidate.status),
       ).length,
-    }
-  }
+    };
+  };
 
   function update<K extends keyof Filters>(key: K, value: Filters[K]) {
-    setFilters((current) => ({ ...current, [key]: value }))
-    if (key === 'query') {
-      const next = new URLSearchParams(params)
-      if (String(value).trim()) next.set('q', String(value))
-      else next.delete('q')
-      setParams(next, { replace: true })
+    setFilters((current) => ({ ...current, [key]: value }));
+    if (key === "query") {
+      const next = new URLSearchParams(params);
+      if (String(value).trim()) next.set("q", String(value));
+      else next.delete("q");
+      setParams(next, { replace: true });
     }
   }
 
   function exportCsv() {
     const chosen = rows.filter(
       ({ talent }) => selected.size === 0 || selected.has(talent.profileId),
-    )
+    );
     if (chosen.length === 0) {
-      setError('Nothing to export')
-      return
+      setError("Nothing to export");
+      return;
     }
-    const header = ['Name', 'City', 'Headline', 'Playing age', 'Gender', 'Skills', 'Languages', 'Match']
+    const header = [
+      "Name",
+      "City",
+      "Headline",
+      "Playing age",
+      "Gender",
+      "Skills",
+      "Languages",
+      "Match",
+    ];
     const lines = chosen.map(({ talent, match }) =>
       [
         talent.name,
-        talent.city ?? '',
-        talent.headline ?? '',
+        talent.city ?? "",
+        talent.headline ?? "",
         talent.playingAgeMin && talent.playingAgeMax
           ? `${talent.playingAgeMin}-${talent.playingAgeMax}`
-          : '',
-        talent.gender ?? '',
-        talent.skills.join('; '),
-        talent.languages.join('; '),
-        match ? `${match.score}%` : '',
+          : "",
+        talent.gender ?? "",
+        talent.skills.join("; "),
+        talent.languages.join("; "),
+        match ? `${match.score}%` : "",
       ]
         .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
-        .join(','),
-    )
+        .join(","),
+    );
 
-    const blob = new Blob([[header.join(','), ...lines].join('\n')], {
-      type: 'text/csv;charset=utf-8',
-    })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `let-it-cast-shortlist-${new Date().toISOString().slice(0, 10)}.csv`
-    link.click()
-    URL.revokeObjectURL(url)
-    toast(`Exported ${chosen.length} talent${chosen.length === 1 ? '' : 's'}`)
+    const blob = new Blob([[header.join(","), ...lines].join("\n")], {
+      type: "text/csv;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `let-it-cast-shortlist-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast(`Exported ${chosen.length} talent${chosen.length === 1 ? "" : "s"}`);
   }
 
   const activeFilterCount = [
@@ -222,9 +258,9 @@ export function TalentRecruiterPage() {
     filters.language,
     filters.skill,
     filters.experience,
-    filters.hasReel ? 'reel' : '',
-    filters.savedOnly ? 'saved' : '',
-  ].filter(Boolean).length
+    filters.hasReel ? "reel" : "",
+    filters.savedOnly ? "saved" : "",
+  ].filter(Boolean).length;
 
   return (
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-5">
@@ -263,8 +299,10 @@ export function TalentRecruiterPage() {
             key={item}
             onClick={() => setTab(item)}
             className={cn(
-              'rounded-full px-4 py-2 text-[14px] font-semibold transition-colors',
-              tab === item ? 'bg-ink text-white' : 'text-muted hover:bg-ink/5 hover:text-ink',
+              "rounded-full px-4 py-2 text-[14px] font-semibold transition-colors",
+              tab === item
+                ? "bg-ink text-white"
+                : "text-muted hover:bg-ink/5 hover:text-ink",
             )}
           >
             {TAB_LABEL[item]}
@@ -274,7 +312,7 @@ export function TalentRecruiterPage() {
 
       {error && <FormError>{error}</FormError>}
 
-      {tab === 'search' && (
+      {tab === "search" && (
         <div className="grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
           <div className="flex min-w-0 flex-col gap-4">
             {/* search + match */}
@@ -285,7 +323,7 @@ export function TalentRecruiterPage() {
                   icon={<Search className="h-[18px] w-[18px]" />}
                   placeholder="Try “vulnerable, drama, Marseille”…"
                   value={filters.query}
-                  onChange={(event) => update('query', event.target.value)}
+                  onChange={(event) => update("query", event.target.value)}
                 />
               </div>
               <SelectInput
@@ -307,8 +345,9 @@ export function TalentRecruiterPage() {
             {role && (
               <p className="flex items-center gap-2 rounded-field bg-cream/60 px-3.5 py-2.5 text-[13px] text-ink">
                 <Sparkles className="h-4 w-4 shrink-0" />
-                Scored against <span className="font-bold">{role.name}</span> — playing age, gender,
-                languages, skills and location, each weighted. Hover a score for the breakdown.
+                Scored against <span className="font-bold">{role.name}</span> —
+                playing age, gender, languages, skills and location, each
+                weighted. Hover a score for the breakdown.
               </p>
             )}
 
@@ -316,51 +355,56 @@ export function TalentRecruiterPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="text-[15px] font-bold text-ink">
                 {results.isLoading
-                  ? 'Searching…'
-                  : `${rows.length} talent${rows.length === 1 ? '' : 's'}`}
+                  ? "Searching…"
+                  : `${rows.length} talent${rows.length === 1 ? "" : "s"}`}
                 {activeFilterCount > 0 && (
                   <span className="ml-2 text-[13px] font-normal text-muted">
-                    {activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'} on
+                    {activeFilterCount} filter
+                    {activeFilterCount === 1 ? "" : "s"} on
                   </span>
                 )}
               </span>
 
               <div className="flex items-center gap-2">
                 {selected.size > 0 && (
-                  <span className="text-[13px] text-muted">{selected.size} selected</span>
+                  <span className="text-[13px] text-muted">
+                    {selected.size} selected
+                  </span>
                 )}
                 <button
                   onClick={() => setFiltersOpen((value) => !value)}
                   className={cn(
-                    'inline-flex h-10 items-center gap-2 rounded-btn border px-3.5 text-[13px] font-semibold transition-colors xl:hidden',
+                    "inline-flex h-10 items-center gap-2 rounded-btn border px-3.5 text-[13px] font-semibold transition-colors xl:hidden",
                     filtersOpen || activeFilterCount > 0
-                      ? 'border-ink bg-ink text-white'
-                      : 'border-line bg-card text-ink',
+                      ? "border-ink bg-ink text-white"
+                      : "border-line bg-card text-ink",
                   )}
                 >
                   <SlidersHorizontal className="h-4 w-4" />
                   Filters
                   {activeFilterCount > 0 && (
-                    <span className="font-mono text-[11px]">{activeFilterCount}</span>
+                    <span className="font-mono text-[11px]">
+                      {activeFilterCount}
+                    </span>
                   )}
                 </button>
                 <div className="flex items-center rounded-btn border border-line bg-card p-0.5">
                   <button
-                    onClick={() => setView('list')}
+                    onClick={() => setView("list")}
                     aria-label="List view"
                     className={cn(
-                      'flex h-8 w-8 items-center justify-center rounded-inner',
-                      view === 'list' ? 'bg-ink text-white' : 'text-muted',
+                      "flex h-8 w-8 items-center justify-center rounded-inner",
+                      view === "list" ? "bg-ink text-white" : "text-muted",
                     )}
                   >
                     <List className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => setView('grid')}
+                    onClick={() => setView("grid")}
                     aria-label="Grid view"
                     className={cn(
-                      'flex h-8 w-8 items-center justify-center rounded-inner',
-                      view === 'grid' ? 'bg-ink text-white' : 'text-muted',
+                      "flex h-8 w-8 items-center justify-center rounded-inner",
+                      view === "grid" ? "bg-ink text-white" : "text-muted",
                     )}
                   >
                     <LayoutGrid className="h-4 w-4" />
@@ -370,7 +414,9 @@ export function TalentRecruiterPage() {
             </div>
 
             {results.error && (
-              <FormError>{errorMessage(results.error, 'Could not search talents')}</FormError>
+              <FormError>
+                {errorMessage(results.error, "Could not search talents")}
+              </FormError>
             )}
 
             {results.isLoading ? (
@@ -384,7 +430,7 @@ export function TalentRecruiterPage() {
                 title="No talent matches"
                 description="Loosen a filter, or invite the talent you are looking for to join Let It Cast."
               />
-            ) : view === 'list' ? (
+            ) : view === "list" ? (
               <ul className="flex flex-col gap-3">
                 {rows.map(({ talent, match }) => (
                   <li key={talent.profileId}>
@@ -396,10 +442,10 @@ export function TalentRecruiterPage() {
                       selected={selected.has(talent.profileId)}
                       onSelect={(checked) =>
                         setSelected((current) => {
-                          const next = new Set(current)
-                          if (checked) next.add(talent.profileId)
-                          else next.delete(talent.profileId)
-                          return next
+                          const next = new Set(current);
+                          if (checked) next.add(talent.profileId);
+                          else next.delete(talent.profileId);
+                          return next;
                         })
                       }
                       onSave={() =>
@@ -408,12 +454,15 @@ export function TalentRecruiterPage() {
                           saved: savedIds.has(talent.profileId),
                         })
                       }
-                      onMessage={() =>
-                        setMessageTo({
-                          id: talent.profileId,
-                          name: talent.name,
-                          avatarUrl: talent.avatarUrl ?? null,
-                        })
+                      onMessage={
+                        mayMessage
+                          ? () =>
+                              setMessageTo({
+                                id: talent.profileId,
+                                name: talent.name,
+                                avatarUrl: talent.avatarUrl ?? null,
+                              })
+                          : undefined
                       }
                     />
                   </li>
@@ -436,7 +485,7 @@ export function TalentRecruiterPage() {
                               {talent.name}
                             </p>
                             <p className="truncate text-[13px] text-muted">
-                              {talent.headline ?? 'Talent'}
+                              {talent.headline ?? "Talent"}
                             </p>
                           </div>
                           {match && <MatchRing score={match.score} />}
@@ -456,8 +505,9 @@ export function TalentRecruiterPage() {
             )}
             {rows.length > 0 && (
               <p className="text-[13px] text-muted">
-                Showing {rows.length} of {results.data?.length ?? rows.length} talent
-                {(results.data?.length ?? 0) === 1 ? '' : 's'} on the platform.
+                Showing {rows.length} of {results.data?.length ?? rows.length}{" "}
+                talent
+                {(results.data?.length ?? 0) === 1 ? "" : "s"} on the platform.
               </p>
             )}
           </div>
@@ -465,15 +515,19 @@ export function TalentRecruiterPage() {
           {/* ── Filters rail: a column on desktop, a panel on demand below xl ── */}
           <aside
             className={cn(
-              'flex min-w-0 flex-col gap-4',
-              filtersOpen ? 'order-first' : 'hidden xl:flex',
+              "flex min-w-0 flex-col gap-4",
+              filtersOpen ? "order-first" : "hidden xl:flex",
             )}
           >
             <Card className="flex flex-col gap-5">
               <div className="flex items-center justify-between">
-                <span className="font-display text-[17px] font-bold text-ink">Filters</span>
+                <span className="font-display text-[17px] font-bold text-ink">
+                  Filters
+                </span>
                 <button
-                  onClick={() => setFilters({ ...EMPTY_FILTERS, query: filters.query })}
+                  onClick={() =>
+                    setFilters({ ...EMPTY_FILTERS, query: filters.query })
+                  }
                   className="inline-flex h-9 shrink-0 items-center rounded-btn px-2 text-[13px] font-semibold text-link hover:bg-link/5"
                 >
                   Reset
@@ -485,7 +539,7 @@ export function TalentRecruiterPage() {
                   icon={<MapPin className="h-4 w-4" />}
                   placeholder="Search cities…"
                   value={filters.city}
-                  onChange={(event) => update('city', event.target.value)}
+                  onChange={(event) => update("city", event.target.value)}
                 />
               </FilterBlock>
 
@@ -496,14 +550,14 @@ export function TalentRecruiterPage() {
                   max={120}
                   placeholder="e.g. 32"
                   value={filters.playingAge}
-                  onChange={(event) => update('playingAge', event.target.value)}
+                  onChange={(event) => update("playingAge", event.target.value)}
                 />
               </FilterBlock>
 
               <FilterBlock label="Gender">
                 <SelectInput
                   value={filters.gender}
-                  onChange={(event) => update('gender', event.target.value)}
+                  onChange={(event) => update("gender", event.target.value)}
                 >
                   <option value="">Any</option>
                   <option value="Female">Female</option>
@@ -515,7 +569,7 @@ export function TalentRecruiterPage() {
               <FilterBlock label="Language">
                 <SelectInput
                   value={filters.language}
-                  onChange={(event) => update('language', event.target.value)}
+                  onChange={(event) => update("language", event.target.value)}
                 >
                   <option value="">Any</option>
                   {(languages.data ?? []).map((language) => (
@@ -529,7 +583,7 @@ export function TalentRecruiterPage() {
               <FilterBlock label="Skill">
                 <SelectInput
                   value={filters.skill}
-                  onChange={(event) => update('skill', event.target.value)}
+                  onChange={(event) => update("skill", event.target.value)}
                 >
                   <option value="">Any</option>
                   {(skills.data ?? []).map((skill) => (
@@ -543,14 +597,16 @@ export function TalentRecruiterPage() {
               <FilterBlock label="Experience">
                 <SelectInput
                   value={filters.experience}
-                  onChange={(event) => update('experience', event.target.value)}
+                  onChange={(event) => update("experience", event.target.value)}
                 >
                   <option value="">Any</option>
-                  {['Emerging', 'Mid-career', 'Established', 'Star'].map((level) => (
-                    <option key={level} value={level}>
-                      {level}
-                    </option>
-                  ))}
+                  {["Emerging", "Mid-career", "Established", "Star"].map(
+                    (level) => (
+                      <option key={level} value={level}>
+                        {level}
+                      </option>
+                    ),
+                  )}
                 </SelectInput>
               </FilterBlock>
 
@@ -558,7 +614,9 @@ export function TalentRecruiterPage() {
                 <input
                   type="checkbox"
                   checked={filters.savedOnly}
-                  onChange={(event) => update('savedOnly', event.target.checked)}
+                  onChange={(event) =>
+                    update("savedOnly", event.target.checked)
+                  }
                   className="h-4 w-4 rounded-[8px] border-line accent-ink"
                 />
                 Saved talents only
@@ -575,19 +633,25 @@ export function TalentRecruiterPage() {
               <Button
                 size="sm"
                 variant="secondary"
-                disabled={!searchName.trim() || savedSearchMutations.save.isPending}
-                icon={savedSearchMutations.save.isPending ? <Spinner /> : undefined}
+                disabled={
+                  !searchName.trim() || savedSearchMutations.save.isPending
+                }
+                icon={
+                  savedSearchMutations.save.isPending ? <Spinner /> : undefined
+                }
                 onClick={async () => {
-                  setError(null)
+                  setError(null);
                   try {
                     await savedSearchMutations.save.mutateAsync({
                       name: searchName,
                       filters: { ...filters, roleId },
-                    })
-                    setSearchName('')
-                    toast('Search saved')
+                    });
+                    setSearchName("");
+                    toast("Search saved");
                   } catch (saveError) {
-                    setError(errorMessage(saveError, 'Could not save this search'))
+                    setError(
+                      errorMessage(saveError, "Could not save this search"),
+                    );
                   }
                 }}
               >
@@ -599,9 +663,11 @@ export function TalentRecruiterPage() {
       )}
 
       {/* ── My campaigns ── */}
-      {tab === 'campaigns' && (
+      {tab === "campaigns" && (
         <Card className="flex flex-col gap-4">
-          <h2 className="font-display text-[19px] font-bold text-ink">My campaigns</h2>
+          <h2 className="font-display text-[19px] font-bold text-ink">
+            My campaigns
+          </h2>
           {castings.isLoading ? (
             <Skeleton className="h-24" />
           ) : (castings.data?.length ?? 0) === 0 ? (
@@ -640,11 +706,14 @@ export function TalentRecruiterPage() {
                         {casting.project?.title ?? casting.title}
                       </span>
                       <span className="block truncate text-[13px] text-muted">
-                        {casting.roles.length} role{casting.roles.length === 1 ? '' : 's'} ·{' '}
+                        {casting.roles.length} role
+                        {casting.roles.length === 1 ? "" : "s"} ·{" "}
                         {casting.status}
                       </span>
                     </span>
-                    <Tag tone={casting.status === 'published' ? 'good' : 'neutral'}>
+                    <Tag
+                      tone={casting.status === "published" ? "good" : "neutral"}
+                    >
                       {casting.status}
                     </Tag>
                   </Link>
@@ -656,10 +725,12 @@ export function TalentRecruiterPage() {
       )}
 
       {/* ── Pipeline ── */}
-      {tab === 'pipeline' && (
+      {tab === "pipeline" && (
         <Card className="flex flex-col gap-4">
           <div>
-            <h2 className="font-display text-[19px] font-bold text-ink">Pipeline</h2>
+            <h2 className="font-display text-[19px] font-bold text-ink">
+              Pipeline
+            </h2>
             <p className="mt-1 text-[14px] text-muted">
               Everyone who applied to your roles, by stage.
             </p>
@@ -673,17 +744,20 @@ export function TalentRecruiterPage() {
             <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {(
                 [
-                  ['New', ['submitted']],
-                  ['In review', ['viewed', 'under_review']],
-                  ['Shortlist', ['shortlisted']],
-                  ['Callback & beyond', ['callback', 'offer', 'cast']],
+                  ["New", ["submitted"]],
+                  ["In review", ["viewed", "under_review"]],
+                  ["Shortlist", ["shortlisted"]],
+                  ["Callback & beyond", ["callback", "offer", "cast"]],
                 ] as const
               ).map(([label, statuses]) => {
                 const column = (candidates.data ?? []).filter((candidate) =>
                   (statuses as readonly string[]).includes(candidate.status),
-                )
+                );
                 return (
-                  <div key={label} className="flex min-w-0 flex-col gap-2 rounded-field bg-paper p-3">
+                  <div
+                    key={label}
+                    className="flex min-w-0 flex-col gap-2 rounded-field bg-paper p-3"
+                  >
                     <span className="flex items-center justify-between text-[12px] font-semibold uppercase tracking-[0.14em] text-muted">
                       {label}
                       <span className="font-mono">{column.length}</span>
@@ -714,7 +788,7 @@ export function TalentRecruiterPage() {
                       ))
                     )}
                   </div>
-                )
+                );
               })}
             </div>
           )}
@@ -722,9 +796,11 @@ export function TalentRecruiterPage() {
       )}
 
       {/* ── Saved searches ── */}
-      {tab === 'saved' && (
+      {tab === "saved" && (
         <Card className="flex flex-col gap-4">
-          <h2 className="font-display text-[19px] font-bold text-ink">Saved searches</h2>
+          <h2 className="font-display text-[19px] font-bold text-ink">
+            Saved searches
+          </h2>
           {savedSearches.isLoading ? (
             <Skeleton className="h-20" />
           ) : (savedSearches.data?.length ?? 0) === 0 ? (
@@ -736,7 +812,10 @@ export function TalentRecruiterPage() {
           ) : (
             <ul className="flex flex-col divide-y divide-line">
               {(savedSearches.data ?? []).map((search) => (
-                <li key={search.id} className="flex flex-wrap items-center gap-3 py-3">
+                <li
+                  key={search.id}
+                  className="flex flex-wrap items-center gap-3 py-3"
+                >
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[15px] font-bold text-ink">
                       {search.name}
@@ -749,17 +828,21 @@ export function TalentRecruiterPage() {
                     size="sm"
                     variant="secondary"
                     onClick={() => {
-                      const stored = search.filters as Partial<Filters> & { roleId?: string }
-                      setFilters({ ...EMPTY_FILTERS, ...stored })
-                      setRoleId(stored.roleId ?? '')
-                      setTab('search')
-                      toast(`Applied “${search.name}”`)
+                      const stored = search.filters as Partial<Filters> & {
+                        roleId?: string;
+                      };
+                      setFilters({ ...EMPTY_FILTERS, ...stored });
+                      setRoleId(stored.roleId ?? "");
+                      setTab("search");
+                      toast(`Applied “${search.name}”`);
                     }}
                   >
                     Apply
                   </Button>
                   <button
-                    onClick={() => savedSearchMutations.remove.mutate(search.id)}
+                    onClick={() =>
+                      savedSearchMutations.remove.mutate(search.id)
+                    }
                     aria-label={`Delete ${search.name}`}
                     className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-signal-no/10 hover:text-signal-no"
                   >
@@ -780,26 +863,39 @@ export function TalentRecruiterPage() {
         />
       )}
     </div>
-  )
+  );
 }
 
-function FilterBlock({ label, children }: { label: string; children: React.ReactNode }) {
+function FilterBlock({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex flex-col gap-2">
       <span className="text-[13px] font-bold text-ink">{label}</span>
       {children}
     </div>
-  )
+  );
 }
 
 function MatchRing({ score }: { score: number }) {
-  const circumference = 2 * Math.PI * 20
-  const tone = score >= 75 ? '#2BA36B' : score >= 50 ? '#F4B400' : '#E0483D'
+  const circumference = 2 * Math.PI * 20;
+  const tone = score >= 75 ? "#2BA36B" : score >= 50 ? "#F4B400" : "#E0483D";
 
   return (
     <span className="relative flex h-12 w-12 shrink-0 items-center justify-center">
       <svg viewBox="0 0 48 48" className="absolute inset-0 -rotate-90">
-        <circle cx="24" cy="24" r="20" fill="none" stroke="#ECEAE4" strokeWidth="4" />
+        <circle
+          cx="24"
+          cy="24"
+          r="20"
+          fill="none"
+          stroke="#ECEAE4"
+          strokeWidth="4"
+        />
         <circle
           cx="24"
           cy="24"
@@ -812,9 +908,11 @@ function MatchRing({ score }: { score: number }) {
           strokeDashoffset={circumference * (1 - score / 100)}
         />
       </svg>
-      <span className="relative font-mono text-[12px] font-bold text-ink">{score}%</span>
+      <span className="relative font-mono text-[12px] font-bold text-ink">
+        {score}%
+      </span>
     </span>
-  )
+  );
 }
 
 function TalentRow({
@@ -827,16 +925,16 @@ function TalentRow({
   onSave,
   onMessage,
 }: {
-  talent: TalentSearchResult
-  match: ReturnType<typeof matchTalentToRole> | null
-  history: { auditions: number; callbacks: number }
-  saved: boolean
-  selected: boolean
-  onSelect: (checked: boolean) => void
-  onSave: () => void
-  onMessage: () => void
+  talent: TalentSearchResult;
+  match: ReturnType<typeof matchTalentToRole> | null;
+  history: { auditions: number; callbacks: number };
+  saved: boolean;
+  selected: boolean;
+  onSelect: (checked: boolean) => void;
+  onSave: () => void;
+  onMessage?: () => void;
 }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(false);
 
   return (
     <Card className="flex flex-wrap items-center gap-4">
@@ -850,7 +948,11 @@ function TalentRow({
 
       <span className="h-16 w-16 shrink-0 overflow-hidden rounded-card bg-line">
         {talent.avatarUrl ? (
-          <img src={talent.avatarUrl} alt="" className="h-full w-full object-cover" />
+          <img
+            src={talent.avatarUrl}
+            alt=""
+            className="h-full w-full object-cover"
+          />
         ) : (
           <span className="flex h-full w-full items-center justify-center font-display text-[18px] font-bold text-muted">
             {talent.name.slice(0, 1)}
@@ -867,26 +969,30 @@ function TalentRow({
             {talent.name}
           </Link>
           {talent.availability && (
-            <Tag tone={talent.availability === 'available' ? 'good' : 'neutral'}>
-              {talent.availability === 'available'
-                ? 'Available'
-                : talent.availability === 'on_project'
-                  ? 'On project'
-                  : 'Unavailable'}
+            <Tag
+              tone={talent.availability === "available" ? "good" : "neutral"}
+            >
+              {talent.availability === "available"
+                ? "Available"
+                : talent.availability === "on_project"
+                  ? "On project"
+                  : "Unavailable"}
             </Tag>
           )}
-          {talent.experienceLevel && <Tag tone="cream">{talent.experienceLevel}</Tag>}
+          {talent.experienceLevel && (
+            <Tag tone="cream">{talent.experienceLevel}</Tag>
+          )}
         </div>
         <p className="mt-0.5 text-[13px] text-muted">
           {[
             talent.playingAgeMin && talent.playingAgeMax
               ? `plays ${talent.playingAgeMin}–${talent.playingAgeMax}`
               : null,
-            [talent.city, talent.country].filter(Boolean).join(', ') || null,
-            talent.languages.slice(0, 3).join(', ') || null,
+            [talent.city, talent.country].filter(Boolean).join(", ") || null,
+            talent.languages.slice(0, 3).join(", ") || null,
           ]
             .filter(Boolean)
-            .join(' · ')}
+            .join(" · ")}
         </p>
         {talent.skills.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -894,7 +1000,9 @@ function TalentRow({
               <Tag key={skill}>{skill}</Tag>
             ))}
             {talent.skills.length > 3 && (
-              <span className="text-[12px] text-muted">+{talent.skills.length - 3}</span>
+              <span className="text-[12px] text-muted">
+                +{talent.skills.length - 3}
+              </span>
             )}
           </div>
         )}
@@ -930,23 +1038,27 @@ function TalentRow({
       <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto">
         <button
           onClick={onSave}
-          aria-label={saved ? `Remove ${talent.name} from saved` : `Save ${talent.name}`}
+          aria-label={
+            saved ? `Remove ${talent.name} from saved` : `Save ${talent.name}`
+          }
           className={cn(
-            'flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors sm:h-9 sm:w-9',
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors sm:h-9 sm:w-9",
             saved
-              ? 'border-ink bg-ink text-white'
-              : 'border-line bg-card text-muted hover:border-ink/30 hover:text-ink',
+              ? "border-ink bg-ink text-white"
+              : "border-line bg-card text-muted hover:border-ink/30 hover:text-ink",
           )}
         >
-          <Bookmark className={cn('h-4 w-4', saved && 'fill-current')} />
+          <Bookmark className={cn("h-4 w-4", saved && "fill-current")} />
         </button>
-        <button
-          onClick={onMessage}
-          aria-label={`Message ${talent.name}`}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-card text-muted transition-colors hover:border-ink/30 hover:text-ink sm:h-9 sm:w-9"
-        >
-          <MessageSquare className="h-4 w-4" />
-        </button>
+        {onMessage && (
+          <button
+            onClick={onMessage}
+            aria-label={`Message ${talent.name}`}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-card text-muted transition-colors hover:border-ink/30 hover:text-ink sm:h-9 sm:w-9"
+          >
+            <MessageSquare className="h-4 w-4" />
+          </button>
+        )}
         <Link
           to={`/studio/talent/${talent.profileId}`}
           className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-field border border-line bg-card px-3.5 text-[13px] font-bold text-ink transition-colors hover:bg-paper sm:h-9 sm:flex-none"
@@ -971,21 +1083,21 @@ function TalentRow({
               <li
                 key={item.label}
                 className={cn(
-                  'rounded-full px-2.5 py-1 text-[12px]',
+                  "rounded-full px-2.5 py-1 text-[12px]",
                   item.possible === 0
-                    ? 'bg-card text-muted'
+                    ? "bg-card text-muted"
                     : item.met
-                      ? 'bg-signal-good-bg text-signal-good'
-                      : 'bg-signal-no/10 text-signal-no',
+                      ? "bg-signal-good-bg text-signal-good"
+                      : "bg-signal-no/10 text-signal-no",
                 )}
               >
                 {item.label}
-                {item.possible > 0 ? ` · ${item.earned}/${item.possible}` : ''}
+                {item.possible > 0 ? ` · ${item.earned}/${item.possible}` : ""}
               </li>
             ))}
           </ul>
         </div>
       )}
     </Card>
-  )
+  );
 }

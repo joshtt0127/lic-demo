@@ -4,6 +4,8 @@ import { Avatar, Button, FormError, FormField, SelectInput, Spinner, Tag } from 
 import { EditModal, TextArea } from '@/components/EditModal'
 import { EmptyState } from '@/components/EmptyState'
 import { useAuth } from '@/features/auth/AuthProvider'
+import { useCurrentOrganization, useOrgMembers } from '@/features/organizations/queries'
+import { can } from '@/lib/access'
 import {
   useCandidateNotes,
   useCandidateReviews,
@@ -53,12 +55,19 @@ export function CandidateReviewModal({
   onMessage?: () => void
 }) {
   const { profile } = useAuth()
+  const { organization } = useCurrentOrganization(profile?.id)
+  const members = useOrgMembers(orgId)
   const mutations = useStudioMutations(orgId, profile?.id)
+
+  const mayReview = can(organization?.role, 'candidate:review')
+  const mayDecide = can(organization?.role, 'candidate:decide')
+  const mayNote = can(organization?.role, 'candidate:note')
   const selfTapes = useSelfTapes(candidate.application_id)
   const reviews = useCandidateReviews(candidate.application_id)
   const notes = useCandidateNotes(candidate.application_id)
 
   const [note, setNote] = useState('')
+  const [voteComment, setVoteComment] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   // Opening a submitted application is what "viewed" means.
@@ -69,6 +78,18 @@ export function CandidateReviewModal({
   }, [candidate.application_id])
 
   const myVote = (reviews.data ?? []).find((review) => review.reviewer_id === profile?.id)?.vote
+
+  const reviewByMember = new Map((reviews.data ?? []).map((review) => [review.reviewer_id, review]))
+  const teamReviews = (members.data ?? []).map((member) => ({
+    id: member.profile_id,
+    name:
+      [member.profile?.first_name, member.profile?.last_name].filter(Boolean).join(' ') || 'Member',
+    avatarUrl: member.profile?.avatar_url ?? null,
+    review: reviewByMember.get(member.profile_id) ?? null,
+  }))
+  const teamCount = teamReviews.length
+  const votedCount = teamReviews.filter((member) => member.review).length
+  const reviewsWithComment = (reviews.data ?? []).filter((review) => review.comment?.trim())
 
   const tape = selfTapes.data?.[0] ?? null
   const tapeSeconds = tape?.durationSeconds ?? null
@@ -168,61 +189,106 @@ export function CandidateReviewModal({
 
       {/* ── Team vote ── */}
       <FormField label="Your vote" plainLabel>
-        <div className="flex flex-wrap gap-2">
-          {VOTES.map((vote) => {
-            const Icon = vote.icon
-            const active = myVote === vote.value
-            return (
-              <button
-                key={vote.value}
-                type="button"
-                onClick={() =>
-                  run(
-                    () =>
-                      mutations.vote.mutateAsync({
-                        applicationId: candidate.application_id,
-                        vote: vote.value,
-                      }),
-                    'Could not save your vote',
-                  )
-                }
-                className={cn(
-                  'inline-flex items-center gap-2 rounded-field border px-3.5 py-2.5 text-[14px] font-semibold transition-colors',
-                  active ? 'border-ink bg-ink text-white' : 'border-line bg-card hover:bg-paper',
-                )}
-              >
-                <Icon className={cn('h-4 w-4', !active && vote.tone)} />
-                {vote.label}
-              </button>
-            )
-          })}
-        </div>
+        {!mayReview ? (
+          <p className="text-[13px] text-muted">
+            Your role in this organization is read-only — you can watch the tape, not vote.
+          </p>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-2">
+              {VOTES.map((vote) => {
+                const Icon = vote.icon
+                const active = myVote === vote.value
+                return (
+                  <button
+                    key={vote.value}
+                    type="button"
+                    onClick={() =>
+                      run(async () => {
+                        await mutations.vote.mutateAsync({
+                          applicationId: candidate.application_id,
+                          vote: vote.value,
+                          comment: voteComment.trim() || null,
+                        })
+                        setVoteComment('')
+                      }, 'Could not save your vote')
+                    }
+                    className={cn(
+                      'inline-flex items-center gap-2 rounded-field border px-3.5 py-2.5 text-[14px] font-semibold transition-colors',
+                      active ? 'border-ink bg-ink text-white' : 'border-line bg-card hover:bg-paper',
+                    )}
+                  >
+                    <Icon className={cn('h-4 w-4', !active && vote.tone)} />
+                    {vote.label}
+                  </button>
+                )
+              })}
+            </div>
 
-        {(reviews.data ?? []).length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {(reviews.data ?? []).map((review) => (
-              <span
-                key={review.id}
-                className="inline-flex items-center gap-1.5 rounded-full bg-paper px-2.5 py-1 text-[12px] text-ink"
-              >
-                <Avatar
-                  src={review.reviewer?.avatar_url ?? undefined}
-                  name={[review.reviewer?.first_name, review.reviewer?.last_name]
-                    .filter(Boolean)
-                    .join(' ')}
-                  size="xs"
-                />
-                {review.vote === 'good' ? 'Good' : review.vote === 'maybe' ? 'Maybe' : 'No go'}
-              </span>
-            ))}
-          </div>
+            <input
+              value={voteComment}
+              onChange={(event) => setVoteComment(event.target.value)}
+              aria-label="Reason for your vote"
+              placeholder="Add a reason (optional) — it is saved with your vote"
+              className="mt-2 h-10 w-full rounded-field border border-line bg-card px-3 text-[13px] text-ink outline-none placeholder:text-muted/70 focus:border-ink/30"
+            />
+          </>
         )}
+
+        {/* Who reviewed, and who the team is still waiting on. */}
+        <div className="mt-3 flex flex-col gap-2">
+          <span className="text-[12px] font-semibold text-muted">
+            {votedCount} of {teamCount} teammate{teamCount === 1 ? '' : 's'} reviewed
+          </span>
+          <ul className="flex flex-wrap gap-2">
+            {teamReviews.map(({ id, name, avatarUrl, review }) => (
+              <li
+                key={id}
+                className={cn(
+                  'inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px]',
+                  review ? 'bg-paper text-ink' : 'border border-dashed border-line text-muted',
+                )}
+                title={review?.comment ?? undefined}
+              >
+                <Avatar src={avatarUrl ?? undefined} name={name} size="xs" />
+                <span className="truncate">{name}</span>
+                <span className="shrink-0 font-semibold">
+                  {review
+                    ? review.vote === 'good'
+                      ? '· Good'
+                      : review.vote === 'maybe'
+                        ? '· Maybe'
+                        : '· No go'
+                    : '· not yet'}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          {reviewsWithComment.length > 0 && (
+            <ul className="flex flex-col gap-1.5">
+              {reviewsWithComment.map((review) => (
+                <li key={`why-${review.id}`} className="text-[12.5px] text-muted">
+                  <span className="font-semibold text-ink">
+                    {[review.reviewer?.first_name, review.reviewer?.last_name]
+                      .filter(Boolean)
+                      .join(' ') || 'Teammate'}
+                    :
+                  </span>{' '}
+                  {review.comment}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </FormField>
 
       {/* ── Decision ── */}
       <FormField label="Status" htmlFor="candidate-status" plainLabel>
         <SelectInput
           id="candidate-status"
+          disabled={!mayDecide}
+          title={mayDecide ? undefined : 'Your role cannot decide on candidates'}
           value={candidate.status}
           onChange={(event) =>
             run(
@@ -247,18 +313,23 @@ export function CandidateReviewModal({
       </FormField>
 
       {/* ── Notes ── */}
-      <FormField label="Team notes" htmlFor="candidate-note" plainLabel>
+      <FormField label="Team notes — internal" htmlFor="candidate-note" plainLabel>
         <TextArea
           id="candidate-note"
           rows={2}
-          placeholder="What you want the team to know."
+          disabled={!mayNote}
+          placeholder={
+            mayNote
+              ? 'What you want the team to know. The actor never sees this.'
+              : 'Your role cannot add notes.'
+          }
           value={note}
           onChange={(event) => setNote(event.target.value)}
         />
         <div className="mt-2 flex justify-end">
           <Button
             size="sm"
-            disabled={!note.trim() || mutations.addNote.isPending}
+            disabled={!mayNote || !note.trim() || mutations.addNote.isPending}
             icon={
               mutations.addNote.isPending ? <Spinner /> : <MessageSquare className="h-3.5 w-3.5" />
             }

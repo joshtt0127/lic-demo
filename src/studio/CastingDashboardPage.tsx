@@ -29,6 +29,7 @@ import { useAuth } from '@/features/auth/AuthProvider'
 import { useCurrentOrganization, useOrgMembers } from '@/features/organizations/queries'
 import { MessageTalentModal } from '@/features/messaging/MessageTalentModal'
 import { ROLE_STATUS_LABEL, ROLE_STATUSES } from '@/features/castings/lifecycle'
+import { can } from '@/lib/access'
 import {
   castingHealth,
   submissionsOverTime,
@@ -105,6 +106,12 @@ export function CastingDashboardPage() {
     else search.set('tab', next)
     setParams(search, { replace: true })
   }
+
+  // What this member is allowed to do — mirrors the RLS policies.
+  const mayPublish = can(organization?.role, 'casting:publish')
+  const mayManageRoles = can(organization?.role, 'role:manage')
+  const mayDecide = can(organization?.role, 'candidate:decide')
+  const mayMessage = can(organization?.role, 'message:send')
 
   const [reviewing, setReviewing] = useState<CandidateViewRow | null>(null)
   const [messaging, setMessaging] = useState<CandidateViewRow | null>(null)
@@ -290,7 +297,7 @@ export function CastingDashboardPage() {
           >
             Casting console
           </Button>
-          {published ? (
+          {!mayPublish ? null : published ? (
             <Button
               size="sm"
               variant="secondary"
@@ -643,7 +650,8 @@ export function CastingDashboardPage() {
             <RolesTable
               roles={filteredRoles}
               perRole={stats.perRole}
-              editable
+              editable={mayManageRoles}
+              canSetStatus={mayManageRoles}
               onStatus={(role, status) =>
                 run(
                   () => mutations.setRoleStatus.mutateAsync({ id: role.id, status }),
@@ -738,6 +746,7 @@ export function CastingDashboardPage() {
           loading={candidates.isLoading}
           languageName={languageName}
           onReview={setReviewing}
+          canDecide={mayDecide}
           onStatus={(candidate, status) =>
             run(
               () =>
@@ -767,10 +776,14 @@ export function CastingDashboardPage() {
           candidate={reviewing}
           orgId={organization?.id}
           onClose={() => setReviewing(null)}
-          onMessage={() => {
-            setMessaging(reviewing)
-            setReviewing(null)
-          }}
+          onMessage={
+            mayMessage
+              ? () => {
+                  setMessaging(reviewing)
+                  setReviewing(null)
+                }
+              : undefined
+          }
         />
       )}
 
@@ -829,6 +842,7 @@ function RolesTable({
   roles,
   perRole,
   editable,
+  canSetStatus = true,
   compact,
   onStatus,
   onEdit,
@@ -838,6 +852,7 @@ function RolesTable({
   roles: RoleRow[]
   perRole: Map<string, CandidateViewRow[]>
   editable?: boolean
+  canSetStatus?: boolean
   /** Overview keeps the essentials; the Roles tab shows everything. */
   compact?: boolean
   onStatus: (role: RoleRow, status: RoleStatus) => void
@@ -914,6 +929,8 @@ function RolesTable({
                 <td className="px-2 py-3">
                   <SelectInput
                     aria-label={`Status of ${role.name}`}
+                    disabled={!canSetStatus}
+                    title={canSetStatus ? undefined : 'Your role cannot change a role status'}
                     value={role.status}
                     onChange={(event) => onStatus(role, event.target.value as RoleStatus)}
                     className="w-[150px]"
@@ -969,6 +986,7 @@ function CandidateList({
   languageName,
   onReview,
   onStatus,
+  canDecide = true,
 }: {
   title: string
   candidates: CandidateViewRow[]
@@ -977,6 +995,7 @@ function CandidateList({
   languageName: (code: string) => string
   onReview: (candidate: CandidateViewRow) => void
   onStatus: (candidate: CandidateViewRow, status: ApplicationStatus) => void
+  canDecide?: boolean
 }) {
   const [roleFilter, setRoleFilter] = useState('')
   const [query, setQuery] = useState('')
@@ -1085,6 +1104,8 @@ function CandidateList({
 
               <SelectInput
                 aria-label={`Status of ${candidate.name}`}
+                disabled={!canDecide}
+                title={canDecide ? undefined : 'Your role cannot decide on candidates'}
                 value={candidate.status}
                 onChange={(event) => onStatus(candidate, event.target.value as ApplicationStatus)}
                 className="w-[150px] shrink-0"

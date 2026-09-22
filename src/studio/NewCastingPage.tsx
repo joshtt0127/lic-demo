@@ -19,6 +19,7 @@ import { MultiSelect } from '@/components/form/MultiSelect'
 import { useToast } from '@/components/Toast'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useCurrentOrganization } from '@/features/organizations/queries'
+import { can } from '@/lib/access'
 import { useOrgProjects, useStudioMutations } from '@/features/studio/queries'
 import { useLanguagesCatalog, useSkillsCatalog } from '@/features/talent/queries'
 import { track } from '@/lib/analytics'
@@ -94,6 +95,23 @@ export function NewCastingPage() {
 
   if (orgLoading) {
     return <Card className="h-40" />
+  }
+
+  if (organization && !can(organization.role, 'casting:create')) {
+    return (
+      <EmptyState
+        title="Your role cannot open a casting"
+        description={`You are ${organization.name}'s ${organization.role.replace('_', ' ')}. Ask an owner or a casting director to create it — you will still review the candidates.`}
+        action={
+          <Link
+            to="/studio/casting-calls"
+            className="inline-flex h-11 items-center rounded-field bg-ink px-5 text-[14px] font-bold text-white"
+          >
+            Back to castings
+          </Link>
+        }
+      />
+    )
   }
 
   if (!organization) {

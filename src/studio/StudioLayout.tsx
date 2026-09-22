@@ -21,7 +21,7 @@ import { useAuth } from '@/features/auth/AuthProvider'
 import { useCurrentOrganization } from '@/features/organizations/queries'
 import { useUnreadCounts } from '@/features/notifications/queries'
 import { useLiveMessaging } from '@/features/messaging/useLiveMessaging'
-import { ORG_ROLE_LABEL } from '@/lib/access'
+import { can, ORG_ROLE_LABEL } from '@/lib/access'
 import { cn } from '@/lib/cn'
 
 /**
@@ -209,8 +209,16 @@ export function StudioLayout() {
   )
 }
 
-/** Shared "New casting" call to action — used by the home and the casting list. */
+/**
+ * Shared "New casting" call to action — used by the home and the casting list.
+ * It disappears for a member who could not create one anyway (the RLS policy
+ * would refuse it), rather than leading to a dead end.
+ */
 export function NewCastingButton({ className }: { className?: string }) {
+  const { profile } = useAuth()
+  const { organization } = useCurrentOrganization(profile?.id)
+  if (!can(organization?.role, 'casting:create')) return null
+
   return (
     <Link
       to="/studio/casting-calls/new"
