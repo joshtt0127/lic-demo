@@ -773,6 +773,7 @@ export function CastingDashboardPage() {
       {reviewing && (
         <CandidateReviewModal
           candidate={reviewing}
+          role={stats.roles.find((item) => item.id === reviewing.role_id) ?? null}
           orgId={organization?.id}
           onClose={() => setReviewing(null)}
           onMessage={

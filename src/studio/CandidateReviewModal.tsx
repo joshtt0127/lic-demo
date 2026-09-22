@@ -13,11 +13,12 @@ import {
 } from '@/features/studio/queries'
 import { useSelfTapes } from '@/features/selftapes/queries'
 import { TapeCheckCard } from '@/components/upload/TapeCheckCard'
+import { AiTapeReview } from './AiTapeReview'
 import { APPLICATION_STATUS_LABEL, relativeTime } from '@/lib/format'
 import { formatBytes } from '@/lib/storage'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
-import type { ApplicationStatus, CandidateViewRow, ReviewVote } from '@/types/database'
+import type { ApplicationStatus, CandidateViewRow, ReviewVote, RoleRow } from '@/types/database'
 
 /**
  * Candidate review: the self-tape, the team's votes, the notes and the decision.
@@ -45,11 +46,14 @@ const VOTES: { value: ReviewVote; label: string; icon: typeof ThumbsUp; tone: st
 
 export function CandidateReviewModal({
   candidate,
+  role,
   orgId,
   onClose,
   onMessage,
 }: {
   candidate: CandidateViewRow
+  /** The role they applied for — the AI read needs its brief. */
+  role?: RoleRow | null
   orgId: string | undefined
   onClose: () => void
   /** Write to the actor — the parent owns the message modal. */
@@ -158,6 +162,12 @@ export function CandidateReviewModal({
               className="w-full rounded-btn border border-line bg-black"
             />
             {tape.check && <TapeCheckCard check={tape.check} />}
+            <AiTapeReview
+              selfTapeId={tape.id}
+              tapeUrl={tape.url}
+              role={role ?? null}
+              canRequest={mayReview}
+            />
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted">
               <span>Sent {relativeTime(tape.submittedAt)}</span>
               {tapeDuration && <span className="font-mono">{tapeDuration}</span>}

@@ -324,6 +324,7 @@ export function SelectionConsolePage() {
       {reviewing && (
         <CandidateReviewModal
           candidate={reviewing}
+          role={roles.find((item) => item.id === reviewing.role_id) ?? null}
           orgId={organization?.id}
           onClose={() => setReviewing(null)}
         />

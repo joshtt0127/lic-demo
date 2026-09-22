@@ -395,6 +395,25 @@ export type AnalyticsEventRow = {
 
 // ── Views ────────────────────────────────────────────────────────────────────
 
+/** L'avis de l'IA sur une tape — une note par trait, avec sa justification. */
+export type TapeAiReviewRow = {
+  id: string
+  self_tape_id: string
+  requested_by: string | null
+  status: 'pending' | 'ready' | 'failed'
+  model: string | null
+  traits_asked: string[]
+  traits: { trait: string; score: number | null; evidence: string }[]
+  fit_score: number | null
+  summary: string | null
+  strengths: string[]
+  risks: string[]
+  frames: number | null
+  error: string | null
+  created_at: string
+  completed_at: string | null
+}
+
 /** What the browser measured about a self-tape when it was sent. */
 export type TapeCheckRow = {
   self_tape_id: string
@@ -530,6 +549,7 @@ export type Database = {
       notifications: Writable<NotificationRow, 'recipient_id' | 'type' | 'title'>
       analytics_events: Writable<AnalyticsEventRow, 'name'>
       tape_checks: Writable<TapeCheckRow, 'self_tape_id'>
+      tape_ai_reviews: Writable<TapeAiReviewRow, 'self_tape_id'>
       follows: Writable<FollowRow, 'follower_id' | 'following_id'>
       organization_follows: Writable<OrganizationFollowRow, 'profile_id' | 'org_id'>
     }
