@@ -104,11 +104,40 @@ async function sql(query) {
 
 // ── Migrations ───────────────────────────────────────────────────────────────
 
+/**
+ * L'historique vit dans un schéma **non exposé** par l'API.
+ *
+ * Il était dans `public`, donc lisible par quiconque avait la clé publique —
+ * la liste des fichiers de migration, c'est la carte du schéma offerte à qui
+ * passe (alerte « critical » de Supabase, corrigée par 20260922150000).
+ */
 const MIGRATION_TABLE = `
-  create table if not exists public.schema_migrations (
+  create schema if not exists private;
+  revoke all on schema private from anon, authenticated;
+
+  create table if not exists private.schema_migrations (
     name       text primary key,
     applied_at timestamptz not null default now()
   );
+
+  -- Déménagement de l'historique **avec ses lignes** : la table a d'abord vécu
+  -- dans \`public\`, donc dans l'API. Idempotent, quel que soit l'état.
+  do $$
+  begin
+    if exists (
+      select 1 from pg_class c
+        join pg_namespace n on n.oid = c.relnamespace
+       where n.nspname = 'public' and c.relname = 'schema_migrations'
+    ) then
+      insert into private.schema_migrations (name, applied_at)
+      select name, applied_at from public.schema_migrations
+      on conflict (name) do nothing;
+      drop table public.schema_migrations;
+    end if;
+  end
+  $$;
+  alter table private.schema_migrations enable row level security;
+  revoke all on private.schema_migrations from anon, authenticated;
 `
 
 function migrationFiles() {
@@ -120,7 +149,7 @@ function migrationFiles() {
 
 async function appliedMigrations() {
   await sql(MIGRATION_TABLE)
-  const rows = await sql('select name from public.schema_migrations order by name;')
+  const rows = await sql('select name from private.schema_migrations order by name;')
   return new Set((Array.isArray(rows) ? rows : []).map((r) => r.name))
 }
 
@@ -136,7 +165,7 @@ async function push() {
     const body = readFileSync(path.join(MIGRATIONS_DIR, file), 'utf8')
     process.stdout.write(`  · ${file} … `)
     // One transaction per migration: a failing file leaves no partial schema.
-    await sql(`begin;\n${body}\ninsert into public.schema_migrations (name) values ('${file}');\ncommit;`)
+    await sql(`begin;\n${body}\ninsert into private.schema_migrations (name) values ('${file}');\ncommit;`)
     console.log('ok')
   }
   console.log('✓ Done.')

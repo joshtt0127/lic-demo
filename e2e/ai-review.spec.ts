@@ -7,7 +7,8 @@ import { DEMO_PASSWORD, localEnv, signInAs } from './env'
  *
  * Le test tient dans les deux états du monde, parce que la clé du modèle est une
  * configuration serveur et non une donnée du test :
- *   · clé posée  → l'avis revient `ready`, avec **une justification par note** ;
+ *   · clé posée  → l'avis revient `ready`, avec **une justification par note**,
+ *     la suite que donnerait un directeur de casting et l'ajustement demandé ;
  *   · pas de clé → la ligne finit en `failed` avec la raison exacte, et l'écran
  *     l'affiche au lieu d'inventer un avis.
  * Dans les deux cas on vérifie ce qui compte : les images sont extraites **dans
@@ -173,7 +174,14 @@ test('analysing a tape extracts frames, calls the function, and records the outc
       expect(trait.trait, 'every trait is named').toBeTruthy()
       expect(trait.evidence, `"${trait.trait}" must say what was seen`).toBeTruthy()
     }
+    // Un directeur de casting ne rend pas une note : il rend une suite.
+    expect(['callback', 'maybe', 'pass']).toContain(review.recommendation)
+    expect(review.direction, 'what to ask for on a second take').toBeTruthy()
     await expect(studio.getByText(/fit \d+\/100/)).toBeVisible({ timeout: 20_000 })
+    await expect(
+      studio.getByText(/Would call back|On the maybe pile|Would pass/),
+    ).toBeVisible({ timeout: 20_000 })
+    await expect(studio.getByText('On a second take ·')).toBeVisible({ timeout: 20_000 })
   } else {
     // Pas de clé configurée: la raison est dite, aucun avis n'est inventé.
     expect(review?.error).toContain('GEMINI_API_KEY')

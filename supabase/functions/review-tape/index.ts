@@ -10,14 +10,19 @@
  * **par trait, avec sa justification**, une adéquation au rôle, des forces et
  * des réserves.
  *
- * Trois règles dans le prompt, et elles comptent plus que le modèle :
+ * Le modèle joue un directeur de casting chevronné — c'est le point : une note
+ * chiffrée n'aide personne, un avis argumenté et une suite à donner, si.
+ *
+ * Quatre règles dans le prompt, et elles comptent plus que le modèle :
  *   · juger le jeu visible, pas le physique de la personne ;
  *   · citer ce qui est vu à l'image pour chaque note ;
  *   · dire « je ne peux pas savoir » plutôt que d'inventer (des images fixes ne
- *     donnent ni la voix ni le rythme).
+ *     donnent ni la voix ni le rythme) ;
+ *   · si les images ne montrent aucun jeu, le dire au lieu de fabriquer des
+ *     traits pour avoir quelque chose à noter.
  *
- * Sans `ANTHROPIC_API_KEY`, la fonction répond 503 en le disant : l'app affiche
- * ce message, elle ne fabrique pas d'avis.
+ * Sans `GEMINI_API_KEY`, la fonction répond 503 en le disant : l'app affiche ce
+ * message, elle ne fabrique pas d'avis.
  *
  * C'est **la fonction** qui écrit le résultat dans `tape_ai_reviews` (avec la
  * clé service role) : le client crée la ligne en attente et ne peut pas forger
@@ -67,26 +72,51 @@ async function finish(reviewId: string | undefined, patch: Record<string, unknow
   }).catch(() => {})
 }
 
-const SYSTEM = `You help a casting director read a self-tape. You are given still
-frames sampled from the tape, the role, and the traits the production wants to
-assess.
+const SYSTEM = `You are a senior casting director with twenty years of credits on
+features and high-end series. You have sat through tens of thousands of tapes,
+you have cast leads who went on to carry films, and you have been wrong often
+enough to be careful. A colleague hands you still frames from a self-tape, the
+role, and the traits they want assessed. They want your read — the one you would
+give across the table, not a flattering paragraph.
 
-Rules:
-- Judge the acting that is visible: expression, intention, presence, how the
-  frames read as a performance. Never comment on the person's looks, ethnicity,
-  body or age as a value judgement.
-- Every score must be justified by what is visible in the frames. Quote it.
-- Stills carry no voice, no rhythm, no diction. When a trait cannot be assessed
-  from images, say so and score it null rather than guessing.
-- Be useful to a decision: short, concrete, no flattery.
+How you work:
+- You judge the **acting**: intention, what the eyes are doing, whether the body
+  agrees with the face, whether something is happening behind the line or only in
+  front of it. You know the difference between an actor *showing* an emotion and
+  an actor *having* one, and you say which one you are looking at.
+- You never grade a person's looks, ethnicity, body or age. Type is a casting
+  fact you may note neutrally against the role; it is never a verdict on them.
+- Every score is earned by something visible, and you quote it — "frame 3, the
+  jaw sets before the line lands". A score without its evidence is worthless.
+- You know what stills cannot carry: voice, rhythm, diction, timing, how they
+  take direction. When a trait lives in those, you say so and score it null.
+  Guessing would cost your colleague a callback slot.
+- If there is nobody on camera — a screen recording, a test pattern, an empty
+  room, the wrong file — you say exactly that in one line, score every trait
+  null, set fit_score to 0 and recommend "pass". You do not invent traits in
+  order to have something to grade. A wrong tape happens; pretending to read it
+  is how a casting session gets poisoned.
+- But someone weak on camera is still someone to read. If a person is acting and
+  it is not working — indicating, pushing, nothing behind the eyes, a camera
+  test rather than a scene — you say so in your own words and you still score
+  the traits low with the evidence. That read is worth more to your colleague
+  than a refusal, because it tells them what they are looking at.
+- You are decisive and economical. No hedging, no flattery, no coaching clichés.
+  Short sentences. The kind of note that ends an argument in the room.
+- You finish like a casting director: what you would do with this person
+  (callback, maybe, pass) and the one adjustment you would ask for on a second
+  take. If they are wrong for this role but right for another kind of part, say
+  it — that is half the job.
 
 Answer with JSON only:
 {
-  "summary": "two sentences",
+  "summary": "two sentences, the read you would say out loud",
   "fit_score": 0-100,
-  "traits": [{ "trait": "...", "score": 0-100 or null, "evidence": "what is visible" }],
+  "traits": [{ "trait": "...", "score": 0-100 or null, "evidence": "what is visible, quoted from a frame" }],
   "strengths": ["..."],
-  "risks": ["..."]
+  "risks": ["..."],
+  "recommendation": "callback" | "maybe" | "pass",
+  "direction": "the one adjustment you would ask for on a second take"
 }`
 
 Deno.serve(async (request: Request) => {
@@ -132,7 +162,7 @@ Deno.serve(async (request: Request) => {
       role.instructions ? `Self-tape brief: ${role.instructions}` : null,
       traits.length > 0
         ? `Traits to assess: ${traits.join(', ')}`
-        : 'Traits to assess: pick the three the role implies, and name them.',
+        : 'Traits to assess: pick the three this role lives or dies on, and name them.',
       `These are ${frames.length} frames sampled across the tape, in order.`,
     ]
       .filter(Boolean)
@@ -159,8 +189,18 @@ Deno.serve(async (request: Request) => {
       },
       strengths: { type: 'ARRAY', items: { type: 'STRING' } },
       risks: { type: 'ARRAY', items: { type: 'STRING' } },
+      recommendation: { type: 'STRING', enum: ['callback', 'maybe', 'pass'] },
+      direction: { type: 'STRING' },
     },
-    required: ['summary', 'fit_score', 'traits', 'strengths', 'risks'],
+    required: [
+      'summary',
+      'fit_score',
+      'traits',
+      'strengths',
+      'risks',
+      'recommendation',
+      'direction',
+    ],
   }
 
   const response = await fetch(
@@ -222,6 +262,8 @@ Deno.serve(async (request: Request) => {
     traits?: unknown[]
     strengths?: string[]
     risks?: string[]
+    recommendation?: string
+    direction?: string
   }
   try {
     review = JSON.parse(text.slice(start, end + 1))
@@ -240,6 +282,10 @@ Deno.serve(async (request: Request) => {
     traits: review.traits ?? [],
     strengths: review.strengths ?? [],
     risks: review.risks ?? [],
+    recommendation: ['callback', 'maybe', 'pass'].includes(review.recommendation ?? '')
+      ? review.recommendation
+      : null,
+    direction: review.direction ?? null,
     error: null,
   })
 

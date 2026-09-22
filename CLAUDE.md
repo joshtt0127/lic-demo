@@ -273,6 +273,17 @@ vide. L'écran n'affiche **jamais une note sans sa justification**, et le modèl
 répond « pas lisible sur des images fixes » quand c'est le cas (l'ironie, par
 exemple, passe par la voix).
 
+Le prompt fait jouer au modèle un **directeur de casting chevronné**, parce
+qu'une note chiffrée n'aide personne à choisir : il rend un avis argumenté, puis
+ce qu'il ferait du comédien (`recommendation` : callback / maybe / pass) et
+l'ajustement qu'il demanderait pour une seconde prise (`direction`). Garde-fous
+du prompt : juger le jeu et jamais le physique, la couleur de peau, le corps ou
+l'âge ; citer l'image qui justifie chaque note ; dire « pas lisible sur des
+images fixes » plutôt que deviner ; et si personne n'est à l'image (mauvais
+fichier, capture d'écran), le dire et recommander `pass` au lieu d'inventer des
+traits pour avoir quelque chose à noter — vérifié en direct sur une vraie tape.
+La décision reste humaine : les votes et les notes de l'équipe font foi.
+
 ## E-mails (ce qui sort de l'app)
 
 `notifications` → `email_outbox` (rendu + conservé) → `pg_net` vers un

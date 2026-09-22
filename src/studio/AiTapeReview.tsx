@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertTriangle, Sparkles } from 'lucide-react'
+import { AlertTriangle, CornerDownRight, Sparkles } from 'lucide-react'
 import { Button, FormError, Input, Spinner } from '@/components/ui'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useAiReview, useRequestAiReview, FRAME_COUNT } from '@/features/selftapes/aiReview'
@@ -7,12 +7,20 @@ import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 import type { RoleRow } from '@/types/database'
 
+/** Ce qu'un directeur de casting ferait du comédien, dit comme en salle. */
+const CALL: Record<string, { label: string; className: string }> = {
+  callback: { label: 'Would call back', className: 'bg-signal-good-bg text-signal-good' },
+  maybe: { label: 'On the maybe pile', className: 'bg-signal-maybe/15 text-[#8A6D00]' },
+  pass: { label: 'Would pass', className: 'bg-signal-no/10 text-signal-no' },
+}
+
 /**
  * L'avis de l'IA sur une tape, pour aider un choix — pas pour le faire.
  *
- * La production dit quels traits de jeu l'intéressent, l'IA rend une note par
- * trait **avec ce qu'elle a vu**. Un score sans justification n'aide personne à
- * caster : c'est pour ça que l'UI n'affiche jamais l'un sans l'autre.
+ * Le modèle joue un directeur de casting chevronné : il rend une note par trait
+ * **avec ce qu'il a vu**, puis ce qu'il ferait du comédien et l'ajustement qu'il
+ * demanderait pour une seconde prise. Un score sans justification n'aide
+ * personne à caster : c'est pour ça que l'UI n'affiche jamais l'un sans l'autre.
  */
 export function AiTapeReview({
   selfTapeId,
@@ -84,6 +92,17 @@ export function AiTapeReview({
           </span>
         )}
       </div>
+
+      {ready && review?.recommendation && CALL[review.recommendation] && (
+        <span
+          className={cn(
+            'w-fit rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em]',
+            CALL[review.recommendation].className,
+          )}
+        >
+          {CALL[review.recommendation].label}
+        </span>
+      )}
 
       {canRequest && (
         <div className="flex flex-col gap-2">
@@ -181,6 +200,16 @@ export function AiTapeReview({
                 </div>
               )}
             </div>
+          )}
+
+          {review.direction && (
+            <p className="flex items-start gap-2 rounded-field bg-paper p-2.5 text-[12.5px] leading-relaxed text-ink/90">
+              <CornerDownRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted" />
+              <span>
+                <span className="font-semibold">On a second take · </span>
+                {review.direction}
+              </span>
+            </p>
           )}
 
           <p className="text-[11.5px] leading-relaxed text-muted">

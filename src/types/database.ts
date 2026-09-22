@@ -408,6 +408,10 @@ export type TapeAiReviewRow = {
   summary: string | null
   strengths: string[]
   risks: string[]
+  /** Ce qu'un directeur de casting ferait de ce comédien — jamais une décision. */
+  recommendation: 'callback' | 'maybe' | 'pass' | null
+  /** L'ajustement qu'il demanderait pour une seconde prise. */
+  direction: string | null
   frames: number | null
   error: string | null
   created_at: string
