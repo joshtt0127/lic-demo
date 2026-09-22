@@ -1,50 +1,37 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Launcher } from './pages/Launcher'
-import { Pitch } from './pages/Pitch'
 import { SignIn } from './pages/auth/SignIn'
 import { SignUp } from './pages/auth/SignUp'
 import { ForgotPassword } from './pages/auth/ForgotPassword'
 import { ResetPassword } from './pages/auth/ResetPassword'
 import { Continue } from './pages/auth/Continue'
-import { Onboarding } from './pages/onboarding/Onboarding'
-import { PublicCastingPage } from './pages/PublicCastingPage'
 import { RedirectIfSignedIn, RequireAuth, RequireSurface } from './features/auth/guards'
-import { MessagesScreen } from './features/messaging/MessagesScreen'
-import { NotificationsScreen } from './features/notifications/NotificationsScreen'
-import { StudioLayout } from './studio/StudioLayout'
-import { StudioHome } from './studio/StudioHome'
-import { CastingCallsPage } from './studio/CastingCallsPage'
-import { NewCastingPage } from './studio/NewCastingPage'
-import { SelectionConsolePage } from './studio/SelectionConsolePage'
-import { CastingDashboardPage } from './studio/CastingDashboardPage'
-import { ProjectsPage } from './studio/ProjectsPage'
-import { TalentRecruiterPage } from './studio/TalentRecruiterPage'
-import { StudioTalentProfilePage } from './studio/StudioTalentProfilePage'
-import { CalendarPage } from './studio/CalendarPage'
-import { TeamPage } from './studio/TeamPage'
-import { SettingsPage } from './studio/SettingsPage'
-import { TalentLayout } from './talent/TalentLayout'
-import { PhonePreview } from './pages/PhonePreview'
-import { TalentHome } from './talent/TalentHome'
-import { TalentProfilePage } from './talent/TalentProfilePage'
-import { CastingCalls } from './talent/CastingCalls'
-import { TalentAuditions } from './talent/TalentAuditions'
-import { Messages } from './talent/Messages'
-import { Notifications } from './talent/Notifications'
-import { TalentCastingDetail } from './talent/TalentCastingDetail'
 
 /**
  * Routes.
  *
  * Only screens backed by real data are mounted. The former fixture screens
- * (`studio/SelectionConsole`, `studio/Dashboard`, `app/*`…) stay in the repo as
+ * (`studio/Dashboard`, `studio/SelectionConsole`, `app/*`…) stay in the repo as
  * the base for the slices that will connect them, but they are not reachable —
  * a route that shows invented numbers is worse than no route.
+ *
+ * **Loading**: the landing page and the auth screens ship in the first chunk,
+ * because that is what a first visit needs. Everything else is behind
+ * `lazy`, so a talent never downloads the studio (and the other way round), and
+ * heavy libraries (recharts, framer-motion-driven pages) only arrive with the
+ * screen that uses them. React Router resolves these before rendering the
+ * route, so there is no flash of an empty layout.
  */
 export const router = createBrowserRouter([
   { path: '/', element: <Launcher /> },
-  { path: '/pitch', element: <Pitch /> },
-  { path: '/app', element: <PhonePreview /> },
+  {
+    path: '/pitch',
+    lazy: async () => ({ Component: (await import('./pages/Pitch')).Pitch }),
+  },
+  {
+    path: '/app',
+    lazy: async () => ({ Component: (await import('./pages/PhonePreview')).PhonePreview }),
+  },
 
   // Auth — signed-in users are bounced to their own space.
   {
@@ -71,14 +58,26 @@ export const router = createBrowserRouter([
   {
     path: '/casting/:castingId',
     element: <RequireAuth />,
-    children: [{ index: true, element: <PublicCastingPage /> }],
+    children: [
+      {
+        index: true,
+        lazy: async () => ({
+          Component: (await import('./pages/PublicCastingPage')).PublicCastingPage,
+        }),
+      },
+    ],
   },
 
   // Common onboarding (account type → the steps of your side).
   {
     path: '/onboarding',
     element: <RequireAuth />,
-    children: [{ index: true, element: <Onboarding /> }],
+    children: [
+      {
+        index: true,
+        lazy: async () => ({ Component: (await import('./pages/onboarding/Onboarding')).Onboarding }),
+      },
+    ],
   },
 
   // ── Production ──
@@ -87,21 +86,79 @@ export const router = createBrowserRouter([
     element: <RequireSurface surface="studio" />,
     children: [
       {
-        element: <StudioLayout />,
+        lazy: async () => ({ Component: (await import('./studio/StudioLayout')).StudioLayout }),
         children: [
-          { index: true, element: <StudioHome /> },
-          { path: 'casting-calls', element: <CastingCallsPage /> },
-          { path: 'casting-calls/new', element: <NewCastingPage /> },
-          { path: 'casting/:castingId', element: <CastingDashboardPage /> },
-          { path: 'casting/:castingId/console', element: <SelectionConsolePage /> },
-          { path: 'projects', element: <ProjectsPage /> },
-          { path: 'talent', element: <TalentRecruiterPage /> },
-          { path: 'talent/:profileId', element: <StudioTalentProfilePage /> },
-          { path: 'calendar', element: <CalendarPage /> },
-          { path: 'messages', element: <MessagesScreen /> },
-          { path: 'notifications', element: <NotificationsScreen base="/studio" /> },
-          { path: 'team', element: <TeamPage /> },
-          { path: 'settings', element: <SettingsPage /> },
+          {
+            index: true,
+            lazy: async () => ({ Component: (await import('./studio/StudioHome')).StudioHome }),
+          },
+          {
+            path: 'casting-calls',
+            lazy: async () => ({
+              Component: (await import('./studio/CastingCallsPage')).CastingCallsPage,
+            }),
+          },
+          {
+            path: 'casting-calls/new',
+            lazy: async () => ({
+              Component: (await import('./studio/NewCastingPage')).NewCastingPage,
+            }),
+          },
+          {
+            path: 'casting/:castingId',
+            lazy: async () => ({
+              Component: (await import('./studio/CastingDashboardPage')).CastingDashboardPage,
+            }),
+          },
+          {
+            path: 'casting/:castingId/console',
+            lazy: async () => ({
+              Component: (await import('./studio/SelectionConsolePage')).SelectionConsolePage,
+            }),
+          },
+          {
+            path: 'projects',
+            lazy: async () => ({ Component: (await import('./studio/ProjectsPage')).ProjectsPage }),
+          },
+          {
+            path: 'talent',
+            lazy: async () => ({
+              Component: (await import('./studio/TalentRecruiterPage')).TalentRecruiterPage,
+            }),
+          },
+          {
+            path: 'talent/:profileId',
+            lazy: async () => ({
+              Component: (await import('./studio/StudioTalentProfilePage')).StudioTalentProfilePage,
+            }),
+          },
+          {
+            path: 'calendar',
+            lazy: async () => ({ Component: (await import('./studio/CalendarPage')).CalendarPage }),
+          },
+          {
+            path: 'messages',
+            lazy: async () => ({
+              Component: (await import('./features/messaging/MessagesScreen')).MessagesScreen,
+            }),
+          },
+          {
+            path: 'notifications',
+            lazy: async () => {
+              const { NotificationsScreen } = await import(
+                './features/notifications/NotificationsScreen'
+              )
+              return { Component: () => <NotificationsScreen base="/studio" /> }
+            },
+          },
+          {
+            path: 'team',
+            lazy: async () => ({ Component: (await import('./studio/TeamPage')).TeamPage }),
+          },
+          {
+            path: 'settings',
+            lazy: async () => ({ Component: (await import('./studio/SettingsPage')).SettingsPage }),
+          },
           // The old fixture dashboard lived here; the casting list is its real
           // equivalent, and a casting call has its own dashboard.
           { path: 'dashboard', element: <Navigate to="/studio/casting-calls" replace /> },
@@ -118,15 +175,44 @@ export const router = createBrowserRouter([
     element: <RequireSurface surface="talent" />,
     children: [
       {
-        element: <TalentLayout />,
+        lazy: async () => ({ Component: (await import('./talent/TalentLayout')).TalentLayout }),
         children: [
-          { index: true, element: <TalentHome /> },
-          { path: 'casting-calls', element: <CastingCalls /> },
-          { path: 'auditions', element: <TalentAuditions /> },
-          { path: 'messages', element: <Messages /> },
-          { path: 'notifications', element: <Notifications /> },
-          { path: 'profile', element: <TalentProfilePage /> },
-          { path: 'casting/:castingId', element: <TalentCastingDetail /> },
+          {
+            index: true,
+            lazy: async () => ({ Component: (await import('./talent/TalentHome')).TalentHome }),
+          },
+          {
+            path: 'casting-calls',
+            lazy: async () => ({ Component: (await import('./talent/CastingCalls')).CastingCalls }),
+          },
+          {
+            path: 'auditions',
+            lazy: async () => ({
+              Component: (await import('./talent/TalentAuditions')).TalentAuditions,
+            }),
+          },
+          {
+            path: 'messages',
+            lazy: async () => ({ Component: (await import('./talent/Messages')).Messages }),
+          },
+          {
+            path: 'notifications',
+            lazy: async () => ({
+              Component: (await import('./talent/Notifications')).Notifications,
+            }),
+          },
+          {
+            path: 'profile',
+            lazy: async () => ({
+              Component: (await import('./talent/TalentProfilePage')).TalentProfilePage,
+            }),
+          },
+          {
+            path: 'casting/:castingId',
+            lazy: async () => ({
+              Component: (await import('./talent/TalentCastingDetail')).TalentCastingDetail,
+            }),
+          },
           { path: '*', element: <Navigate to="/talent" replace /> },
         ],
       },
