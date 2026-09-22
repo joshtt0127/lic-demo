@@ -14,11 +14,16 @@ export type Participant = Pick<ProfileRow, 'id' | 'first_name' | 'last_name' | '
 export type ConversationSummary = {
   id: string
   subject: string | null
-  contextType: string
+  contextType: ConversationContext
   contextId: string | null
   lastMessageAt: string
   lastMessage: MessageRow | null
   unread: number
+  /**
+   * When the other side last opened the thread — that is what makes a "Read"
+   * marker honest rather than decorative.
+   */
+  othersLastReadAt: string | null
   participants: Participant[]
 }
 
@@ -47,7 +52,7 @@ export async function listConversations(profileId: string): Promise<Conversation
       .order('last_message_at', { ascending: false }),
     supabase
       .from('conversation_members')
-      .select('conversation_id, profiles(id, first_name, last_name, avatar_url)')
+      .select('conversation_id, last_read_at, profiles(id, first_name, last_name, avatar_url)')
       .in('conversation_id', ids),
     supabase
       .from('messages')
@@ -61,14 +66,23 @@ export async function listConversations(profileId: string): Promise<Conversation
     if (response.error) throw response.error
   }
 
-  type ParticipantJoin = { conversation_id: string; profiles: Participant | null }
+  type ParticipantJoin = {
+    conversation_id: string
+    last_read_at: string | null
+    profiles: Participant | null
+  }
   const participants = new Map<string, Participant[]>()
+  const othersRead = new Map<string, string | null>()
   for (const row of (participantsRes.data ?? []) as unknown as ParticipantJoin[]) {
     if (!row.profiles || row.profiles.id === profileId) continue
     participants.set(row.conversation_id, [
       ...(participants.get(row.conversation_id) ?? []),
       row.profiles,
     ])
+    const known = othersRead.get(row.conversation_id) ?? null
+    if (row.last_read_at && (!known || row.last_read_at > known)) {
+      othersRead.set(row.conversation_id, row.last_read_at)
+    }
   }
 
   const messages = (messagesRes.data ?? []) as MessageRow[]
@@ -87,6 +101,7 @@ export async function listConversations(profileId: string): Promise<Conversation
         (message) =>
           message.sender_id !== profileId && (!since || message.created_at > since),
       ).length,
+      othersLastReadAt: othersRead.get(conversation.id) ?? null,
       participants: participants.get(conversation.id) ?? [],
     }
   })
@@ -208,6 +223,100 @@ export async function startConversation(
 
   await sendMessage({ conversationId, senderId, body: input.body })
   return conversationId
+}
+
+export type ConversationContextInfo = {
+  label: string
+  detail: string | null
+  /** Where this thread comes from, per surface. */
+  talentHref: string
+  studioHref: string
+}
+
+/**
+ * What a conversation is about — resolved from `context_type` / `context_id`,
+ * so the thread can link back to the audition or the casting instead of leaving
+ * both sides guessing.
+ */
+export async function getConversationContext(
+  contextType: ConversationContext,
+  contextId: string | null,
+): Promise<ConversationContextInfo | null> {
+  if (!contextId) return null
+
+  if (contextType === 'application') {
+    const { data, error } = await supabase
+      .from('applications')
+      .select('id, roles ( name, casting_call_id, casting_calls ( title, projects ( title ) ) )')
+      .eq('id', contextId)
+      .maybeSingle()
+    if (error || !data) return null
+    type Joined = {
+      roles:
+        | { name: string; casting_call_id: string; casting_calls: { title: string; projects: { title: string } | null } | null }
+        | null
+    }
+    const role = (data as unknown as Joined).roles
+    if (!role) return null
+    return {
+      label: role.name,
+      detail: role.casting_calls?.projects?.title ?? role.casting_calls?.title ?? null,
+      talentHref: '/talent/auditions',
+      studioHref: `/studio/casting/${role.casting_call_id}`,
+    }
+  }
+
+  if (contextType === 'role') {
+    const { data, error } = await supabase
+      .from('roles')
+      .select('name, casting_call_id, casting_calls ( title, projects ( title ) )')
+      .eq('id', contextId)
+      .maybeSingle()
+    if (error || !data) return null
+    type Joined = {
+      name: string
+      casting_call_id: string
+      casting_calls: { title: string; projects: { title: string } | null } | null
+    }
+    const role = data as unknown as Joined
+    return {
+      label: role.name,
+      detail: role.casting_calls?.projects?.title ?? role.casting_calls?.title ?? null,
+      talentHref: `/talent/casting/${role.casting_call_id}`,
+      studioHref: `/studio/casting/${role.casting_call_id}`,
+    }
+  }
+
+  if (contextType === 'casting_call') {
+    const { data, error } = await supabase
+      .from('casting_calls')
+      .select('id, title, projects ( title )')
+      .eq('id', contextId)
+      .maybeSingle()
+    if (error || !data) return null
+    type Joined = { id: string; title: string; projects: { title: string } | null }
+    const casting = data as unknown as Joined
+    return {
+      label: casting.projects?.title ?? casting.title,
+      detail: casting.title,
+      talentHref: `/talent/casting/${casting.id}`,
+      studioHref: `/studio/casting/${casting.id}`,
+    }
+  }
+
+  return null
+}
+
+export function useConversationContext(
+  contextType: ConversationContext | undefined,
+  contextId: string | null | undefined,
+) {
+  return useQuery({
+    queryKey: ['conversation-context', contextType, contextId],
+    queryFn: () => getConversationContext(contextType as ConversationContext, contextId ?? null),
+    enabled: Boolean(contextType && contextType !== 'direct' && contextId),
+    staleTime: 5 * 60_000,
+  })
 }
 
 export async function markConversationRead(conversationId: string, profileId: string): Promise<void> {

@@ -7,6 +7,7 @@ import { PageTransition } from '@/components/PageTransition'
 import { UserMenu } from '@/components/UserMenu'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useUnreadCounts } from '@/features/notifications/queries'
+import { useLiveMessaging } from '@/features/messaging/useLiveMessaging'
 import { cn } from '@/lib/cn'
 
 /** Badge counts come from the database (see `useUnreadCounts`). */
@@ -33,6 +34,7 @@ export function TalentDesktopLayout() {
   const { profile } = useAuth()
   const [search, setSearch] = useState('')
   const unread = useUnreadCounts(profile?.id)
+  useLiveMessaging(profile?.id)
   const nav = navItems({
     messages: unread.data?.messages ?? 0,
     notifications: unread.data?.notifications ?? 0,

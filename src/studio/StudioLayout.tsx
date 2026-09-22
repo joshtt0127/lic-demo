@@ -20,6 +20,7 @@ import { UserMenu } from '@/components/UserMenu'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useCurrentOrganization } from '@/features/organizations/queries'
 import { useUnreadCounts } from '@/features/notifications/queries'
+import { useLiveMessaging } from '@/features/messaging/useLiveMessaging'
 import { ORG_ROLE_LABEL } from '@/lib/access'
 import { cn } from '@/lib/cn'
 
@@ -36,6 +37,7 @@ export function StudioLayout() {
   const { profile } = useAuth()
   const { organization } = useCurrentOrganization(profile?.id)
   const unread = useUnreadCounts(profile?.id)
+  useLiveMessaging(profile?.id)
   const [search, setSearch] = useState('')
 
   const nav = [

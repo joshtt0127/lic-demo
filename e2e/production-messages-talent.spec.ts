@@ -99,7 +99,7 @@ test('a casting director messages an actor, who receives it in their inbox', asy
     timeout: 20_000,
   })
 
-  // ── The actor receives it ──
+  // ── The badge is live before anything is opened ──
   const talentContext = await browser.newContext()
   const talent = await talentContext.newPage()
   await talent.goto('/auth/sign-in')
@@ -108,28 +108,46 @@ test('a casting director messages an actor, who receives it in their inbox', asy
   await talent.getByRole('button', { name: 'Sign in' }).click()
   await talent.waitForURL('**/talent', { timeout: 30_000 })
 
+  await expect(talent.locator('nav').getByText('1').first()).toBeVisible({ timeout: 20_000 })
+
   await talent.goto('/talent/messages')
   await expect(talent.getByText('Paula Direct').first()).toBeVisible({ timeout: 20_000 })
   await expect(talent.getByText('Hi Livia — free for a callback on Tuesday?').first()).toBeVisible()
+
+  // Opening the thread clears the badge for good — it is stored on the
+  // membership row, not in React state.
+  await talent.reload()
+  await expect(talent.locator('nav').getByText(/^[1-9]\d*$/)).toHaveCount(0)
+
+  // ── Live: the production's open thread updates on its own, and its own
+  //    message flips to "Read" now that the actor has opened it ──
+  await talent.getByPlaceholder('Write a message…').fill('Tuesday works.')
+  await talent.getByRole('button', { name: 'Send' }).click()
+
+  await expect(production.getByText('Tuesday works.').first()).toBeVisible({ timeout: 20_000 })
+  await expect(production.getByText('Read').first()).toBeVisible({ timeout: 20_000 })
 
   // The database trigger notified them.
   await talent.goto('/talent/notifications')
   await expect(talent.getByText(/New message/).first()).toBeVisible({ timeout: 20_000 })
 
+  // ── The thread says what it is about, and links back to it ──
+  await production.goto(`/studio/talent/${talentId}`)
+  await production.getByRole('button', { name: 'Message' }).click()
+  await production.getByLabel('Your message').fill('One more thing.')
+  await production.getByRole('button', { name: 'Send message' }).click()
+  await production.waitForURL(/\/studio\/messages/, { timeout: 30_000 })
+
   const { data: messages } = await admin
     .from('messages')
     .select('body, sender_id, conversations!inner(created_by)')
     .eq('sender_id', producerId)
-  expect(messages).toHaveLength(1)
-  expect(messages![0].body).toBe('Hi Livia — free for a callback on Tuesday?')
+  expect(messages?.map((message) => message.body)).toEqual([
+    'Hi Livia — free for a callback on Tuesday?',
+    'One more thing.',
+  ])
 
-  // ── Writing again reuses the same thread, it does not fork ──
-  await production.goto(`/studio/talent/${talentId}`)
-  await production.getByRole('button', { name: 'Message' }).click()
-  await production.getByLabel('Your message').fill('Second note.')
-  await production.getByRole('button', { name: 'Send message' }).click()
-  await production.waitForURL(/\/studio\/messages/, { timeout: 30_000 })
-
+  // ── Writing again reused the same thread, it did not fork ──
   const { data: conversations } = await admin
     .from('conversations')
     .select('id')

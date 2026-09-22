@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { ArrowLeft, MessageCircle, Send } from 'lucide-react'
-import { Avatar, Card, FormError, Input, Spinner } from '@/components/ui'
+import { Link, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, ArrowUpRight, Check, CheckCheck, MessageCircle, Search, Send } from 'lucide-react'
+import { Avatar, Button, Card, FormError, Input, Spinner, Tag } from '@/components/ui'
 import { Skeleton } from '@/components/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
 import { useAuth } from '@/features/auth/AuthProvider'
 import {
   participantName,
+  useConversationContext,
   useConversations,
   useMessages,
   useMessagingMutations,
+  type ConversationSummary,
 } from '@/features/messaging/queries'
 import { formatTime, relativeTime } from '@/lib/format'
 import { errorMessage } from '@/lib/supabase'
@@ -23,6 +25,7 @@ import { cn } from '@/lib/cn'
 export function MessagesScreen() {
   const { profile } = useAuth()
   const profileId = profile?.id
+  const isProduction = profile?.account_type === 'production'
   const conversations = useConversations(profileId)
   const { send, markRead } = useMessagingMutations(profileId)
 
@@ -39,12 +42,13 @@ export function MessagesScreen() {
   const [error, setError] = useState<string | null>(null)
   const threadRef = useRef<HTMLDivElement>(null)
 
-  // Opening a conversation clears its badge.
+  // Opening a conversation clears its badge — and so does a message that
+  // arrives while the thread is already open (live, see useLiveMessaging).
   useEffect(() => {
     if (!active || active.unread === 0) return
     markRead.mutate(active.id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active?.id])
+  }, [active?.id, active?.unread])
 
   useEffect(() => {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight })
@@ -73,9 +77,33 @@ export function MessagesScreen() {
 
   if (conversations.isLoading) {
     return (
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <Skeleton className="h-96" />
-        <Skeleton className="h-96" />
+      <div className="flex flex-col gap-5">
+        <Skeleton className="h-9 w-40" />
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <Skeleton className="h-96" />
+          <Skeleton className="h-96" />
+        </div>
+      </div>
+    )
+  }
+
+  if (conversations.error) {
+    return (
+      <div className="flex flex-col gap-4">
+        <h1 className="font-display text-[1.6rem] font-extrabold tracking-[-0.02em] text-ink sm:text-[1.9rem]">
+          Messages
+        </h1>
+        <FormError>
+          {errorMessage(conversations.error, 'Could not load your conversations')}
+        </FormError>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="w-fit"
+          onClick={() => conversations.refetch()}
+        >
+          Try again
+        </Button>
       </div>
     )
   }
@@ -89,7 +117,29 @@ export function MessagesScreen() {
         <EmptyState
           icon={<MessageCircle className="h-5 w-5" />}
           title="No conversation yet"
-          description="Productions can start a conversation with you once you apply to one of their roles."
+          description={
+            isProduction
+              ? 'Open an actor’s profile, or a candidate in a casting, and use Message — the thread lands here.'
+              : 'A production can write to you at any time. Their message, and your answer, stay in this inbox.'
+          }
+          action={
+            isProduction ? (
+              <Link
+                to="/studio/talent"
+                className="inline-flex h-10 items-center gap-1.5 rounded-field bg-ink px-4 text-[14px] font-bold text-white"
+              >
+                <Search className="h-4 w-4" />
+                Find an actor
+              </Link>
+            ) : (
+              <Link
+                to="/talent/casting-calls"
+                className="inline-flex h-10 items-center rounded-field bg-ink px-4 text-[14px] font-bold text-white"
+              >
+                Browse casting calls
+              </Link>
+            )
+          }
         />
       </div>
     )
@@ -139,7 +189,13 @@ export function MessagesScreen() {
                           {conversation.subject}
                         </span>
                       )}
-                      <span className="mt-0.5 block truncate text-[13px] text-muted">
+                      <span
+                        className={cn(
+                          'mt-0.5 block truncate text-[13px]',
+                          conversation.unread > 0 ? 'font-semibold text-ink' : 'text-muted',
+                        )}
+                      >
+                        {conversation.lastMessage?.sender_id === profileId ? 'You: ' : ''}
                         {conversation.lastMessage?.body ?? 'No message yet'}
                       </span>
                     </span>
@@ -172,7 +228,7 @@ export function MessagesScreen() {
                   name={participantName(active.participants[0])}
                   size="sm"
                 />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="truncate text-[15px] font-bold text-ink">
                     {participantName(active.participants[0])}
                   </p>
@@ -180,6 +236,7 @@ export function MessagesScreen() {
                     <p className="truncate text-[12px] text-muted">{active.subject}</p>
                   )}
                 </div>
+                <ContextLink conversation={active} isProduction={isProduction} />
               </header>
 
               <div
@@ -206,8 +263,21 @@ export function MessagesScreen() {
                         >
                           {message.body}
                         </div>
-                        <span className="px-1 text-[11px] text-muted">
+                        <span className="flex items-center gap-1 px-1 text-[11px] text-muted">
                           {formatTime(message.created_at)}
+                          {mine &&
+                            (active.othersLastReadAt &&
+                            active.othersLastReadAt >= message.created_at ? (
+                              <>
+                                <CheckCheck className="h-3 w-3" />
+                                Read
+                              </>
+                            ) : (
+                              <>
+                                <Check className="h-3 w-3" />
+                                Sent
+                              </>
+                            ))}
                         </span>
                       </div>
                     )
@@ -243,5 +313,34 @@ export function MessagesScreen() {
         </Card>
       </div>
     </div>
+  )
+}
+
+/**
+ * What this thread is about, with a way back to it — the casting for the
+ * production, the audition for the talent.
+ */
+function ContextLink({
+  conversation,
+  isProduction,
+}: {
+  conversation: ConversationSummary
+  isProduction: boolean
+}) {
+  const context = useConversationContext(conversation.contextType, conversation.contextId)
+  if (!context.data) return null
+
+  const href = isProduction ? context.data.studioHref : context.data.talentHref
+  return (
+    <Link
+      to={href}
+      className="ml-auto hidden shrink-0 items-center gap-1.5 sm:inline-flex"
+      title={[context.data.label, context.data.detail].filter(Boolean).join(' — ')}
+    >
+      <Tag tone="link" className="max-w-[14rem] truncate">
+        {context.data.label}
+      </Tag>
+      <ArrowUpRight className="h-3.5 w-3.5 text-link" />
+    </Link>
   )
 }
