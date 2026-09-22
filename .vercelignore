@@ -1,0 +1,11 @@
+# Rien de tout ça n'est nécessaire au build — et surtout, .env.local contient
+# la clé service_role, qui ne doit jamais quitter cette machine.
+.env*
+.git
+e2e
+test-results
+playwright-report
+scripts
+supabase
+docs
+*.md

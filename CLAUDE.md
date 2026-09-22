@@ -266,6 +266,17 @@ vivent dans **Supabase Vault**, les identifiants SMTP dans les secrets de la
 fonction. `npm run email:setup` branche tout d'un coup, `npm run email:status`
 montre la file. Détails : `docs/DATABASE.md`.
 
+## Déploiement
+
+Production : **https://letitcast-demo.vercel.app** (compte Vercel `joshtt0127`,
+projet `lic-demo`). `vercel.json` fait le rewrite SPA — sans lui, ouvrir
+`/talent/auditions` ou un lien de casting partagé renverrait un 404.
+`.vercelignore` exclut `.env*`, `supabase/`, `scripts/`, `e2e/` : la clé
+`service_role` ne quitte jamais la machine. Seules `VITE_SUPABASE_URL` et
+`VITE_SUPABASE_ANON_KEY` sont dans le build, et elles sont publiques par nature.
+`site_url`, `uri_allow_list` (Supabase Auth) et `app_base_url` (Vault, liens des
+e-mails) pointent sur cette URL.
+
 ## Audits (garde-fous, à relancer après une passe UI)
 
 `npm run audit:ui` — contrôles morts (bouton sans action, lien vide) et écrans qui lisent le
