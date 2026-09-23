@@ -7,6 +7,7 @@ import { ToastProvider } from './components/Toast'
 import { FullPageLoader } from './components/ui'
 import { AuthProvider } from './features/auth/AuthProvider'
 import { I18nProvider } from './lib/i18n'
+import { registerServiceWorker } from './lib/pwa'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -20,6 +21,9 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+// La coquille hors ligne. Sans effet en dev, où le HMR doit rester maître.
+registerServiceWorker()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

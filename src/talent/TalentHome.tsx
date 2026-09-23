@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { Avatar, Button, Card, FormError, Tag } from '@/components/ui'
 import { Skeleton } from '@/components/Skeleton'
+import { InstallCard } from '@/components/InstallCard'
 import { EmptyState } from '@/components/EmptyState'
 import { SegmentedControl } from '@/components/form/SegmentedControl'
 import { useAuth } from '@/features/auth/AuthProvider'
@@ -347,6 +348,9 @@ export function TalentHome() {
               {t('common.edit')}
             </Link>
           </Card>
+
+          {/* Proposée seulement si le téléphone sait vraiment installer l'app. */}
+          <InstallCard />
 
           {isTalent && <PostComposer name={name} />}
 

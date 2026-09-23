@@ -18,7 +18,15 @@
   body {
     @apply bg-paper text-ink font-sans antialiased;
     font-feature-settings: 'cv11', 'ss01';
+    /* Pas de délai de 300 ms avant qu'un bouton réagisse au doigt, et pas de
+       rectangle gris qui clignote sur chaque tap. */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    /* Le rebond du pouce ne doit pas décoller la page derrière les barres
+       fixes ; `contain` garde le « tirer pour rafraîchir » du navigateur. */
+    overscroll-behavior-y: contain;
   }
+
 }
 
 @layer components {
@@ -42,5 +50,22 @@
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* iOS zoome dès qu'un champ fait moins de 16 px, et ne dézoome jamais tout seul :
+   le comédien reste coincé dans une page agrandie après avoir touché la
+   recherche. Sur téléphone, tous les champs passent donc à 16 px ; au-delà de
+   640 px la densité voulue reprend.
+
+   `!important` est ici le seul moyen honnête : les champs portent des classes
+   Tailwind (`text-sm`, `text-[15px]`) éparpillées dans toute l'app, et un
+   sélecteur d'élément ne bat jamais une classe. Corriger chaque champ un par un
+   laisserait passer le suivant. */
+@media (max-width: 640px) {
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    font-size: 16px !important;
   }
 }

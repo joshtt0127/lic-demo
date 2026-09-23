@@ -474,4 +474,14 @@ export const en: Record<string, string> = {
   'notifications.emailOff': 'Emails turned off',
   'notifications.emailFailed': 'Could not change this setting',
   'notifications.markAll': 'Mark all as read',
+
+  // ── Application mobile (hors ligne, installation) ──
+  'app.offline': 'You are offline',
+  'app.offlineHint': 'What you see was loaded before. Nothing is lost — it will send when you are back.',
+  'app.backOnline': 'Back online',
+  'app.installTitle': 'Keep Let It Cast on your home screen',
+  'app.installBody': 'Opens full screen, straight to your auditions — no address bar.',
+  'app.installAction': 'Install',
+  'app.installIos': 'Tap Share, then “Add to Home Screen”.',
+  'app.installLater': 'Not now',
 }

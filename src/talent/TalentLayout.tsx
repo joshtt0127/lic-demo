@@ -4,6 +4,8 @@ import { AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Bell, Clapperboard, Film, Home, MessageCircle, Search, User } from 'lucide-react'
 import { Logo } from '@/components/ui'
 import { PageTransition } from '@/components/PageTransition'
+import { OfflineBar } from '@/components/OfflineBar'
+import { ScrollMemory } from '@/components/ScrollMemory'
 import { UserMenu } from '@/components/UserMenu'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useUnreadCounts } from '@/features/notifications/queries'
@@ -48,6 +50,15 @@ function navItems(unread: { messages: number; notifications: number }, t: Transl
  * Desktop: LinkedIn-style top nav. Phone: the nav moves to a bottom tab bar,
  * where a thumb can reach it — the same routes and the same badges, not a
  * second app.
+ *
+ * Trois détails qui font la différence entre un site et une application, et qui
+ * se voient surtout sur un téléphone :
+ *   · `100dvh` et non `100vh` : la barre d'URL de Safari se rétracte au scroll,
+ *     et `100vh` laisserait la barre d'onglets sous le pouce mais hors écran ;
+ *   · `ScrollRestoration` : revenir d'une annonce rend le feed **à l'endroit
+ *     où on l'avait laissé**, ce qu'aucun comédien ne pardonne autrement ;
+ *   · les encoches : `env(safe-area-inset-*)` en haut comme en bas, une fois
+ *     l'app posée sur l'écran d'accueil (voir `viewport-fit=cover`).
  */
 export function TalentLayout() {
   const location = useLocation()
@@ -66,8 +77,11 @@ export function TalentLayout() {
   )
 
   return (
-    <div className="flex min-h-screen flex-col bg-paper">
-      <header className="sticky top-0 z-30 border-b border-line bg-card">
+    <div className="flex min-h-[100dvh] flex-col bg-paper">
+      {/* Rend le feed là où on l'a laissé quand on revient d'une annonce. */}
+      <ScrollMemory />
+
+      <header className="sticky top-0 z-30 border-b border-line bg-card pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center gap-2 px-4 sm:gap-3 sm:px-6">
           <Link to="/" className="inline-flex items-center text-muted hover:text-ink">
             <ArrowLeft className="h-4 w-4" />
@@ -143,13 +157,16 @@ export function TalentLayout() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 pb-24 pt-5 sm:px-6 sm:py-6">
+      {/* La marge basse dégage la barre d'onglets **et** la barre d'accueil. */}
+      <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 pb-[calc(env(safe-area-inset-bottom)+84px)] pt-5 sm:px-6 sm:py-6 sm:pb-6">
         <AnimatePresence mode="wait">
           <PageTransition key={location.pathname}>
             <Outlet />
           </PageTransition>
         </AnimatePresence>
       </main>
+
+      <OfflineBar />
 
       {/* ── Phone tab bar ── */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-card/95 backdrop-blur sm:hidden">

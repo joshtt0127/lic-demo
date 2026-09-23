@@ -479,4 +479,14 @@ export const fr: Record<string, string> = {
   'notifications.emailOff': 'E-mails désactivés',
   'notifications.emailFailed': 'Impossible de changer ce réglage',
   'notifications.markAll': 'Tout marquer comme lu',
+
+  // ── Application mobile (hors ligne, installation) ──
+  'app.offline': 'Vous êtes hors ligne',
+  'app.offlineHint': 'Ce que vous voyez a été chargé avant. Rien n’est perdu : tout partira au retour du réseau.',
+  'app.backOnline': 'Connexion revenue',
+  'app.installTitle': 'Gardez Let It Cast sur votre écran d’accueil',
+  'app.installBody': 'S’ouvre en plein écran, direct sur vos auditions — sans barre d’adresse.',
+  'app.installAction': 'Installer',
+  'app.installIos': 'Touchez Partager, puis « Sur l’écran d’accueil ».',
+  'app.installLater': 'Plus tard',
 }

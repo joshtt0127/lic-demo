@@ -16,6 +16,8 @@ import {
   Users,
 } from 'lucide-react'
 import { Logo } from '@/components/ui'
+import { OfflineBar } from '@/components/OfflineBar'
+import { ScrollMemory } from '@/components/ScrollMemory'
 import { PageTransition } from '@/components/PageTransition'
 import { UserMenu } from '@/components/UserMenu'
 import { useAuth } from '@/features/auth/AuthProvider'
@@ -66,9 +68,11 @@ export function StudioLayout() {
     .join(' · ')
 
   return (
-    <div className="flex min-h-screen bg-paper">
+    <div className="flex min-h-[100dvh] bg-paper">
+      {/* Une liste de candidatures se reprend là où on l'a laissée. */}
+      <ScrollMemory />
       {/* ── Sidebar ── */}
-      <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col justify-between border-r border-line bg-[#FBFAF7] px-5 py-7 lg:flex">
+      <aside className="sticky top-0 hidden h-[100dvh] w-[248px] shrink-0 flex-col justify-between border-r border-line bg-[#FBFAF7] px-5 py-7 lg:flex">
         <div>
           <Link to="/studio" aria-label="Let It Cast — studio home" className="block px-2">
             <Logo size={30} />
@@ -208,6 +212,8 @@ export function StudioLayout() {
             </PageTransition>
           </AnimatePresence>
         </main>
+
+        <OfflineBar />
       </div>
     </div>
   )

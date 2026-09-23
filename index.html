@@ -2,8 +2,25 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
+    <!-- viewport-fit=cover : sans lui, env(safe-area-inset-*) vaut 0 et la barre
+         d'onglets passe sous la barre d'accueil de l'iPhone. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="description" content="Les castings, les auditions et les self-tapes — dans la poche." />
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+    <!-- Couleur de la barre d'état : celle de l'en-tête, pour que rien ne se voie. -->
+    <meta name="theme-color" content="#FFFFFF" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Let It Cast" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
     <title>Let It Cast — Demo</title>
   </head>
   <body>
