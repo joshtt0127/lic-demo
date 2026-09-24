@@ -133,6 +133,19 @@ test('a casting reaches a talent, and their application reaches the production b
   await expect(talent.getByText('Submitted').first()).toBeVisible({ timeout: 20_000 })
 
   // ── 3. Production: the same application, and a decision ──
+  // On attend que la candidature soit réellement en base avant de recharger
+  // l'écran : sinon l'échec dit « la production ne voit pas le candidat » alors
+  // que la question est « la candidature est-elle partie ? ».
+  await expect
+    .poll(async () => {
+      const { data } = await admin
+        .from('applications')
+        .select('status')
+        .eq('talent_id', talentId)
+      return data?.[0]?.status ?? null
+    }, { timeout: 20_000, message: 'the application must reach the database' })
+    .toBe('submitted')
+
   await production.reload()
   // The candidates live on the casting console (Submissions tab).
   await production.getByRole('button', { name: /^Submissions/ }).click()

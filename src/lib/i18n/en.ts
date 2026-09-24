@@ -554,4 +554,26 @@ export const en: Record<string, string> = {
 
   'feed.loadMore': 'Show more',
   'feed.loadingMore': 'Loading…',
+
+  // ── Signaler et bloquer ──
+  'moderation.more': 'More',
+  'moderation.report': 'Report this',
+  'moderation.block': 'Block {name}',
+  'moderation.blockConfirm': 'Block {name}? They will no longer be able to message or follow you. Your applications and history stay as they are.',
+  'moderation.blocked': '{name} is blocked',
+  'moderation.blockFailed': 'This person could not be blocked',
+  'moderation.reportTitle': 'Report to Let It Cast',
+  'moderation.reportHint': 'A human reads every report. Nothing is deleted automatically.',
+  'moderation.details': 'What happened (optional)',
+  'moderation.detailsPlaceholder': 'Anything that helps us understand.',
+  'moderation.send': 'Send the report',
+  'moderation.sending': 'Sending…',
+  'moderation.reported': 'Thank you — we are on it',
+  'moderation.reportFailed': 'The report could not be sent',
+  'moderation.reason.harassment': 'Harassment',
+  'moderation.reason.inappropriate': 'Inappropriate content',
+  'moderation.reason.spam': 'Spam',
+  'moderation.reason.impersonation': 'Impersonation',
+  'moderation.reason.fraudulent_casting': 'Fake casting',
+  'moderation.reason.other': 'Something else',
 }

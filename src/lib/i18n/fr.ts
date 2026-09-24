@@ -559,4 +559,26 @@ export const fr: Record<string, string> = {
 
   'feed.loadMore': 'Voir plus',
   'feed.loadingMore': 'Chargement…',
+
+  // ── Signaler et bloquer ──
+  'moderation.more': 'Plus',
+  'moderation.report': 'Signaler',
+  'moderation.block': 'Bloquer {name}',
+  'moderation.blockConfirm': 'Bloquer {name} ? Cette personne ne pourra plus vous écrire ni vous suivre. Vos candidatures et votre historique ne bougent pas.',
+  'moderation.blocked': '{name} est bloqué',
+  'moderation.blockFailed': 'Cette personne n’a pas pu être bloquée',
+  'moderation.reportTitle': 'Signaler à Let It Cast',
+  'moderation.reportHint': 'Un humain lit chaque signalement. Rien n’est supprimé automatiquement.',
+  'moderation.details': 'Ce qui s’est passé (facultatif)',
+  'moderation.detailsPlaceholder': 'Tout ce qui peut nous aider à comprendre.',
+  'moderation.send': 'Envoyer le signalement',
+  'moderation.sending': 'Envoi…',
+  'moderation.reported': 'Merci — on s’en occupe',
+  'moderation.reportFailed': 'Le signalement n’a pas pu être envoyé',
+  'moderation.reason.harassment': 'Harcèlement',
+  'moderation.reason.inappropriate': 'Contenu inapproprié',
+  'moderation.reason.spam': 'Spam',
+  'moderation.reason.impersonation': 'Usurpation d’identité',
+  'moderation.reason.fraudulent_casting': 'Faux casting',
+  'moderation.reason.other': 'Autre chose',
 }

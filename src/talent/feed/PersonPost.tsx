@@ -1,4 +1,5 @@
 import { Heart, Trash2 } from 'lucide-react'
+import { ReportOrBlock } from '@/components/ReportOrBlock'
 import { Avatar, Card } from '@/components/ui'
 import { useT } from '@/lib/i18n'
 import { relativeTime } from '@/lib/format'
@@ -42,6 +43,17 @@ export function PersonPost({
           )}
           <p className="mt-0.5 text-[12px] text-muted">{relativeTime(post.createdAt, t)}</p>
         </div>
+        {/* Le recours est là où le problème apparaît, pas dans un menu de
+            réglages que personne n'ouvre en situation. */}
+        {!isMine && (
+          <ReportOrBlock
+            subjectType="post"
+            subjectId={post.id}
+            authorId={post.author?.id ?? null}
+            authorName={name}
+          />
+        )}
+
         {isMine && (
           <button
             type="button"

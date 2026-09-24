@@ -42,6 +42,20 @@ test('a post reaches the people who follow its author, and likes are counted', a
     await admin
       .from('talent_profiles')
       .upsert({ profile_id: id, headline: `${label} on stage` }, { onConflict: 'profile_id' })
+
+    // On ne se connecte pas avant que le profil soit réellement prêt : sinon
+    // l'app renvoie vers l'onboarding et le test échoue loin de sa cause.
+    await expect
+      .poll(async () => {
+        const { data } = await admin
+          .from('profiles')
+          .select('account_type, onboarding_completed_at')
+          .eq('id', id)
+          .single()
+        return Boolean(data?.account_type && data.onboarding_completed_at)
+      }, { timeout: 15_000, message: 'the fixture profile must be ready before signing in' })
+      .toBe(true)
+
     return { id, email, name: `${label} Post` }
   }
 

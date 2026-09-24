@@ -430,6 +430,36 @@ export type TapeAiReviewRow = {
   completed_at: string | null
 }
 
+export type ReportReason =
+  | 'spam'
+  | 'impersonation'
+  | 'harassment'
+  | 'inappropriate'
+  | 'fraudulent_casting'
+  | 'other'
+
+/** Un signalement : un dossier à traiter, jamais une suppression. */
+export type ReportRow = {
+  id: string
+  reporter_id: string
+  subject_type: 'profile' | 'post' | 'casting_call' | 'message'
+  subject_id: string
+  reason: ReportReason
+  details: string | null
+  status: 'open' | 'in_review' | 'resolved' | 'dismissed'
+  resolution: string | null
+  handled_by: string | null
+  handled_at: string | null
+  created_at: string
+}
+
+/** Un blocage : coupe ce qui vient, ne touche pas à l'historique. */
+export type BlockRow = {
+  blocker_id: string
+  blocked_id: string
+  created_at: string
+}
+
 export type CallbackKind = 'in_person' | 'video_call' | 'self_tape'
 export type CallbackResponse = 'pending' | 'accepted' | 'declined' | 'change_requested'
 
@@ -631,7 +661,9 @@ export type Database = {
       analytics_events: Writable<AnalyticsEventRow, 'name'>
       tape_checks: Writable<TapeCheckRow, 'self_tape_id'>
       tape_ai_reviews: Writable<TapeAiReviewRow, 'self_tape_id'>
+      blocks: Writable<BlockRow, 'blocker_id' | 'blocked_id'>
       callbacks: Writable<CallbackRow, 'application_id' | 'kind'>
+      reports: Writable<ReportRow, 'reporter_id' | 'subject_type' | 'subject_id' | 'reason'>
       casting_invites: Writable<CastingInviteRow, 'casting_call_id' | 'talent_id'>
       events: Writable<EventRow, 'type' | 'entity_type' | 'entity_id'>
       posts: Writable<PostRow, 'author_id' | 'body'>

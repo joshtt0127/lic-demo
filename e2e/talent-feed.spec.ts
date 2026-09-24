@@ -159,7 +159,13 @@ test('a published casting appears in the feed as a post, and applying works from
   expect(applications![0].note).toBe('Available all summer.')
 
   // ── It survives a reload: the feed is read from the database ──
+  //
+  // On passe par le filtre « Applied » plutôt que de chercher la carte dans le
+  // fil : depuis que le fil est paginé, une annonce publiée entre-temps peut
+  // pousser celle-ci hors de la première page. Ce filtre est le vrai chemin
+  // qu'emprunte un comédien pour retrouver ce à quoi il a postulé.
   await page.reload()
+  await page.getByRole('radio', { name: 'Applied' }).click()
   await expect(page.locator('li', { hasText: projectTitle }).first().getByText('Submitted').first())
     .toBeVisible({ timeout: 20_000 })
 
