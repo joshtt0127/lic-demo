@@ -29,7 +29,17 @@ const VIDEO_MIMES = ['video/mp4', 'video/quicktime', 'video/webm']
 
 const MB = 1024 * 1024
 
-/** Mirrors the bucket limits declared in the storage migration. */
+/**
+ * Les limites de fichiers, à un seul endroit.
+ *
+ * Elles sont volontairement lues ici par **tous** les écrans — dropzone,
+ * galerie, enregistreur — plutôt que recopiées : une limite écrite à trois
+ * endroits finit par en valoir trois. Les mêmes valeurs sont déclarées sur les
+ * buckets Supabase, qui refusent côté serveur ce que l'écran a laissé passer.
+ *
+ * Pour les changer : cette table **et** la migration des buckets. Les deux,
+ * jamais l'une sans l'autre.
+ */
 export const RULES: Record<MediaKind, { mimes: string[]; maxBytes: number; label: string }> = {
   avatar: { mimes: IMAGE_MIMES, maxBytes: 5 * MB, label: 'JPG, PNG · 5 MB max' },
   cover: { mimes: IMAGE_MIMES, maxBytes: 5 * MB, label: 'JPG, PNG · 5 MB max' },
@@ -133,8 +143,24 @@ export function publicUrl(bucket: string, path: string): string {
   return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl
 }
 
+/**
+ * Combien de temps une URL de lecture reste valable.
+ *
+ * Une self-tape se regarde, elle ne se distribue pas : l'URL signée est faite
+ * pour la durée d'une revue, pas pour être collée dans un message. Trente
+ * minutes couvrent largement une session de visionnage et rendent un lien
+ * recopié inutile peu après.
+ *
+ * (Les médias publics — photos, showreels — n'utilisent pas ce chemin.)
+ */
+export const SIGNED_URL_TTL_SECONDS = 30 * 60
+
 /** Time-limited URL for the private `selftapes` bucket. */
-export async function signedUrl(bucket: string, path: string, expiresIn = 3600): Promise<string> {
+export async function signedUrl(
+  bucket: string,
+  path: string,
+  expiresIn = SIGNED_URL_TTL_SECONDS,
+): Promise<string> {
   const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, expiresIn)
   if (error) throw error
   return data.signedUrl
