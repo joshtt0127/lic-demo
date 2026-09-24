@@ -117,6 +117,19 @@ export async function acceptInvite(
   if (inviteError) throw inviteError
 }
 
+/**
+ * Honore un lien d'invitation.
+ *
+ * Tout se passe côté base : jeton, expiration, adresse et rôle sont vérifiés
+ * ensemble, et l'appartenance est créée dans la même opération. Le client
+ * n'a pas à composer une appartenance — il présente un jeton.
+ */
+export async function acceptInviteByToken(token: string): Promise<string> {
+  const { data, error } = await supabase.rpc('accept_organization_invite', { p_token: token })
+  if (error) throw error
+  return data as string
+}
+
 export async function updateOrganization(
   id: string,
   patch: Partial<Pick<OrganizationRow, 'name' | 'logo_url' | 'description' | 'website' | 'company_type' | 'city' | 'country'>>,

@@ -68,6 +68,20 @@ export const router = createBrowserRouter([
     ],
   },
 
+  // Le lien d'invitation reçu par e-mail : il survit au détour par la connexion.
+  {
+    path: '/invite/:token',
+    element: <RequireAuth />,
+    children: [
+      {
+        index: true,
+        lazy: async () => ({
+          Component: (await import('./pages/InviteAcceptPage')).InviteAcceptPage,
+        }),
+      },
+    ],
+  },
+
   // Common onboarding (account type → the steps of your side).
   {
     path: '/onboarding',

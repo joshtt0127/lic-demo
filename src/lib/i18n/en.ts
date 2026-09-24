@@ -484,4 +484,12 @@ export const en: Record<string, string> = {
   'app.installAction': 'Install',
   'app.installIos': 'Tap Share, then “Add to Home Screen”.',
   'app.installLater': 'Not now',
+
+  // ── Invitation d'équipe ──
+  'invite.joining': 'Joining the team…',
+  'invite.joined': 'You are in',
+  'invite.joinedHint': 'Taking you to the studio.',
+  'invite.cannotJoin': 'This invitation cannot be used',
+  'invite.failed': 'This invitation could not be accepted',
+  'invite.continue': 'Continue to my space',
 }

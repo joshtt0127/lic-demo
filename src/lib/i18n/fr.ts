@@ -489,4 +489,12 @@ export const fr: Record<string, string> = {
   'app.installAction': 'Installer',
   'app.installIos': 'Touchez Partager, puis « Sur l’écran d’accueil ».',
   'app.installLater': 'Plus tard',
+
+  // ── Invitation d'équipe ──
+  'invite.joining': 'Vous rejoignez l’équipe…',
+  'invite.joined': 'Vous y êtes',
+  'invite.joinedHint': 'Direction le studio.',
+  'invite.cannotJoin': 'Cette invitation ne peut pas être utilisée',
+  'invite.failed': 'Cette invitation n’a pas pu être acceptée',
+  'invite.continue': 'Aller dans mon espace',
 }

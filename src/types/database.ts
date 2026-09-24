@@ -581,8 +581,10 @@ export type Database = {
       v_profile_network: ReadOnly<ProfileNetworkViewRow>
     }
     Functions: {
-      // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-      [_ in never]: never
+      accept_organization_invite: {
+        Args: { p_token: string }
+        Returns: string
+      }
     }
     Enums: {
       account_type: AccountType

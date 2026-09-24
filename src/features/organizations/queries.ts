@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   acceptInvite,
+  acceptInviteByToken,
   createInvite,
   createOrganization,
   listMyInvites,
@@ -99,11 +100,17 @@ export function useOrganizationMutations(profileId: string | undefined) {
     onSuccess: invalidate,
   })
 
+  /** Le lien reçu par e-mail : un jeton, et rien d'autre à saisir. */
+  const joinByToken = useMutation({
+    mutationFn: (token: string) => acceptInviteByToken(token),
+    onSuccess: invalidate,
+  })
+
   const update = useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: Parameters<typeof updateOrganization>[1] }) =>
       updateOrganization(id, patch),
     onSuccess: invalidate,
   })
 
-  return { create, join, update }
+  return { create, join, joinByToken, update }
 }

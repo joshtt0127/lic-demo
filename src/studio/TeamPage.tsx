@@ -83,7 +83,7 @@ export function TeamPage() {
     }
     try {
       const created = await mutations.invite.mutateAsync({ email, role })
-      const link = `${window.location.origin}${import.meta.env.BASE_URL}auth/sign-up?invite=${created.token}`
+      const link = `${window.location.origin}${import.meta.env.BASE_URL}invite/${created.token}`
       setLastLink(link)
       setEmail('')
       toast('Invitation created — share the link')
@@ -267,7 +267,7 @@ export function TeamPage() {
                   icon={<Copy className="h-3.5 w-3.5" />}
                   onClick={() => {
                     void navigator.clipboard.writeText(
-                      `${window.location.origin}${import.meta.env.BASE_URL}auth/sign-up?invite=${invite.token}`,
+                      `${window.location.origin}${import.meta.env.BASE_URL}invite/${invite.token}`,
                     )
                     toast('Invitation link copied')
                   }}
