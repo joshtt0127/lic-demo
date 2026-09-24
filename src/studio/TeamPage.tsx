@@ -21,7 +21,7 @@ import {
   useOrgMembers,
   useTeamMutations,
 } from '@/features/organizations/queries'
-import { ORG_ROLE_LABEL, can } from '@/lib/access'
+import { ASSIGNABLE_ORG_ROLES, ORG_ROLE_LABEL, can } from '@/lib/access'
 import { relativeTime } from '@/lib/format'
 import { errorMessage } from '@/lib/supabase'
 import type { OrgRole } from '@/types/database'
@@ -35,12 +35,13 @@ import type { OrgRole } from '@/types/database'
  * POC can honestly do.
  */
 
-const ROLES: OrgRole[] = ['owner', 'admin', 'casting_director', 'member', 'viewer']
+const ROLES: OrgRole[] = ASSIGNABLE_ORG_ROLES
 
 const ROLE_HINT: Record<OrgRole, string> = {
-  owner: 'Everything, including the organization itself.',
-  admin: 'Everything except deleting the organization.',
-  casting_director: 'Create and publish castings, decide on candidates.',
+  owner: 'Everything, and the organization itself — one person at a time.',
+  admin: 'Everything except handing the organization over.',
+  // Converti en `admin` : n'apparaît plus que sur une ligne historique.
+  casting_director: 'Everything except handing the organization over.',
   member: 'Review candidates, vote, take notes, message.',
   viewer: 'Read only.',
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { can, canAccessSurface, displayName, homeRouteFor, isOnboarded } from './access'
+import { ASSIGNABLE_ORG_ROLES, can, canAccessSurface, displayName, homeRouteFor, isOnboarded } from './access'
 import type { ProfileRow } from '@/types/database'
 
 const base: ProfileRow = {
@@ -59,6 +59,19 @@ describe('organization capabilities', () => {
   it('lets owners and casting directors publish a casting', () => {
     expect(can('owner', 'casting:publish')).toBe(true)
     expect(can('casting_director', 'casting:publish')).toBe(true)
+  })
+
+  it('separates administering the organization from owning it', () => {
+    // Un admin gère l'équipe au quotidien…
+    expect(can('admin', 'org:manage')).toBe(true)
+    expect(can('admin', 'org:invite')).toBe(true)
+    // …mais il ne décide pas de qui possède l'organisation.
+    expect(can('admin', 'org:transfer')).toBe(false)
+    expect(can('owner', 'org:transfer')).toBe(true)
+  })
+
+  it('no longer offers casting director when assigning a role', () => {
+    expect(ASSIGNABLE_ORG_ROLES).toEqual(['admin', 'member', 'viewer'])
   })
 
   it('stops a plain member from publishing or deciding', () => {

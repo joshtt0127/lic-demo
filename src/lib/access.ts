@@ -55,6 +55,7 @@ export function canAccessSurface(
 
 export type Capability =
   | 'org:manage'
+  | 'org:transfer'
   | 'org:invite'
   | 'project:create'
   | 'project:edit'
@@ -67,8 +68,13 @@ export type Capability =
   | 'candidate:note'
   | 'message:send'
 
+/**
+ * Ce qu'un owner peut faire. Un admin en hérite **sauf `org:transfer`** :
+ * administrer une organisation n'est pas la posséder.
+ */
 const OWNER: Capability[] = [
   'org:manage',
+  'org:transfer',
   'org:invite',
   'project:create',
   'project:edit',
@@ -82,25 +88,26 @@ const OWNER: Capability[] = [
   'message:send',
 ]
 
+const ADMIN: Capability[] = OWNER.filter((capability) => capability !== 'org:transfer')
+
 /** Everything an org role may do. Keep aligned with the RLS policies. */
 export const CAPABILITIES: Record<OrgRole, Capability[]> = {
   owner: OWNER,
-  admin: OWNER,
-  casting_director: [
-    'org:invite',
-    'project:create',
-    'project:edit',
-    'casting:create',
-    'casting:publish',
-    'role:manage',
-    'candidate:review',
-    'candidate:decide',
-    'candidate:note',
-    'message:send',
-  ],
+  admin: ADMIN,
+  // Converti en `admin` par la migration ; conservé pour les lignes historiques.
+  casting_director: ADMIN,
   member: ['candidate:review', 'candidate:note', 'message:send'],
   viewer: [],
 }
+
+/**
+ * Les rôles qu'on peut attribuer depuis l'écran Équipe.
+ *
+ * `owner` n'en fait pas partie : la propriété se transmet explicitement, elle ne
+ * se choisit pas dans une liste déroulante. `casting_director` non plus : il
+ * n'existe plus que pour les lignes qui le portaient encore.
+ */
+export const ASSIGNABLE_ORG_ROLES: OrgRole[] = ['admin', 'member', 'viewer']
 
 export function can(role: OrgRole | null | undefined, capability: Capability): boolean {
   if (!role) return false
