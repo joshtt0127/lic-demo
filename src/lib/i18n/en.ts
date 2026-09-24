@@ -508,4 +508,13 @@ export const en: Record<string, string> = {
   'talentStatus.castingCancelled': 'Casting closed',
 
   'auditions.withdrawConfirm': 'Withdraw this application? The production is told, and you would have to apply again.',
+
+  // ── Ce qu'il faut pour candidater ──
+  'apply.missingTitle': 'Before you apply',
+  'apply.missingHint': 'A production needs these to judge your application.',
+  'apply.missing.name': 'Your name',
+  'apply.missing.photo': 'A photo',
+  'apply.missing.playingAge': 'Your playing age',
+  'apply.missing.location': 'Your city',
+  'apply.completeProfile': 'Complete my profile',
 }

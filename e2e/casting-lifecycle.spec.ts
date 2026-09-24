@@ -69,6 +69,9 @@ test('a casting goes from draft to cast, and the talent sees the truth at each s
         .from('profiles')
         .update({
           account_type: 'talent',
+          // De quoi être jugé : la base refuse une candidature sans ça.
+          avatar_url: 'https://placehold.co/400',
+          city: 'Paris',
           // Comme après un onboarding réel : le MVP est réservé aux majeurs.
           adult_confirmed_at: new Date().toISOString(),
           first_name: first,
@@ -79,7 +82,7 @@ test('a casting goes from draft to cast, and the talent sees the truth at each s
         .eq('id', id)
       await admin
         .from('talent_profiles')
-        .upsert({ profile_id: id, headline: 'Actress' }, { onConflict: 'profile_id' })
+        .upsert({ profile_id: id, playing_age_min: 25, playing_age_max: 40, headline: 'Actress' }, { onConflict: 'profile_id' })
       return { id, email, name: `${first} ${last}` }
     }),
   )

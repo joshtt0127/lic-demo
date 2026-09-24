@@ -94,6 +94,9 @@ test('a published casting appears in the feed as a post, and applying works from
     .from('profiles')
     .update({
       account_type: 'talent',
+      // De quoi être jugé : la base refuse une candidature sans ça.
+      avatar_url: 'https://placehold.co/400',
+      city: 'Paris',
       // Comme après un onboarding réel : le MVP est réservé aux majeurs.
       adult_confirmed_at: new Date().toISOString(),
       first_name: 'Ines',
@@ -105,7 +108,7 @@ test('a published casting appears in the feed as a post, and applying works from
     .eq('id', talentId)
   await admin
     .from('talent_profiles')
-    .upsert({ profile_id: talentId, headline: 'Actress' }, { onConflict: 'profile_id' })
+    .upsert({ profile_id: talentId, playing_age_min: 25, playing_age_max: 40, headline: 'Actress' }, { onConflict: 'profile_id' })
 
   await signInAs(page, talentEmail, 'talent')
 

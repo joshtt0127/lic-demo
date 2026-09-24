@@ -104,3 +104,37 @@ export function profileCompletion(data: TalentProfileFull): Completion {
     missing: items.filter((item) => !item.done),
   }
 }
+
+/**
+ * Ce qui manque pour candidater — la même règle que la base.
+ *
+ * Quatre informations, pas une de plus : une production qui reçoit un nom vide,
+ * sans photo, sans âge de jeu et sans ville ne peut rien en faire, et le
+ * comédien croit avoir postulé. Le reste du profil enrichit sa candidature, il
+ * ne la conditionne pas.
+ *
+ * Le miroir côté base est `missing_for_application()` : ici on l'affiche avant
+ * le clic, là-bas on le refuse pour de bon. Les deux listes doivent dire la
+ * même chose — un test le vérifie de bout en bout.
+ */
+export type ApplicationGap = 'name' | 'photo' | 'playingAge' | 'location'
+
+export function missingForApplication(data: TalentProfileFull): ApplicationGap[] {
+  const { profile, talent, media } = data
+  const filled = (value: unknown) => Boolean(value && String(value).trim())
+  const gaps: ApplicationGap[] = []
+
+  const named =
+    filled(talent.professional_name) || (filled(profile.first_name) && filled(profile.last_name))
+  if (!named) gaps.push('name')
+
+  const hasPhoto =
+    filled(profile.avatar_url) ||
+    media.some((asset) => asset.kind === 'headshot' || asset.kind === 'portfolio')
+  if (!hasPhoto) gaps.push('photo')
+
+  if (talent.playing_age_min === null || talent.playing_age_max === null) gaps.push('playingAge')
+  if (!filled(profile.city)) gaps.push('location')
+
+  return gaps
+}

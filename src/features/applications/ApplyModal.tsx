@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Check, Film } from 'lucide-react'
 import { Avatar, Button, FormError, FormField, Spinner } from '@/components/ui'
 import { EditModal, Field, TextArea } from '@/components/EditModal'
@@ -7,6 +8,7 @@ import { useToast } from '@/components/Toast'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useApplicationMutations } from '@/features/applications/queries'
 import { useTalentProfile } from '@/features/talent/queries'
+import { missingForApplication } from '@/features/talent/completion'
 import { publicUrl } from '@/lib/storage'
 import { useT } from '@/lib/i18n'
 import { errorMessage } from '@/lib/supabase'
@@ -31,10 +33,15 @@ export function ApplyModal({
 }) {
   const t = useT()
   const toast = useToast()
+  const navigate = useNavigate()
   const { profile } = useAuth()
   const profileId = profile?.id
   const talent = useTalentProfile(profileId)
   const { apply } = useApplicationMutations(profileId)
+
+  // Ce qu'il manque pour être jugé — même règle que la base, dite avant le clic
+  // plutôt qu'après le refus.
+  const gaps = talent.data ? missingForApplication(talent.data) : []
 
   const media = talent.data?.media ?? []
   const headshots = media.filter((asset) => asset.kind === 'headshot' || asset.kind === 'portfolio')
@@ -79,6 +86,29 @@ export function ApplyModal({
         <div className="flex justify-end">
           <Button variant="secondary" size="sm" onClick={onClose}>
             {t('common.done')}
+          </Button>
+        </div>
+      </EditModal>
+    )
+  }
+
+  // ── Un profil qui ne permet pas de juger : on le dit, on ne bloque pas un
+  //    bouton sans explication ──
+  if (gaps.length > 0) {
+    return (
+      <EditModal open title={t('apply.missingTitle')} onClose={onClose}>
+        <p className="text-[13px] text-muted">{t('apply.missingHint')}</p>
+        <ul className="flex flex-col gap-2">
+          {gaps.map((gap) => (
+            <li key={gap} className="flex items-center gap-2 text-[13.5px] font-semibold text-ink">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-signal-no" />
+              {t(`apply.missing.${gap}`)}
+            </li>
+          ))}
+        </ul>
+        <div className="flex justify-end">
+          <Button size="sm" onClick={() => navigate('/talent/profile')}>
+            {t('apply.completeProfile')}
           </Button>
         </div>
       </EditModal>

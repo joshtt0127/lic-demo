@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { profileCompletion } from './completion'
+import { missingForApplication, profileCompletion } from './completion'
 import type { TalentProfileFull } from '@/data/repositories/talent'
 
 const empty: TalentProfileFull = {
@@ -155,5 +155,55 @@ describe('profile completion', () => {
     })
     expect(full.percent).toBe(100)
     expect(full.missing).toHaveLength(0)
+  })
+})
+
+describe('what a talent needs before applying', () => {
+  it('asks for the four things a production cannot judge without', () => {
+    expect(missingForApplication(empty)).toEqual(['name', 'photo', 'playingAge', 'location'])
+  })
+
+  it('accepts a professional name in place of a first and last name', () => {
+    const named = { ...empty, talent: { ...empty.talent, professional_name: 'Vera Frame' } }
+    expect(missingForApplication(named)).not.toContain('name')
+  })
+
+  it('counts a headshot as a photo, not only an avatar', () => {
+    const withHeadshot = {
+      ...empty,
+      media: [
+        {
+          id: 'm1',
+          owner_id: 'p1',
+          kind: 'headshot' as const,
+          bucket: 'media',
+          path: 'p1/shot.jpg',
+          mime: 'image/jpeg',
+          bytes: 1,
+          width: null,
+          height: null,
+          duration_s: null,
+          caption: null,
+          sort_order: 0,
+          created_at: '',
+        },
+      ],
+    }
+    expect(missingForApplication(withHeadshot)).not.toContain('photo')
+  })
+
+  it('is satisfied once the four are there — the rest of the profile is a bonus', () => {
+    const ready = {
+      ...empty,
+      profile: {
+        ...empty.profile,
+        first_name: 'Vera',
+        last_name: 'Frame',
+        city: 'Paris',
+        avatar_url: 'a.jpg',
+      },
+      talent: { ...empty.talent, playing_age_min: 25, playing_age_max: 35 },
+    }
+    expect(missingForApplication(ready)).toEqual([])
   })
 })

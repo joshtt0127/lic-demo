@@ -289,3 +289,106 @@ test('a talent can withdraw while the production has not decided, and the produc
   await admin.from('organizations').delete().eq('id', org!.id)
   for (const id of [ownerId, talentId]) await admin.auth.admin.deleteUser(id).catch(() => {})
 })
+
+test('one application per role, several roles per casting, and a profile that can be judged', async () => {
+  const stamp = Date.now()
+  const ownerEmail = `e2e.el.owner.${stamp}@letitcast.dev`
+  const readyEmail = `e2e.el.ready.${stamp}@letitcast.dev`
+  const bareEmail = `e2e.el.bare.${stamp}@letitcast.dev`
+  const ownerId = await makeAccount(ownerEmail, 'production', 'Elsa')
+  const readyId = await makeAccount(readyEmail, 'talent', 'Rita')
+  const bareId = await makeAccount(bareEmail, 'talent', 'Bo')
+
+  // Rita a ce qu'il faut pour être jugée ; Bo vient de créer son compte.
+  await admin
+    .from('profiles')
+    .update({ first_name: 'Rita', last_name: 'Ready', city: 'Paris', avatar_url: 'https://x/a.jpg' })
+    .eq('id', readyId)
+  await admin
+    .from('talent_profiles')
+    .update({ playing_age_min: 25, playing_age_max: 35 })
+    .eq('profile_id', readyId)
+  await admin.from('profiles').update({ last_name: null, city: null }).eq('id', bareId)
+
+  const { data: org } = await admin
+    .from('organizations')
+    .insert({
+      name: `Gate Films ${stamp}`,
+      slug: `gate-films-${stamp}`,
+      created_by: ownerId,
+      verification_status: 'verified',
+    })
+    .select('id')
+    .single()
+  await admin
+    .from('organization_members')
+    .insert({ org_id: org!.id, profile_id: ownerId, role: 'owner', status: 'active' })
+  const { data: project } = await admin
+    .from('projects')
+    .insert({ org_id: org!.id, created_by: ownerId, title: `Twin ${stamp}` })
+    .select('id')
+    .single()
+  const { data: casting } = await admin
+    .from('casting_calls')
+    .insert({
+      project_id: project!.id,
+      created_by: ownerId,
+      title: `Twin ${stamp} — call`,
+      status: 'published',
+      published_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single()
+  const { data: roles } = await admin
+    .from('roles')
+    .insert([
+      { casting_call_id: casting!.id, name: `Sister ${stamp}` },
+      { casting_call_id: casting!.id, name: `Brother ${stamp}` },
+    ])
+    .select('id')
+
+  const ready = await signedIn(readyEmail)
+  const bare = await signedIn(bareEmail)
+
+  // ── Deux rôles du même casting : normal ──
+  const first = await ready
+    .from('applications')
+    .insert({ role_id: roles![0].id, talent_id: readyId, status: 'submitted' })
+    .select('id')
+  expect(first.error, 'applying to a role').toBeNull()
+  const second = await ready
+    .from('applications')
+    .insert({ role_id: roles![1].id, talent_id: readyId, status: 'submitted' })
+    .select('id')
+  expect(second.error, 'and to another role of the same casting').toBeNull()
+
+  // ── Deux fois le même rôle : non ──
+  const duplicate = await ready
+    .from('applications')
+    .insert({ role_id: roles![0].id, talent_id: readyId, status: 'submitted' })
+  expect(duplicate.error, 'but never twice for the same role').not.toBeNull()
+
+  // ── Et se retirer ne rouvre pas la porte : l'unicité est totale ──
+  // (⚠️ décision produit ouverte — voir la migration 20260924112100.)
+  await ready.from('applications').update({ status: 'withdrawn' }).eq('id', first.data![0].id)
+  const again = await ready
+    .from('applications')
+    .insert({ role_id: roles![0].id, talent_id: readyId, status: 'submitted' })
+  expect(again.error, 'withdrawing does not free the slot today').not.toBeNull()
+
+  // ── Un profil qui ne permet pas de juger ──
+  const { data: gaps } = await bare.rpc('missing_for_application', { p_talent: bareId })
+  expect(gaps, 'the app can say exactly what is missing').toEqual(
+    expect.arrayContaining(['name', 'photo', 'playingAge', 'location']),
+  )
+  const refused = await bare
+    .from('applications')
+    .insert({ role_id: roles![0].id, talent_id: bareId, status: 'submitted' })
+  expect(refused.error, 'and the database refuses the application').not.toBeNull()
+
+  await ready.auth.signOut()
+  await bare.auth.signOut()
+  await admin.from('projects').delete().eq('id', project!.id)
+  await admin.from('organizations').delete().eq('id', org!.id)
+  for (const id of [ownerId, readyId, bareId]) await admin.auth.admin.deleteUser(id).catch(() => {})
+})

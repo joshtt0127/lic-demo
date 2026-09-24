@@ -513,4 +513,13 @@ export const fr: Record<string, string> = {
   'talentStatus.castingCancelled': 'Casting terminé',
 
   'auditions.withdrawConfirm': 'Retirer cette candidature ? La production en est informée, et il faudrait recandidater.',
+
+  // ── Ce qu'il faut pour candidater ──
+  'apply.missingTitle': 'Avant de candidater',
+  'apply.missingHint': 'Une production en a besoin pour juger votre candidature.',
+  'apply.missing.name': 'Votre nom',
+  'apply.missing.photo': 'Une photo',
+  'apply.missing.playingAge': 'Votre âge de jeu',
+  'apply.missing.location': 'Votre ville',
+  'apply.completeProfile': 'Compléter mon profil',
 }
