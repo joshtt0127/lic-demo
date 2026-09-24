@@ -142,20 +142,31 @@ export type ApplyInput = {
   note?: string | null
   headshotId?: string | null
   showreelId?: string | null
+  /** Le rôle exige une tape : la candidature attend le fichier pour partir. */
+  selfTapeRequired?: boolean
 }
 
-/** Applying is one row in `applications` — the same row production will review. */
+/**
+ * Candidater, c'est une ligne dans `applications` — celle-là même que la
+ * production examinera.
+ *
+ * Quand le rôle exige une self-tape, la candidature naît en **brouillon** :
+ * elle appartient au comédien, la production ne la voit pas, et elle part toute
+ * seule quand la tape arrive. Sans ça, une production reçoit des candidatures
+ * vides pendant que le comédien croit avoir postulé.
+ */
 export async function applyToRole(talentId: string, input: ApplyInput): Promise<ApplicationRow> {
+  const waitingForTape = Boolean(input.selfTapeRequired)
   const { data, error } = await supabase
     .from('applications')
     .insert({
       role_id: input.roleId,
       talent_id: talentId,
-      status: 'submitted',
+      status: waitingForTape ? 'draft' : 'submitted',
       note: input.note?.trim() || null,
       headshot_id: input.headshotId ?? null,
       showreel_id: input.showreelId ?? null,
-      submitted_at: new Date().toISOString(),
+      submitted_at: waitingForTape ? null : new Date().toISOString(),
       source: 'talent_apply',
     })
     .select('*')

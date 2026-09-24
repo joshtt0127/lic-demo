@@ -554,4 +554,6 @@ export const fr: Record<string, string> = {
   'callback.changePlaceholder': 'Quel créneau vous irait ?',
   'callback.join': 'Rejoindre la visio',
   'callback.failed': 'Votre réponse n’a pas pu être envoyée',
+
+  'apply.tapeRequired': 'Ce rôle demande une self-tape — votre candidature part dès qu’elle est déposée.',
 }

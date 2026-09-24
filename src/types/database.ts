@@ -273,6 +273,8 @@ export type RoleRow = {
   requirements: string | null
   compensation: string | null
   selftape_instructions: string | null
+  /** Le rôle exige une self-tape pour que la candidature parte. */
+  self_tape_required: boolean
   sides_url: string | null
   shooting_start: string | null
   shooting_end: string | null

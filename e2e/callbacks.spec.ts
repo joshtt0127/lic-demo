@@ -215,3 +215,152 @@ test('a callback carries what it takes to honour it, and the talent can answer',
     await admin.auth.admin.deleteUser(id).catch(() => {})
   }
 })
+
+test('a role that needs a tape holds the application until the tape lands', async () => {
+  const stamp = Date.now()
+  const ownerEmail = `e2e.tape.owner.${stamp}@letitcast.dev`
+  const talentEmail = `e2e.tape.talent.${stamp}@letitcast.dev`
+  const ownerId = await makeAccount(ownerEmail, 'production', 'Tina')
+  const talentId = await makeAccount(talentEmail, 'talent', 'Luca')
+
+  const { data: org } = await admin
+    .from('organizations')
+    .insert({
+      name: `Tape Rules ${stamp}`,
+      slug: `tape-rules-${stamp}`,
+      created_by: ownerId,
+      verification_status: 'verified',
+    })
+    .select('id')
+    .single()
+  await admin
+    .from('organization_members')
+    .insert({ org_id: org!.id, profile_id: ownerId, role: 'owner', status: 'active' })
+  const { data: project } = await admin
+    .from('projects')
+    .insert({ org_id: org!.id, created_by: ownerId, title: `Required ${stamp}` })
+    .select('id')
+    .single()
+  const { data: casting } = await admin
+    .from('casting_calls')
+    .insert({
+      project_id: project!.id,
+      created_by: ownerId,
+      title: `Required ${stamp} — call`,
+      status: 'published',
+      published_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single()
+  const { data: role } = await admin
+    .from('roles')
+    .insert({ casting_call_id: casting!.id, name: `Taped ${stamp}`, self_tape_required: true })
+    .select('id, self_tape_required')
+    .single()
+  expect(role?.self_tape_required).toBe(true)
+
+  const talent = await signedIn(talentEmail)
+  const owner = await signedIn(ownerEmail)
+
+  // ── Candidater sans tape : la candidature attend, en brouillon ──
+  const { data: application } = await talent
+    .from('applications')
+    .insert({ role_id: role!.id, talent_id: talentId, status: 'draft' })
+    .select('id, status')
+    .single()
+  expect(application?.status, 'it waits for the tape').toBe('draft')
+
+  const { data: hidden } = await owner
+    .from('applications')
+    .select('id')
+    .eq('id', application!.id)
+  expect(hidden ?? [], 'the production does not see an unfinished application').toHaveLength(0)
+
+  // ── La tape arrive : la candidature part toute seule ──
+  const path = `${talentId}/${crypto.randomUUID()}.webm`
+  await admin.storage
+    .from('selftapes')
+    .upload(path, new Blob([new Uint8Array(1024)], { type: 'video/webm' }), {
+      contentType: 'video/webm',
+    })
+  const { data: asset } = await admin
+    .from('media_assets')
+    .insert({
+      owner_id: talentId,
+      kind: 'selftape',
+      bucket: 'selftapes',
+      path,
+      mime: 'video/webm',
+      bytes: 1024,
+    })
+    .select('id')
+    .single()
+  const { data: tape } = await talent
+    .from('self_tapes')
+    .insert({ application_id: application!.id, media_asset_id: asset!.id })
+    .select('id')
+    .single()
+
+  await expect
+    .poll(async () => {
+      const { data } = await admin
+        .from('applications')
+        .select('status')
+        .eq('id', application!.id)
+        .single()
+      return data?.status
+    }, { timeout: 20_000 })
+    .toBe('submitted')
+
+  const { data: submitted } = await admin
+    .from('events')
+    .select('type')
+    .eq('entity_id', tape!.id)
+    .eq('type', 'SELF_TAPE_SUBMITTED')
+  expect(submitted ?? [], 'the tape is a fact too').toHaveLength(1)
+
+  // ── Remplacer, tant que rien n'est décidé ──
+  const secondPath = `${talentId}/${crypto.randomUUID()}.webm`
+  await admin.storage
+    .from('selftapes')
+    .upload(secondPath, new Blob([new Uint8Array(2048)], { type: 'video/webm' }), {
+      contentType: 'video/webm',
+    })
+  const { data: second } = await admin
+    .from('media_assets')
+    .insert({
+      owner_id: talentId,
+      kind: 'selftape',
+      bucket: 'selftapes',
+      path: secondPath,
+      mime: 'video/webm',
+      bytes: 2048,
+    })
+    .select('id')
+    .single()
+  const { error: replaced } = await talent
+    .from('self_tapes')
+    .update({ media_asset_id: second!.id })
+    .eq('id', tape!.id)
+  expect(replaced, 'a take can be redone').toBeNull()
+
+  const { data: replacedFact } = await admin
+    .from('events')
+    .select('type')
+    .eq('entity_id', tape!.id)
+    .eq('type', 'SELF_TAPE_REPLACED')
+  expect(replacedFact ?? [], 'and the swap is recorded').toHaveLength(1)
+
+  // ── Mais plus après la décision ──
+  await admin.from('applications').update({ status: 'not_selected' }).eq('id', application!.id)
+  const { error: tooLate } = await talent
+    .from('self_tapes')
+    .update({ media_asset_id: asset!.id })
+    .eq('id', tape!.id)
+  expect(tooLate, 'the production judged a tape that must stay put').not.toBeNull()
+
+  for (const client of [talent, owner]) await client.auth.signOut()
+  await admin.from('projects').delete().eq('id', project!.id)
+  await admin.from('organizations').delete().eq('id', org!.id)
+  for (const id of [ownerId, talentId]) await admin.auth.admin.deleteUser(id).catch(() => {})
+})

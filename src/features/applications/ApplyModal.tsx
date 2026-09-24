@@ -61,6 +61,7 @@ export function ApplyModal({
         note,
         headshotId,
         showreelId,
+        selfTapeRequired: role.self_tape_required,
       })
       toast(t('apply.sent', { role: role.name }))
       setApplicationId(application.id)
@@ -75,7 +76,7 @@ export function ApplyModal({
       <EditModal open title={t('apply.tapeTitle', { role: role.name })} onClose={onClose}>
         <p className="flex items-center gap-2 text-[13px] text-muted">
           <Check className="h-4 w-4 text-signal-good" />
-          {t('apply.tapeIntro')}
+          {role.self_tape_required ? t('apply.tapeRequired') : t('apply.tapeIntro')}
         </p>
 
         <SelfTapePanel
