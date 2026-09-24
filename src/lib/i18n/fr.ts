@@ -522,4 +522,11 @@ export const fr: Record<string, string> = {
   'apply.missing.playingAge': 'Votre âge de jeu',
   'apply.missing.location': 'Votre ville',
   'apply.completeProfile': 'Compléter mon profil',
+
+  // ── Annonce partagée, vue sans compte ──
+  'publicCasting.backToSpace': 'Retour à mon espace',
+  'publicCasting.signIn': 'Se connecter',
+  'publicCasting.applyTitle': 'Vous voulez candidater ?',
+  'publicCasting.applyHint': 'Créez votre compte comédien — on vous ramène directement sur ce casting.',
+  'publicCasting.createAccount': 'Créer mon compte',
 }

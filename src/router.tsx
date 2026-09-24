@@ -54,18 +54,13 @@ export const router = createBrowserRouter([
     children: [{ index: true, element: <Continue /> }],
   },
 
-  // A casting call opened from a shared link — any signed-in account.
+  // Une annonce partagée se lit **sans compte** : c'est ce qui fait vivre le
+  // partage et la découverte. Les policies `anon` bornent ce qui est lisible.
   {
     path: '/casting/:castingId',
-    element: <RequireAuth />,
-    children: [
-      {
-        index: true,
-        lazy: async () => ({
-          Component: (await import('./pages/PublicCastingPage')).PublicCastingPage,
-        }),
-      },
-    ],
+    lazy: async () => ({
+      Component: (await import('./pages/PublicCastingPage')).PublicCastingPage,
+    }),
   },
 
   // Le lien d'invitation reçu par e-mail : il survit au détour par la connexion.

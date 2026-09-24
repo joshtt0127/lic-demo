@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowRight, Lock, Mail, MailCheck } from 'lucide-react'
 import {
   Button,
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui'
 import { fieldErrors, signUpSchema } from '@/features/auth/validation'
 import { useAuth } from '@/features/auth/AuthProvider'
+import { rememberReturnTo } from '@/features/auth/returnTo'
 import { useT } from '@/lib/i18n'
 import { track } from '@/lib/analytics'
 import { AuthLayout } from './AuthLayout'
@@ -25,6 +26,7 @@ export function SignUp() {
   const t = useT()
   const { signUp, signIn, resendConfirmation } = useAuth()
   const navigate = useNavigate()
+  const [params] = useSearchParams()
 
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '' })
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -72,6 +74,9 @@ export function SignUp() {
       setAwaitingConfirmation(parsed.data.email)
       return
     }
+    // Un lien de casting partagé doit ramener sur ce casting, même après
+    // l'onboarding : `/continue` consommera ce retour.
+    rememberReturnTo(params.get('next'))
     navigate('/continue', { replace: true })
   }
 

@@ -517,4 +517,11 @@ export const en: Record<string, string> = {
   'apply.missing.playingAge': 'Your playing age',
   'apply.missing.location': 'Your city',
   'apply.completeProfile': 'Complete my profile',
+
+  // ── Annonce partagée, vue sans compte ──
+  'publicCasting.backToSpace': 'Back to my space',
+  'publicCasting.signIn': 'Sign in',
+  'publicCasting.applyTitle': 'Want to apply?',
+  'publicCasting.applyHint': 'Create your talent account — we bring you straight back to this casting.',
+  'publicCasting.createAccount': 'Create my account',
 }
