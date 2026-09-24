@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   acceptInvite,
   acceptInviteByToken,
+  leaveOrganization,
+  transferOwnership,
   createInvite,
   createOrganization,
   listMyInvites,
@@ -112,5 +114,16 @@ export function useOrganizationMutations(profileId: string | undefined) {
     onSuccess: invalidate,
   })
 
-  return { create, join, joinByToken, update }
+  const handOver = useMutation({
+    mutationFn: ({ orgId, toProfileId }: { orgId: string; toProfileId: string }) =>
+      transferOwnership(orgId, toProfileId),
+    onSuccess: invalidate,
+  })
+
+  const leave = useMutation({
+    mutationFn: (orgId: string) => leaveOrganization(orgId, profileId as string),
+    onSuccess: invalidate,
+  })
+
+  return { create, join, joinByToken, handOver, leave, update }
 }

@@ -130,6 +130,25 @@ export async function acceptInviteByToken(token: string): Promise<string> {
   return data as string
 }
 
+/** Transmet la propriété — une seule opération, côté base. */
+export async function transferOwnership(orgId: string, toProfileId: string): Promise<void> {
+  const { error } = await supabase.rpc('transfer_organization_ownership', {
+    p_org: orgId,
+    p_to: toProfileId,
+  })
+  if (error) throw error
+}
+
+/** Quitter une organisation : on retire sa propre appartenance. */
+export async function leaveOrganization(orgId: string, profileId: string): Promise<void> {
+  const { error } = await supabase
+    .from('organization_members')
+    .delete()
+    .eq('org_id', orgId)
+    .eq('profile_id', profileId)
+  if (error) throw error
+}
+
 export async function updateOrganization(
   id: string,
   patch: Partial<Pick<OrganizationRow, 'name' | 'logo_url' | 'description' | 'website' | 'company_type' | 'city' | 'country'>>,

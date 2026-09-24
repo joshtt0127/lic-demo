@@ -585,6 +585,10 @@ export type Database = {
         Args: { p_token: string }
         Returns: string
       }
+      transfer_organization_ownership: {
+        Args: { p_org: string; p_to: string }
+        Returns: void
+      }
     }
     Enums: {
       account_type: AccountType

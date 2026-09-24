@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Copy, Mail, Trash2, UserPlus, Users } from 'lucide-react'
 import {
   Avatar,
@@ -22,6 +23,7 @@ import {
   useTeamMutations,
 } from '@/features/organizations/queries'
 import { ASSIGNABLE_ORG_ROLES, ORG_ROLE_LABEL, can } from '@/lib/access'
+import { useOrganizationMutations } from '@/features/organizations/queries'
 import { relativeTime } from '@/lib/format'
 import { errorMessage } from '@/lib/supabase'
 import type { OrgRole } from '@/types/database'
@@ -54,6 +56,8 @@ export function TeamPage() {
   const invites = useOrgInvites(organization?.id)
   const mutations = useTeamMutations(organization?.id, profile?.id)
 
+  const navigate = useNavigate()
+  const org = useOrganizationMutations(profile?.id)
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<OrgRole>('member')
   const [error, setError] = useState<string | null>(null)
@@ -134,7 +138,9 @@ export function TeamPage() {
                     </span>
                   </span>
 
-                  {can(organization.role, 'org:manage') && !isMe ? (
+                  {can(organization.role, 'org:manage') &&
+                  !isMe &&
+                  (member.role !== 'owner' || organization.role === 'owner') ? (
                     <SelectInput
                       value={member.role}
                       className="w-[190px]"
@@ -157,7 +163,26 @@ export function TeamPage() {
                     </Tag>
                   )}
 
-                  {can(organization.role, 'org:manage') && !isMe && (
+                  {can(organization.role, 'org:transfer') && !isMe && member.role !== 'owner' && (
+                    <button
+                      onClick={() => {
+                        const sure = window.confirm(
+                          `Hand this organization over to ${name}? You stay in the team as an admin.`,
+                        )
+                        if (!sure) return
+                        setError(null)
+                        org.handOver.mutate(
+                          { orgId: organization.id, toProfileId: member.profile_id },
+                          { onError: (handOverError) => setError(errorMessage(handOverError, 'Could not hand over')) },
+                        )
+                      }}
+                      className="inline-flex min-h-[34px] items-center whitespace-nowrap rounded-btn px-2 text-[12.5px] font-semibold text-muted transition-colors hover:bg-ink/5 hover:text-ink"
+                    >
+                      Make owner
+                    </button>
+                  )}
+
+                  {can(organization.role, 'org:manage') && !isMe && member.role !== 'owner' && (
                     <button
                       onClick={() => mutations.remove.mutate(member.profile_id)}
                       aria-label={`Remove ${name}`}
@@ -171,6 +196,37 @@ export function TeamPage() {
             })}
           </ul>
         )}
+
+        {/* Partir. Un propriétaire doit d'abord transmettre — la base le refuse
+            de toute façon, autant le dire ici plutôt que de le laisser buter. */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+          {organization.role === 'owner' ? (
+            <span className="text-[12.5px] text-muted">
+              Hand the organization over to someone before you leave it.
+            </span>
+          ) : (
+            <>
+              <span className="text-[12.5px] text-muted">
+                You keep your account — you only leave this team.
+              </span>
+              <button
+                onClick={() => {
+                  const sure = window.confirm(`Leave ${organization.name}?`)
+                  if (!sure) return
+                  setError(null)
+                  org.leave.mutate(organization.id, {
+                    onSuccess: () => navigate('/continue', { replace: true }),
+                    onError: (leaveError) =>
+                      setError(errorMessage(leaveError, 'Could not leave this organization')),
+                  })
+                }}
+                className="inline-flex min-h-[34px] items-center rounded-btn px-2 text-[12.5px] font-semibold text-signal-no transition-colors hover:bg-signal-no/10"
+              >
+                Leave this organization
+              </button>
+            </>
+          )}
+        </div>
       </Card>
 
       {mayInvite && (
