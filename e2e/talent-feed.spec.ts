@@ -94,6 +94,8 @@ test('a published casting appears in the feed as a post, and applying works from
     .from('profiles')
     .update({
       account_type: 'talent',
+      // Comme après un onboarding réel : le MVP est réservé aux majeurs.
+      adult_confirmed_at: new Date().toISOString(),
       first_name: 'Ines',
       last_name: 'Feed',
       city: 'Marseille',

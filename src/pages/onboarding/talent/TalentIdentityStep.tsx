@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ArrowRight } from 'lucide-react'
-import { FormError, FormField, Input, Spinner, TextField } from '@/components/ui'
+import { Checkbox, FormError, FormField, Input, Spinner, TextField } from '@/components/ui'
 import { Skeleton } from '@/components/Skeleton'
 import { AvatarUpload } from '@/components/upload/AvatarUpload'
 import { useAuth } from '@/features/auth/AuthProvider'
@@ -54,6 +54,8 @@ function IdentityForm({ data }: { data: TalentProfileFull }) {
     city: data.profile.city ?? '',
     country: data.profile.country ?? '',
   })
+  // Une déclaration, pas une date de naissance : c'est ce que la règle demande.
+  const [adult, setAdult] = useState(Boolean(data.profile.adult_confirmed_at))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -67,11 +69,13 @@ function IdentityForm({ data }: { data: TalentProfileFull }) {
     const nextErrors: Record<string, string> = {}
     if (!form.firstName.trim()) nextErrors.firstName = 'First name is required'
     if (!form.lastName.trim()) nextErrors.lastName = 'Last name is required'
+    if (!adult) nextErrors.adult = t('onb.adultRequired')
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
     try {
       await updateAccount.mutateAsync({
+        adult_confirmed_at: data.profile.adult_confirmed_at ?? new Date().toISOString(),
         first_name: form.firstName.trim(),
         last_name: form.lastName.trim(),
         city: form.city.trim() || null,
@@ -137,6 +141,13 @@ function IdentityForm({ data }: { data: TalentProfileFull }) {
         value={form.professionalName}
         onChange={set('professionalName')}
       />
+
+      {/* Une déclaration explicite : la base refuse une candidature sans elle. */}
+      <div className="flex flex-col gap-1">
+        <Checkbox id="adult" checked={adult} onChange={setAdult} label={t('onb.adultConfirm')} />
+        <span className="pl-7 text-[12.5px] text-muted">{t('onb.adultHint')}</span>
+        {errors.adult && <span className="pl-7 text-[12.5px] text-signal-no">{errors.adult}</span>}
+      </div>
 
       <FormField
         label={t('onb.headline')}

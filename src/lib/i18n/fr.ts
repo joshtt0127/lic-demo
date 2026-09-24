@@ -497,4 +497,8 @@ export const fr: Record<string, string> = {
   'invite.cannotJoin': 'Cette invitation ne peut pas être utilisée',
   'invite.failed': 'Cette invitation n’a pas pu être acceptée',
   'invite.continue': 'Aller dans mon espace',
+
+  'onb.adultConfirm': 'J’ai 18 ans ou plus',
+  'onb.adultHint': 'Let It Cast est réservé aux majeurs pour le moment.',
+  'onb.adultRequired': 'Vous devez avoir 18 ans ou plus pour utiliser Let It Cast',
 }

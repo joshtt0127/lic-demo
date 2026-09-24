@@ -37,6 +37,9 @@ test.describe('Talent sign-up and onboarding', () => {
     await expect(page.getByLabel('First name')).toHaveValue('Nora')
     await page.getByPlaceholder('Actress · 2x lead · SAG-AFTRA').fill('Actress · stage & screen')
     await page.getByPlaceholder('Los Angeles').fill('Lisbon')
+    // Le MVP est réservé aux majeurs : la déclaration est explicite, et la base
+    // refuse une candidature sans elle.
+    await page.getByLabel('I am 18 or over').click()
     await page.getByRole('button', { name: 'Continue' }).click()
 
     // ── Casting profile ──
@@ -86,6 +89,7 @@ test.describe('Talent sign-up and onboarding', () => {
 
     await page.getByRole('button', { name: /I.?m a Talent/ }).click()
     await expect(page.getByRole('heading', { name: 'Tell us who you are' })).toBeVisible()
+    await page.getByLabel('I am 18 or over').click()
     await page.getByRole('button', { name: 'Continue' }).click()
     await expect(page.getByRole('heading', { name: 'Your casting profile' })).toBeVisible()
 

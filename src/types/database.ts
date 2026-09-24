@@ -66,6 +66,8 @@ export type ProfileRow = {
   city: string | null
   country: string | null
   onboarding_step: string | null
+  /** Déclaration de majorité — aucune date de naissance stockée. */
+  adult_confirmed_at: string | null
   onboarding_completed_at: string | null
   created_at: string
   updated_at: string

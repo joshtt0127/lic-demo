@@ -89,6 +89,8 @@ test('analysing a tape extracts frames, calls the function, and records the outc
     .from('profiles')
     .update({
       account_type: 'talent',
+      // Comme après un onboarding réel : le MVP est réservé aux majeurs.
+      adult_confirmed_at: new Date().toISOString(),
       first_name: 'Vera',
       last_name: 'Frame',
       onboarding_step: null,

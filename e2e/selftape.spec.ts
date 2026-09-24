@@ -87,6 +87,8 @@ test('a talent sends a self-tape, replaces it, and the production plays it', asy
     .from('profiles')
     .update({
       account_type: 'talent',
+      // Comme après un onboarding réel : le MVP est réservé aux majeurs.
+      adult_confirmed_at: new Date().toISOString(),
       first_name: 'Tamsin',
       last_name: 'Reel',
       onboarding_step: null,
@@ -245,6 +247,8 @@ test.describe('camera', () => {
       .from('profiles')
       .update({
         account_type: 'talent',
+        // Comme après un onboarding réel : le MVP est réservé aux majeurs.
+        adult_confirmed_at: new Date().toISOString(),
         first_name: 'Remi',
         last_name: 'Cam',
         onboarding_step: null,

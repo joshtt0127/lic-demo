@@ -44,6 +44,8 @@ test('a fresh talent account sees only its own data', async ({ page }) => {
     .from('profiles')
     .update({
       account_type: 'talent',
+      // Comme après un onboarding réel : le MVP est réservé aux majeurs.
+      adult_confirmed_at: new Date().toISOString(),
       first_name: 'Nora',
       last_name: 'Bennett',
       city: 'Lisbon',

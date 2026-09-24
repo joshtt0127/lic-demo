@@ -44,6 +44,8 @@ test('a casting reaches a talent, and their application reaches the production b
     .from('profiles')
     .update({
       account_type: 'talent',
+      // Comme après un onboarding réel : le MVP est réservé aux majeurs.
+      adult_confirmed_at: new Date().toISOString(),
       first_name: 'Nora',
       last_name: 'Bennett',
       city: 'Marseille',

@@ -69,6 +69,8 @@ test('a casting goes from draft to cast, and the talent sees the truth at each s
         .from('profiles')
         .update({
           account_type: 'talent',
+          // Comme après un onboarding réel : le MVP est réservé aux majeurs.
+          adult_confirmed_at: new Date().toISOString(),
           first_name: first,
           last_name: last,
           onboarding_step: null,

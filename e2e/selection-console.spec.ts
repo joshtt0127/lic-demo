@@ -86,6 +86,8 @@ test('the console moves a candidate, and the wall shows who is cast', async ({ p
         .from('profiles')
         .update({
           account_type: 'talent',
+          // Comme après un onboarding réel : le MVP est réservé aux majeurs.
+          adult_confirmed_at: new Date().toISOString(),
           first_name: first,
           last_name: last,
           onboarding_step: null,

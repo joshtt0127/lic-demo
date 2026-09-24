@@ -89,6 +89,8 @@ test('a team reviews together, and a viewer stays read-only', async ({ browser }
     .from('profiles')
     .update({
       account_type: 'talent',
+      // Comme après un onboarding réel : le MVP est réservé aux majeurs.
+      adult_confirmed_at: new Date().toISOString(),
       first_name: 'Cleo',
       last_name: 'Stone',
       onboarding_step: null,

@@ -25,6 +25,7 @@ export type ProfilePatch = Partial<
     | 'email_notifications'
     | 'onboarding_step'
     | 'onboarding_completed_at'
+    | 'adult_confirmed_at'
   >
 >
 

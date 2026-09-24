@@ -14,6 +14,7 @@ const empty: TalentProfileFull = {
     city: null,
     country: null,
     onboarding_step: null,
+    adult_confirmed_at: null,
     onboarding_completed_at: null,
     created_at: '',
     updated_at: '',

@@ -85,6 +85,8 @@ test('the reports count what really happened, and export it', async ({ page }) =
         .from('profiles')
         .update({
           account_type: 'talent',
+          // Comme après un onboarding réel : le MVP est réservé aux majeurs.
+          adult_confirmed_at: new Date().toISOString(),
           first_name: first,
           last_name: last,
           onboarding_step: null,

@@ -58,6 +58,8 @@ test('a message produces an email, and the opt-out stops it', async ({ page, bro
     .from('profiles')
     .update({
       account_type: 'talent',
+      // Comme après un onboarding réel : le MVP est réservé aux majeurs.
+      adult_confirmed_at: new Date().toISOString(),
       first_name: 'Noor',
       last_name: 'Post',
       onboarding_step: null,

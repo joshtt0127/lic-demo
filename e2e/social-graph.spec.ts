@@ -85,6 +85,8 @@ test('following a production filters the feed and tells them', async ({ page, br
     .from('profiles')
     .update({
       account_type: 'talent',
+      // Comme après un onboarding réel : le MVP est réservé aux majeurs.
+      adult_confirmed_at: new Date().toISOString(),
       first_name: 'Sasha',
       last_name: 'Link',
       onboarding_step: null,

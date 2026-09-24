@@ -31,6 +31,8 @@ test('a post reaches the people who follow its author, and likes are counted', a
       .from('profiles')
       .update({
         account_type: 'talent',
+        // Comme après un onboarding réel : le MVP est réservé aux majeurs.
+        adult_confirmed_at: new Date().toISOString(),
         first_name: label,
         last_name: 'Post',
         onboarding_step: null,

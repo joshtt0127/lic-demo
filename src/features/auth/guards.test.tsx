@@ -21,6 +21,7 @@ const profile: ProfileRow = {
   city: 'Los Angeles',
   country: 'US',
   onboarding_step: null,
+  adult_confirmed_at: null,
   onboarding_completed_at: '2026-09-01T10:00:00Z',
   created_at: '2026-09-01T10:00:00Z',
   updated_at: '2026-09-01T10:00:00Z',

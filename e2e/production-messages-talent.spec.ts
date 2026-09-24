@@ -63,6 +63,8 @@ test('a casting director messages an actor, who receives it in their inbox', asy
     .from('profiles')
     .update({
       account_type: 'talent',
+      // Comme après un onboarding réel : le MVP est réservé aux majeurs.
+      adult_confirmed_at: new Date().toISOString(),
       first_name: 'Livia',
       last_name: 'Marsh',
       city: 'Paris',
