@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { inviteTalentToCasting } from '@/data/repositories/castings'
 import { supabase } from '@/lib/supabase'
 import type { CastingCallRow, OrganizationRow, ProjectRow, RoleRow } from '@/types/database'
 
@@ -146,6 +147,18 @@ export function useSaveCasting(talentId: string | undefined) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['saved-castings', talentId] })
+    },
+  })
+}
+
+/** Inviter un comédien sur un casting de son organisation. */
+export function useInviteTalent(profileId: string | undefined) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { castingId: string; talentId: string; message?: string }) =>
+      inviteTalentToCasting({ ...input, invitedBy: profileId as string }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['casting-invites'] })
     },
   })
 }

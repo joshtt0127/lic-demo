@@ -424,6 +424,32 @@ export type TapeAiReviewRow = {
   completed_at: string | null
 }
 
+/** Qui a le droit de voir un casting sur invitation. Aucune candidature impliquée. */
+export type CastingInviteRow = {
+  id: string
+  casting_call_id: string
+  talent_id: string
+  invited_by: string | null
+  message: string | null
+  created_at: string
+}
+
+/** Un fait canonique du workflow — écrit par la base, jamais par un client. */
+export type EventRow = {
+  id: number
+  type: string
+  occurred_at: string
+  actor_id: string | null
+  entity_type: string
+  entity_id: string
+  org_id: string | null
+  subject_id: string | null
+  before: Record<string, unknown> | null
+  after: Record<string, unknown> | null
+  source: string
+  metadata: Record<string, unknown>
+}
+
 /** What the browser measured about a self-tape when it was sent. */
 export type TapeCheckRow = {
   self_tape_id: string
@@ -575,6 +601,8 @@ export type Database = {
       analytics_events: Writable<AnalyticsEventRow, 'name'>
       tape_checks: Writable<TapeCheckRow, 'self_tape_id'>
       tape_ai_reviews: Writable<TapeAiReviewRow, 'self_tape_id'>
+      casting_invites: Writable<CastingInviteRow, 'casting_call_id' | 'talent_id'>
+      events: Writable<EventRow, 'type' | 'entity_type' | 'entity_id'>
       posts: Writable<PostRow, 'author_id' | 'body'>
       post_likes: Writable<PostLikeRow, 'post_id' | 'profile_id'>
       follows: Writable<FollowRow, 'follower_id' | 'following_id'>

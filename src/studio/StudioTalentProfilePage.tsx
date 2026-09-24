@@ -6,12 +6,14 @@ import {
   GraduationCap,
   MapPin,
   MessageSquare,
+  Ticket,
 } from "lucide-react";
 import { Avatar, Button, Card, FormError, Tag } from "@/components/ui";
 import { Skeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { MessageTalentModal } from "@/features/messaging/MessageTalentModal";
+import { InviteToCastingModal } from "@/studio/InviteToCastingModal";
 import { useCurrentOrganization } from "@/features/organizations/queries";
 import { can } from "@/lib/access";
 import { useTalentProfile } from "@/features/talent/queries";
@@ -31,6 +33,7 @@ export function StudioTalentProfilePage() {
   const { organization } = useCurrentOrganization(me?.id);
   const talent = useTalentProfile(profileId);
   const [messaging, setMessaging] = useState(false);
+  const [inviting, setInviting] = useState(false);
 
   if (talent.isLoading || (!talent.data && !talent.error)) {
     return (
@@ -122,6 +125,20 @@ export function StudioTalentProfilePage() {
           </div>
         </div>
 
+        {/* Inviter sur un casting sur invitation : c'est ce qui rend cette
+            visibilité utilisable depuis l'annuaire. */}
+        {can(organization?.role, "casting:publish") && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="shrink-0"
+            icon={<Ticket className="h-4 w-4" />}
+            onClick={() => setInviting(true)}
+          >
+            Invite to a casting
+          </Button>
+        )}
+
         {/* Writing to an actor is allowed at any point — it opens a real thread. */}
         {can(organization?.role, "message:send") && (
           <Button
@@ -135,6 +152,14 @@ export function StudioTalentProfilePage() {
           </Button>
         )}
       </Card>
+
+      {inviting && profileId && organization?.id && (
+        <InviteToCastingModal
+          talent={{ id: profileId, name }}
+          orgId={organization.id}
+          onClose={() => setInviting(false)}
+        />
+      )}
 
       {messaging && profileId && (
         <MessageTalentModal

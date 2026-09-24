@@ -150,6 +150,30 @@ function shapeCasting(row: CastingJoin): CastingWithProject {
 }
 
 /** Every casting of the organization, drafts included. */
+/**
+ * Inviter un comédien sur un casting.
+ *
+ * L'invitation ouvre la porte, elle ne candidate pas à sa place : c'est lui qui
+ * décide d'entrer. Postuler pour quelqu'un d'autre serait une autre promesse.
+ */
+export async function inviteTalentToCasting(input: {
+  castingId: string
+  talentId: string
+  invitedBy: string
+  message?: string | null
+}): Promise<void> {
+  const { error } = await supabase.from('casting_invites').upsert(
+    {
+      casting_call_id: input.castingId,
+      talent_id: input.talentId,
+      invited_by: input.invitedBy,
+      message: input.message?.trim() || null,
+    },
+    { onConflict: 'casting_call_id,talent_id' },
+  )
+  if (error) throw error
+}
+
 export async function listOrgCastings(orgId: string): Promise<CastingWithProject[]> {
   const projects = await listProjects(orgId)
   if (projects.length === 0) return []

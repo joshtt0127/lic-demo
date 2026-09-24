@@ -196,3 +196,117 @@ test('changing what matters reaches the applicants; closing settles them', async
   await admin.from('organizations').delete().eq('id', org!.id)
   for (const id of [ownerId, talentId]) await admin.auth.admin.deleteUser(id).catch(() => {})
 })
+
+test('an invite-only casting is invisible until someone is invited', async () => {
+  const stamp = Date.now()
+  const ownerEmail = `e2e.inv2.owner.${stamp}@letitcast.dev`
+  const guestEmail = `e2e.inv2.guest.${stamp}@letitcast.dev`
+  const strangerEmail = `e2e.inv2.stranger.${stamp}@letitcast.dev`
+  const ownerId = await makeAccount(ownerEmail, 'production', 'Iris')
+  const guestId = await makeAccount(guestEmail, 'talent', 'Gina')
+  const strangerId = await makeAccount(strangerEmail, 'talent', 'Sam')
+
+  const { data: org } = await admin
+    .from('organizations')
+    .insert({
+      name: `Quiet Films ${stamp}`,
+      slug: `quiet-films-${stamp}`,
+      created_by: ownerId,
+      verification_status: 'verified',
+    })
+    .select('id')
+    .single()
+  await admin
+    .from('organization_members')
+    .insert({ org_id: org!.id, profile_id: ownerId, role: 'owner', status: 'active' })
+  const { data: project } = await admin
+    .from('projects')
+    .insert({ org_id: org!.id, created_by: ownerId, title: `Embargo ${stamp}` })
+    .select('id')
+    .single()
+  const { data: casting } = await admin
+    .from('casting_calls')
+    .insert({
+      project_id: project!.id,
+      created_by: ownerId,
+      title: `Embargo ${stamp} — closed call`,
+      status: 'published',
+      visibility: 'invite_only',
+      published_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single()
+  const { data: role } = await admin
+    .from('roles')
+    .insert({ casting_call_id: casting!.id, name: `Ghost ${stamp}` })
+    .select('id')
+    .single()
+
+  const guest = await signedIn(guestEmail)
+  const stranger = await signedIn(strangerEmail)
+  const owner = await signedIn(ownerEmail)
+
+  // ── Avant l'invitation : invisible des deux côtés du public ──
+  for (const [who, client] of [
+    ['the future guest', guest],
+    ['a stranger', stranger],
+  ] as const) {
+    const { data } = await client.from('casting_calls').select('id').eq('id', casting!.id)
+    expect(data ?? [], `${who} cannot see an invite-only casting`).toHaveLength(0)
+    const { data: roles } = await client.from('roles').select('id').eq('id', role!.id)
+    expect(roles ?? [], `${who} cannot see its roles`).toHaveLength(0)
+  }
+
+  const anon = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, {
+    auth: { persistSession: false },
+  })
+  const { data: visitor } = await anon.from('casting_calls').select('id').eq('id', casting!.id)
+  expect(visitor ?? [], 'and no visitor either').toHaveLength(0)
+
+  // ── L'invitation, envoyée par la production ──
+  const { error: inviteError } = await owner.from('casting_invites').insert({
+    casting_call_id: casting!.id,
+    talent_id: guestId,
+    invited_by: ownerId,
+    message: 'We thought of you.',
+  })
+  expect(inviteError, 'the production invites').toBeNull()
+
+  // ── Après : l'invité voit, les autres non ──
+  const { data: seen } = await guest.from('casting_calls').select('id, title').eq('id', casting!.id)
+  expect(seen ?? [], 'the invited talent now sees it').toHaveLength(1)
+  const { data: roles } = await guest.from('roles').select('id').eq('id', role!.id)
+  expect(roles ?? [], 'and its roles').toHaveLength(1)
+
+  const { data: stillBlind } = await stranger
+    .from('casting_calls')
+    .select('id')
+    .eq('id', casting!.id)
+  expect(stillBlind ?? [], 'a stranger still sees nothing').toHaveLength(0)
+
+  // ── Et l'invité l'apprend ──
+  await expect
+    .poll(async () => {
+      const { data } = await admin
+        .from('notifications')
+        .select('id')
+        .eq('recipient_id', guestId)
+        .eq('type', 'casting_invite')
+      return data?.length ?? 0
+    }, { timeout: 20_000 })
+    .toBe(1)
+
+  // ── Un comédien ne s'invite pas lui-même ──
+  const { error: selfInvite } = await stranger.from('casting_invites').insert({
+    casting_call_id: casting!.id,
+    talent_id: strangerId,
+  })
+  expect(selfInvite, 'nobody invites themselves').not.toBeNull()
+
+  for (const client of [guest, stranger, owner]) await client.auth.signOut()
+  await admin.from('projects').delete().eq('id', project!.id)
+  await admin.from('organizations').delete().eq('id', org!.id)
+  for (const id of [ownerId, guestId, strangerId]) {
+    await admin.auth.admin.deleteUser(id).catch(() => {})
+  }
+})

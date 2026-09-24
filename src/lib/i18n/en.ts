@@ -524,4 +524,15 @@ export const en: Record<string, string> = {
   'publicCasting.applyTitle': 'Want to apply?',
   'publicCasting.applyHint': 'Create your talent account — we bring you straight back to this casting.',
   'publicCasting.createAccount': 'Create my account',
+
+  // ── Inviter un comédien sur un casting ──
+  'invite.casting.title': 'Invite {name} to a casting',
+  'invite.casting.send': 'Send the invitation',
+  'invite.casting.sending': 'Sending…',
+  'invite.casting.sent': '{name} has been invited',
+  'invite.casting.failed': 'The invitation could not be sent',
+  'invite.casting.none': 'You have no published casting to invite them to yet.',
+  'invite.casting.message': 'A word with it (optional)',
+  'invite.casting.messagePlaceholder': 'We thought of you for this one…',
+  'invite.casting.hint': 'An invitation opens the casting to them — it does not apply on their behalf.',
 }
