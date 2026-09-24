@@ -208,6 +208,8 @@ export type CastingInput = {
   deadlineAt?: string | null
   compensation?: string | null
   format?: 'scripted' | 'non_scripted'
+  /** public (listé) · private_link (au lien seul) · invite_only (aux invités). */
+  visibility?: 'public' | 'private_link' | 'invite_only'
 }
 
 export async function createCasting(
@@ -224,6 +226,7 @@ export async function createCasting(
       deadline_at: input.deadlineAt || null,
       compensation: input.compensation ?? null,
       format: input.format ?? 'scripted',
+      visibility: input.visibility ?? 'public',
       status: 'draft',
       created_by: createdBy,
     })
@@ -282,6 +285,8 @@ export type RoleInput = {
   requirements?: string | null
   compensation?: string | null
   selftapeInstructions?: string | null
+  /** Le rôle exige une tape : la candidature attend le fichier pour partir. */
+  selfTapeRequired?: boolean
   sidesUrl?: string | null
   auditionFlow?: 'open_call' | 'invited' | 'in_house'
   sortOrder?: number
@@ -302,6 +307,7 @@ function rolePayload(input: RoleInput) {
     requirements: input.requirements ?? null,
     compensation: input.compensation ?? null,
     selftape_instructions: input.selftapeInstructions ?? null,
+    self_tape_required: input.selfTapeRequired ?? false,
     sides_url: input.sidesUrl ?? null,
     audition_flow: input.auditionFlow ?? 'open_call',
     ...(input.sortOrder !== undefined ? { sort_order: input.sortOrder } : {}),

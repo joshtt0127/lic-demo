@@ -21,7 +21,11 @@ export type OrgRole = 'owner' | 'admin' | 'casting_director' | 'member' | 'viewe
 export type MemberStatus = 'active' | 'invited' | 'removed'
 export type ProjectStatus = 'draft' | 'casting' | 'callbacks' | 'pre_production' | 'cast' | 'archived'
 export type CastingStatus = 'draft' | 'published' | 'closed' | 'archived'
-export type CastingVisibility = 'public' | 'private'
+/**
+ * `private` est la valeur d'origine, gardée pour les lignes historiques ;
+ * les trois portées réellement proposées sont les autres.
+ */
+export type CastingVisibility = 'public' | 'private' | 'private_link' | 'invite_only'
 export type CastingFormat = 'scripted' | 'non_scripted'
 export type RoleTypeDb = 'lead' | 'supporting' | 'contestant'
 export type AuditionFlowDb = 'open_call' | 'invited' | 'in_house'

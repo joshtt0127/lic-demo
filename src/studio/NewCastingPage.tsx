@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Check, Plus } from 'lucide-react'
 import {
   Button,
   Card,
+  Checkbox,
   FormError,
   FormField,
   Input,
@@ -39,6 +40,17 @@ import type { RoleInput } from '@/data/repositories/castings'
  * casting are inserted as you go, so leaving mid-way leaves a real draft behind
  * rather than losing everything.
  */
+
+/** Les trois portées d'une annonce, dites avec les mots de la production. */
+const VISIBILITIES: {
+  value: 'public' | 'private_link' | 'invite_only'
+  label: string
+  hint: string
+}[] = [
+  { value: 'public', label: 'Everyone', hint: 'Listed, shareable, open to applications.' },
+  { value: 'private_link', label: 'Anyone with the link', hint: 'Not listed anywhere.' },
+  { value: 'invite_only', label: 'Invited talents only', hint: 'You choose who sees it.' },
+]
 
 const PRODUCTION_TYPES = [
   'Film',
@@ -86,6 +98,7 @@ export function NewCastingPage() {
     description: '',
     location: '',
     deadlineAt: '',
+    visibility: 'public' as 'public' | 'private_link' | 'invite_only',
     compensation: '',
   })
 
@@ -184,6 +197,7 @@ export function NewCastingPage() {
         location: casting.location || null,
         deadlineAt: casting.deadlineAt ? new Date(casting.deadlineAt).toISOString() : null,
         compensation: casting.compensation || null,
+        visibility: casting.visibility,
       })
       track('casting_created', { casting_id: created.id })
       setCastingId(created.id)
@@ -535,6 +549,30 @@ export function NewCastingPage() {
             }
           />
 
+          {/* Qui peut voir cette annonce. Posé ici plutôt qu'en base : les trois
+              visibilités existent depuis la Phase 3, elles n'étaient nulle part
+              à l'écran. */}
+          <FormField label="Who can see it" plainLabel>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {VISIBILITIES.map(({ value, label, hint }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setCasting((current) => ({ ...current, visibility: value }))}
+                  className={cn(
+                    'rounded-field border p-3 text-left transition-colors',
+                    casting.visibility === value
+                      ? 'border-ink/30 bg-paper'
+                      : 'border-line hover:border-ink/20',
+                  )}
+                >
+                  <span className="block text-[13.5px] font-bold text-ink">{label}</span>
+                  <span className="mt-0.5 block text-[12px] leading-snug text-muted">{hint}</span>
+                </button>
+              ))}
+            </div>
+          </FormField>
+
           <FormField label="Description" htmlFor="casting-description" plainLabel optional>
             <TextArea
               id="casting-description"
@@ -780,6 +818,15 @@ export function RoleForm({
           onChange={(event) => set('selftapeInstructions', event.target.value)}
         />
       </FormField>
+
+      {/* Tous les rôles n'en demandent pas — une silhouette, un figurant. Quand
+          il en faut une, la candidature attend le fichier pour partir. */}
+      <Checkbox
+        id="role-tape-required"
+        checked={Boolean(draft.selfTapeRequired)}
+        onChange={(checked) => set('selfTapeRequired', checked)}
+        label="A self-tape is required for this role"
+      />
 
       <div className="flex items-center justify-end gap-2">
         {onCancel && (

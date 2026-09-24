@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { DEMO_PASSWORD, localEnv } from './env'
+import { DEMO_PASSWORD, localEnv, signInAs } from './env'
 
 /**
  * Une annonce qui change, et une annonce qui se ferme.
@@ -309,4 +309,63 @@ test('an invite-only casting is invisible until someone is invited', async () =>
   for (const id of [ownerId, guestId, strangerId]) {
     await admin.auth.admin.deleteUser(id).catch(() => {})
   }
+})
+
+test('a production chooses who can see a casting, and whether a role needs a tape', async ({
+  page,
+}) => {
+  const stamp = Date.now()
+  const ownerEmail = `e2e.form.owner.${stamp}@letitcast.dev`
+  const ownerId = await makeAccount(ownerEmail, 'production', 'Nina')
+
+  const { data: org } = await admin
+    .from('organizations')
+    .insert({
+      name: `Form Films ${stamp}`,
+      slug: `form-films-${stamp}`,
+      created_by: ownerId,
+      verification_status: 'verified',
+    })
+    .select('id')
+    .single()
+  await admin
+    .from('organization_members')
+    .insert({ org_id: org!.id, profile_id: ownerId, role: 'owner', status: 'active' })
+  const { data: project } = await admin
+    .from('projects')
+    .insert({ org_id: org!.id, created_by: ownerId, title: `Chosen ${stamp}` })
+    .select('id')
+    .single()
+
+  await signInAs(page, ownerEmail, 'studio')
+  await page.goto('/studio/casting-calls/new')
+
+  // Étape 1 : reprendre le projet existant.
+  await page.getByRole('button', { name: new RegExp(`Chosen ${stamp}`) }).first().click()
+  await page.getByRole('button', { name: 'Continue' }).click()
+
+  // Étape 2 : le casting, et qui peut le voir.
+  await page.getByLabel('Casting title').fill(`Chosen ${stamp} — call`)
+  await page.getByRole('button', { name: /Anyone with the link/ }).click()
+  await page.getByRole('button', { name: 'Create and add roles' }).click()
+
+  // Étape 3 : un rôle qui exige une tape.
+  await page.getByLabel('Role name').fill(`Silent ${stamp}`)
+  await page.getByLabel('A self-tape is required for this role').click()
+  await page.getByRole('button', { name: 'Add this role' }).click()
+
+  await expect
+    .poll(async () => {
+      const { data } = await admin
+        .from('casting_calls')
+        .select('visibility, roles(self_tape_required)')
+        .eq('project_id', project!.id)
+        .maybeSingle()
+      return data ? `${data.visibility}/${data.roles?.[0]?.self_tape_required}` : null
+    }, { timeout: 30_000 })
+    .toBe('private_link/true')
+
+  await admin.from('projects').delete().eq('id', project!.id)
+  await admin.from('organizations').delete().eq('id', org!.id)
+  await admin.auth.admin.deleteUser(ownerId).catch(() => {})
 })
