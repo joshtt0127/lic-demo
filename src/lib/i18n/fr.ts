@@ -540,4 +540,18 @@ export const fr: Record<string, string> = {
   'invite.casting.message': 'Un mot avec (facultatif)',
   'invite.casting.messagePlaceholder': 'On a pensé à vous pour celui-ci…',
   'invite.casting.hint': 'Une invitation lui ouvre le casting — elle ne candidate pas à sa place.',
+
+  // ── Callback ──
+  'callback.kind.in_person': 'Callback sur place',
+  'callback.kind.video_call': 'Callback en visio',
+  'callback.kind.self_tape': 'Nouvelle self-tape demandée',
+  'callback.response.accepted': 'Vous avez accepté',
+  'callback.response.declined': 'Vous avez décliné',
+  'callback.response.change_requested': 'Vous avez demandé un autre créneau',
+  'callback.accept': 'J’y serai',
+  'callback.decline': 'Je ne peux pas',
+  'callback.askAnother': 'Proposer un autre créneau',
+  'callback.changePlaceholder': 'Quel créneau vous irait ?',
+  'callback.join': 'Rejoindre la visio',
+  'callback.failed': 'Votre réponse n’a pas pu être envoyée',
 }

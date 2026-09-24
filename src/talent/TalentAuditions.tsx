@@ -4,6 +4,8 @@ import { Button, Card, FormError, Tag } from '@/components/ui'
 import { Skeleton } from '@/components/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
 import { useAuth } from '@/features/auth/AuthProvider'
+import { useCallbacks } from '@/features/callbacks/queries'
+import { CallbackCard } from '@/talent/CallbackCard'
 import {
   useApplicationMutations,
   useMyApplications,
@@ -113,6 +115,7 @@ function AuditionCard({
   const t = useT()
   const { profile } = useAuth()
   const { withdraw } = useApplicationMutations(profile?.id)
+  const callbacks = useCallbacks(application.id)
 
   // Le comédien ne lit pas le statut interne : voir `talentFacingStatus`.
   const talentStatus = talentFacingStatus(application.status, application.casting?.status)
@@ -239,6 +242,11 @@ function AuditionCard({
         instructions={application.role?.selftape_instructions}
         locked={terminal || submissionsClosed}
       />
+
+      {/* Le rendez-vous proposé, avec de quoi répondre. */}
+      {(callbacks.data ?? []).map((callback) => (
+        <CallbackCard key={callback.id} callback={callback} />
+      ))}
 
       {/* Se retirer reste possible tant que la production n'a pas tranché —
           exactement les états que la machine à états autorise, ni plus ni

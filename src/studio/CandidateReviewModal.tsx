@@ -3,6 +3,7 @@ import { Check, Film, MessageSquare, Minus, ThumbsDown, ThumbsUp } from 'lucide-
 import { Avatar, Button, FormError, FormField, SelectInput, Spinner, Tag } from '@/components/ui'
 import { EditModal, TextArea } from '@/components/EditModal'
 import { EmptyState } from '@/components/EmptyState'
+import { RequestCallbackModal } from '@/studio/RequestCallbackModal'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useCurrentOrganization, useOrgMembers } from '@/features/organizations/queries'
 import { can } from '@/lib/access'
@@ -28,11 +29,15 @@ import type { ApplicationStatus, CandidateViewRow, ReviewVote, RoleRow } from '@
  * inside the organization).
  */
 
+/**
+ * `callback` ne figure plus ici : un callback est un rendez-vous, pas un
+ * statut qu'on choisit dans une liste. Il se propose avec sa date, son lieu ou
+ * son lien — et c'est l'envoi qui fait avancer la candidature.
+ */
 const DECISIONS: ApplicationStatus[] = [
   'viewed',
   'under_review',
   'shortlisted',
-  'callback',
   'offer',
   'cast',
   'not_selected',
@@ -66,6 +71,7 @@ export function CandidateReviewModal({
 
   const mayReview = can(organization?.role, 'candidate:review')
   const mayDecide = can(organization?.role, 'candidate:decide')
+  const [callbackOpen, setCallbackOpen] = useState(false)
   const mayNote = can(organization?.role, 'candidate:note')
   const selfTapes = useSelfTapes(candidate.application_id)
   const reviews = useCandidateReviews(candidate.application_id)
@@ -296,6 +302,21 @@ export function CandidateReviewModal({
           )}
         </div>
       </FormField>
+
+      {/* Un callback se propose avec ce qu'il faut pour l'honorer. */}
+      {mayDecide && ['shortlisted', 'callback'].includes(candidate.status) && (
+        <Button variant="secondary" size="sm" className="w-fit" onClick={() => setCallbackOpen(true)}>
+          Request a callback
+        </Button>
+      )}
+
+      {callbackOpen && (
+        <RequestCallbackModal
+          applicationId={candidate.application_id}
+          talentName={candidate.name ?? 'this talent'}
+          onClose={() => setCallbackOpen(false)}
+        />
+      )}
 
       {/* ── Decision ── */}
       <FormField label="Status" htmlFor="candidate-status" plainLabel>

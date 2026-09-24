@@ -535,4 +535,18 @@ export const en: Record<string, string> = {
   'invite.casting.message': 'A word with it (optional)',
   'invite.casting.messagePlaceholder': 'We thought of you for this one…',
   'invite.casting.hint': 'An invitation opens the casting to them — it does not apply on their behalf.',
+
+  // ── Callback ──
+  'callback.kind.in_person': 'Callback in person',
+  'callback.kind.video_call': 'Callback by video',
+  'callback.kind.self_tape': 'New self-tape requested',
+  'callback.response.accepted': 'You accepted',
+  'callback.response.declined': 'You declined',
+  'callback.response.change_requested': 'You asked for another time',
+  'callback.accept': 'I will be there',
+  'callback.decline': 'I cannot',
+  'callback.askAnother': 'Ask for another time',
+  'callback.changePlaceholder': 'When would work for you?',
+  'callback.join': 'Join the call',
+  'callback.failed': 'Your answer could not be sent',
 }

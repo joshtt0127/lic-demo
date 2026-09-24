@@ -424,6 +424,30 @@ export type TapeAiReviewRow = {
   completed_at: string | null
 }
 
+export type CallbackKind = 'in_person' | 'video_call' | 'self_tape'
+export type CallbackResponse = 'pending' | 'accepted' | 'declined' | 'change_requested'
+
+/** Le rendez-vous proposé après une présélection, et la réponse du comédien. */
+export type CallbackRow = {
+  id: string
+  application_id: string
+  kind: CallbackKind
+  title: string | null
+  scheduled_at: string | null
+  timezone: string | null
+  location: string | null
+  meeting_url: string | null
+  instructions: string | null
+  message: string | null
+  respond_by: string | null
+  response: CallbackResponse
+  response_note: string | null
+  responded_at: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
 /** Qui a le droit de voir un casting sur invitation. Aucune candidature impliquée. */
 export type CastingInviteRow = {
   id: string
@@ -601,6 +625,7 @@ export type Database = {
       analytics_events: Writable<AnalyticsEventRow, 'name'>
       tape_checks: Writable<TapeCheckRow, 'self_tape_id'>
       tape_ai_reviews: Writable<TapeAiReviewRow, 'self_tape_id'>
+      callbacks: Writable<CallbackRow, 'application_id' | 'kind'>
       casting_invites: Writable<CastingInviteRow, 'casting_call_id' | 'talent_id'>
       events: Writable<EventRow, 'type' | 'entity_type' | 'entity_id'>
       posts: Writable<PostRow, 'author_id' | 'body'>
