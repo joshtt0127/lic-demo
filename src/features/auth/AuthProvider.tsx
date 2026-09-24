@@ -46,6 +46,13 @@ type AuthValue = {
   profile: ProfileRow | null
   profileLoading: boolean
   profileError: string | null
+  /**
+   * La requête est **en pause**, pas en cours : React Query suspend une requête
+   * quand le navigateur se déclare hors ligne, et dans cet état elle ne
+   * progresse ni n'échoue jamais. Sans le distinguer, l'app reste sur
+   * « chargement de votre profil » pour toujours — vu en conditions réelles.
+   */
+  profilePaused: boolean
   signUp: (input: SignUpInput) => Promise<SignUpResult>
   resendConfirmation: (email: string) => Promise<Result>
   signIn: (input: { email: string; password: string; keepSignedIn?: boolean }) => Promise<Result>
@@ -229,6 +236,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile: profileQuery.data ?? null,
       profileLoading: profileQuery.isLoading,
       profileError: profileQuery.error ? errorMessage(profileQuery.error) : null,
+      profilePaused: profileQuery.fetchStatus === 'paused',
       signUp,
       resendConfirmation,
       signIn,

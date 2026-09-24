@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { ConfigNotice } from '@/components/ConfigNotice'
 import { Button, Card, FullPageLoader, Logo } from '@/components/ui'
@@ -12,6 +12,29 @@ import { useAuth } from './AuthProvider'
  * They all wait for `ready` (session restore) before deciding, so a refresh on
  * a protected page never flashes the sign-in screen.
  */
+
+/**
+ * Un chargement qui n'aboutit pas finit par devoir le dire.
+ *
+ * Attendre est normal ; attendre sans fin ne l'est pas. Passé ce délai, on
+ * arrête de faire tourner un spinner et on rend la main : une phrase, un
+ * bouton. Mesuré en vrai — une requête de profil mise en pause laissait l'écran
+ * « chargement de votre profil » indéfiniment.
+ */
+const GIVE_UP_MS = 8000
+
+function useTooLong(active: boolean): boolean {
+  const [tooLong, setTooLong] = useState(false)
+  useEffect(() => {
+    if (!active) {
+      setTooLong(false)
+      return
+    }
+    const timer = setTimeout(() => setTooLong(true), GIVE_UP_MS)
+    return () => clearTimeout(timer)
+  }, [active])
+  return tooLong
+}
 
 function ProfileError({ message }: { message: string }) {
   return (
@@ -34,8 +57,9 @@ function ProfileError({ message }: { message: string }) {
 
 /** Signed in, with a profile loaded. */
 export function RequireAuth({ children }: { children?: ReactNode }) {
-  const { ready, session, profile, profileLoading, profileError } = useAuth()
+  const { ready, session, profile, profileLoading, profileError, profilePaused } = useAuth()
   const location = useLocation()
+  const stuck = useTooLong(!profile && (profileLoading || profilePaused))
 
   if (!isSupabaseConfigured) return <ConfigNotice />
   if (!ready) return <FullPageLoader label="Restoring your session…" />
@@ -46,7 +70,20 @@ export function RequireAuth({ children }: { children?: ReactNode }) {
   }
 
   if (profileError) return <ProfileError message={profileError} />
-  if (!profile && profileLoading) return <FullPageLoader label="Loading your profile…" />
+  if (!profile && (profileLoading || profilePaused)) {
+    if (stuck) {
+      return (
+        <ProfileError
+          message={
+            profilePaused
+              ? 'You appear to be offline. Check your connection and try again.'
+              : 'This is taking longer than it should. Try again.'
+          }
+        />
+      )
+    }
+    return <FullPageLoader label="Loading your profile…" />
+  }
 
   return <>{children ?? <Outlet />}</>
 }
