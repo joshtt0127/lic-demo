@@ -10,11 +10,12 @@ import {
   type MyApplication,
 } from '@/features/applications/queries'
 import {
-  APPLICATION_STATUS_TONE,
   APPLICATION_STEPS,
   deadlineLabel,
   relativeTime,
   statusStepIndex,
+  talentFacingStatus,
+  TALENT_STATUS_TONE,
 } from '@/lib/format'
 import { SelfTapePanel } from '@/components/upload/SelfTapePanel'
 import {
@@ -110,6 +111,8 @@ function AuditionCard({
   const { profile } = useAuth()
   const { withdraw } = useApplicationMutations(profile?.id)
 
+  // Le comédien ne lit pas le statut interne : voir `talentFacingStatus`.
+  const talentStatus = talentFacingStatus(application.status, application.casting?.status)
   const currentIndex = statusStepIndex(application.status)
   const terminal = ['withdrawn', 'not_selected'].includes(application.status)
   const stage = application.role ? ROLE_STAGE_KEY[application.role.status] : null
@@ -162,8 +165,8 @@ function AuditionCard({
         </div>
 
         <div className="flex flex-col items-end gap-2">
-          <Tag tone={APPLICATION_STATUS_TONE[application.status]}>
-            {t(`status.${application.status}`)}
+          <Tag tone={TALENT_STATUS_TONE[talentStatus]}>
+            {t(`talentStatus.${talentStatus}`)}
           </Tag>
           {stage && application.role && (
             <Tag tone={ROLE_STATUS_TONE[application.role.status]}>{t(stage)}</Tag>

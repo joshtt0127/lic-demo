@@ -1,5 +1,5 @@
 import { currentLocale, type Translate } from '@/lib/i18n'
-import type { ApplicationStatus } from '@/types/database'
+import type { ApplicationStatus, CastingStatus } from '@/types/database'
 
 /**
  * Display formatting.
@@ -109,6 +109,71 @@ export const APPLICATION_STEPS: ApplicationStatus[] = [
   'offer',
   'cast',
 ]
+
+/**
+ * Ce que le comédien lit, qui n'est pas ce que la base stocke.
+ *
+ * Deux écarts volontaires :
+ *   · `viewed` n'est jamais montré tel quel. « Vu » crée une attente — on a
+ *     regardé, et après ? — pour une information qui n'en est pas une. Le
+ *     comédien lit « en cours », ce qui est vrai et ne promet rien.
+ *   · un casting fermé sur une candidature restée en route ne laisse pas le
+ *     comédien devant un statut figé : il lit que le casting est terminé.
+ *
+ * `offer` n'a pas de parcours au MVP ; il se lit « en cours » en attendant
+ * qu'on décide ce que la plateforme en fait.
+ */
+export type TalentFacingStatus =
+  | 'submitted'
+  | 'inProgress'
+  | 'shortlisted'
+  | 'callback'
+  | 'cast'
+  | 'notSelected'
+  | 'withdrawn'
+  | 'castingCancelled'
+
+const TALENT_FACING: Record<ApplicationStatus, TalentFacingStatus> = {
+  draft: 'submitted',
+  submitted: 'submitted',
+  viewed: 'inProgress',
+  under_review: 'inProgress',
+  shortlisted: 'shortlisted',
+  callback: 'callback',
+  offer: 'inProgress',
+  cast: 'cast',
+  not_selected: 'notSelected',
+  withdrawn: 'withdrawn',
+}
+
+/** Les états où le comédien n'attend plus rien : le casting ne les recouvre pas. */
+const SETTLED: ApplicationStatus[] = ['cast', 'not_selected', 'withdrawn']
+
+export function talentFacingStatus(
+  status: ApplicationStatus,
+  castingStatus?: CastingStatus | null,
+): TalentFacingStatus {
+  if (
+    castingStatus &&
+    castingStatus !== 'published' &&
+    castingStatus !== 'draft' &&
+    !SETTLED.includes(status)
+  ) {
+    return 'castingCancelled'
+  }
+  return TALENT_FACING[status]
+}
+
+export const TALENT_STATUS_TONE: Record<TalentFacingStatus, StatusTone> = {
+  submitted: 'link',
+  inProgress: 'maybe',
+  shortlisted: 'good',
+  callback: 'good',
+  cast: 'gold',
+  notSelected: 'no',
+  withdrawn: 'neutral',
+  castingCancelled: 'neutral',
+}
 
 export function statusStepIndex(status: ApplicationStatus): number {
   const index = APPLICATION_STEPS.indexOf(status)

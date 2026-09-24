@@ -501,4 +501,14 @@ export const fr: Record<string, string> = {
   'onb.adultConfirm': 'J’ai 18 ans ou plus',
   'onb.adultHint': 'Let It Cast est réservé aux majeurs pour le moment.',
   'onb.adultRequired': 'Vous devez avoir 18 ans ou plus pour utiliser Let It Cast',
+
+  // ── Ce que le comédien lit de sa candidature ──
+  'talentStatus.submitted': 'Candidature envoyée',
+  'talentStatus.inProgress': 'En cours',
+  'talentStatus.shortlisted': 'Présélectionné',
+  'talentStatus.callback': 'Callback',
+  'talentStatus.cast': 'Retenu',
+  'talentStatus.notSelected': 'Non retenu',
+  'talentStatus.withdrawn': 'Retirée',
+  'talentStatus.castingCancelled': 'Casting terminé',
 }

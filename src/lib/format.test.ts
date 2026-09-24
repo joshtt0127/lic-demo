@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { deadlineLabel, isClosingSoon, relativeTime, statusStepIndex } from './format'
+import {
+  deadlineLabel,
+  isClosingSoon,
+  relativeTime,
+  statusStepIndex,
+  talentFacingStatus,
+} from './format'
 
 /** Small but user-visible: these strings are read on every casting card. */
 
@@ -46,5 +52,29 @@ describe('statusStepIndex', () => {
   it('puts terminal states outside the ladder', () => {
     expect(statusStepIndex('not_selected')).toBe(7)
     expect(statusStepIndex('withdrawn')).toBe(7)
+  })
+})
+
+describe('what a talent reads of their application', () => {
+  it('never says "seen" — it says the work is in progress', () => {
+    expect(talentFacingStatus('viewed')).toBe('inProgress')
+    expect(talentFacingStatus('under_review')).toBe('inProgress')
+  })
+
+  it('keeps the good news intact', () => {
+    expect(talentFacingStatus('shortlisted')).toBe('shortlisted')
+    expect(talentFacingStatus('callback')).toBe('callback')
+    expect(talentFacingStatus('cast')).toBe('cast')
+  })
+
+  it('tells someone the casting ended instead of leaving them mid-ladder', () => {
+    expect(talentFacingStatus('under_review', 'closed')).toBe('castingCancelled')
+    expect(talentFacingStatus('submitted', 'archived')).toBe('castingCancelled')
+  })
+
+  it('leaves a settled application alone, whatever the casting did', () => {
+    expect(talentFacingStatus('cast', 'closed')).toBe('cast')
+    expect(talentFacingStatus('not_selected', 'closed')).toBe('notSelected')
+    expect(talentFacingStatus('withdrawn', 'archived')).toBe('withdrawn')
   })
 })
