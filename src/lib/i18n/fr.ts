@@ -511,4 +511,6 @@ export const fr: Record<string, string> = {
   'talentStatus.notSelected': 'Non retenu',
   'talentStatus.withdrawn': 'Retirée',
   'talentStatus.castingCancelled': 'Casting terminé',
+
+  'auditions.withdrawConfirm': 'Retirer cette candidature ? La production en est informée, et il faudrait recandidater.',
 }

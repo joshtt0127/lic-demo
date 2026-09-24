@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { DEMO_PASSWORD, localEnv } from './env'
+import { DEMO_PASSWORD, localEnv, signInAs } from './env'
 
 /**
  * La machine à états d'une candidature.
@@ -188,4 +188,104 @@ test('an application only moves the way the workflow allows, and never in silenc
   for (const id of [ownerId, memberId, talentId, strangerId]) {
     await admin.auth.admin.deleteUser(id).catch(() => {})
   }
+})
+
+test('a talent can withdraw while the production has not decided, and the production hears it', async ({
+  page,
+}) => {
+  const stamp = Date.now()
+  const ownerEmail = `e2e.wd.owner.${stamp}@letitcast.dev`
+  const talentEmail = `e2e.wd.talent.${stamp}@letitcast.dev`
+  const ownerId = await makeAccount(ownerEmail, 'production', 'Wanda')
+  const talentId = await makeAccount(talentEmail, 'talent', 'Wren')
+
+  const { data: org } = await admin
+    .from('organizations')
+    .insert({
+      name: `Exit Films ${stamp}`,
+      slug: `exit-films-${stamp}`,
+      created_by: ownerId,
+      verification_status: 'verified',
+    })
+    .select('id')
+    .single()
+  await admin
+    .from('organization_members')
+    .insert({ org_id: org!.id, profile_id: ownerId, role: 'owner', status: 'active' })
+  const { data: project } = await admin
+    .from('projects')
+    .insert({ org_id: org!.id, created_by: ownerId, title: `Leaving ${stamp}` })
+    .select('id')
+    .single()
+  const { data: casting } = await admin
+    .from('casting_calls')
+    .insert({
+      project_id: project!.id,
+      created_by: ownerId,
+      title: `Leaving ${stamp} — call`,
+      status: 'published',
+      published_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single()
+  const { data: role } = await admin
+    .from('roles')
+    .insert({ casting_call_id: casting!.id, name: `Exit ${stamp}` })
+    .select('id')
+    .single()
+  // Déjà présélectionné : c'est le cas qui compte, pas le lendemain de l'envoi.
+  const { data: application } = await admin
+    .from('applications')
+    .insert({
+      role_id: role!.id,
+      talent_id: talentId,
+      status: 'shortlisted',
+      submitted_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single()
+
+  page.on('dialog', (dialog) => dialog.accept())
+  await signInAs(page, talentEmail, 'talent')
+  await page.goto('/talent/auditions')
+  await page.getByRole('button', { name: 'Withdraw' }).first().click()
+
+  await expect
+    .poll(async () => {
+      const { data } = await admin
+        .from('applications')
+        .select('status')
+        .eq('id', application!.id)
+        .single()
+      return data?.status
+    }, { timeout: 20_000 })
+    .toBe('withdrawn')
+
+  // La candidature n'est pas effacée : son histoire reste lisible.
+  const { data: still } = await admin
+    .from('applications')
+    .select('id')
+    .eq('id', application!.id)
+  expect(still ?? [], 'a withdrawal is a state, not a deletion').toHaveLength(1)
+
+  const { data: events } = await admin
+    .from('events')
+    .select('type')
+    .eq('entity_id', application!.id)
+    .eq('type', 'APPLICATION_WITHDRAWN')
+  expect(events ?? [], 'the withdrawal is a fact').toHaveLength(1)
+
+  const { data: notified } = await admin
+    .from('notifications')
+    .select('title')
+    .eq('recipient_id', ownerId)
+    .eq('entity_id', application!.id)
+  expect(
+    (notified ?? []).some((row) => row.title.includes('withdrew')),
+    'the production is told',
+  ).toBe(true)
+
+  await admin.from('projects').delete().eq('id', project!.id)
+  await admin.from('organizations').delete().eq('id', org!.id)
+  for (const id of [ownerId, talentId]) await admin.auth.admin.deleteUser(id).catch(() => {})
 })

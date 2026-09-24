@@ -506,4 +506,6 @@ export const en: Record<string, string> = {
   'talentStatus.notSelected': 'Not selected',
   'talentStatus.withdrawn': 'Withdrawn',
   'talentStatus.castingCancelled': 'Casting closed',
+
+  'auditions.withdrawConfirm': 'Withdraw this application? The production is told, and you would have to apply again.',
 }

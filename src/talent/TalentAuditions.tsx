@@ -100,6 +100,9 @@ export function TalentAuditions() {
   )
 }
 
+/** Les états depuis lesquels un comédien peut encore se retirer. */
+const WITHDRAWABLE: string[] = ['submitted', 'viewed', 'under_review', 'shortlisted', 'callback']
+
 function AuditionCard({
   application,
   muted,
@@ -237,13 +240,20 @@ function AuditionCard({
         locked={terminal || submissionsClosed}
       />
 
-      {!terminal && application.status === 'submitted' && (
+      {/* Se retirer reste possible tant que la production n'a pas tranché —
+          exactement les états que la machine à états autorise, ni plus ni
+          moins. La confirmation est là parce que c'est sans retour : pour
+          revenir, il faudra recandidater. */}
+      {WITHDRAWABLE.includes(application.status) && (
         <div className="flex justify-end">
           <Button
             variant="ghost"
             size="sm"
             disabled={withdraw.isPending}
-            onClick={() => withdraw.mutate(application.id)}
+            onClick={() => {
+              if (!window.confirm(t('auditions.withdrawConfirm'))) return
+              withdraw.mutate(application.id)
+            }}
           >
             {t('auditions.withdraw')}
           </Button>
