@@ -551,4 +551,7 @@ export const en: Record<string, string> = {
   'callback.failed': 'Your answer could not be sent',
 
   'apply.tapeRequired': 'This role needs a self-tape — your application is sent as soon as it is in.',
+
+  'feed.loadMore': 'Show more',
+  'feed.loadingMore': 'Loading…',
 }

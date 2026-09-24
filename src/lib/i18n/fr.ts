@@ -556,4 +556,7 @@ export const fr: Record<string, string> = {
   'callback.failed': 'Votre réponse n’a pas pu être envoyée',
 
   'apply.tapeRequired': 'Ce rôle demande une self-tape — votre candidature part dès qu’elle est déposée.',
+
+  'feed.loadMore': 'Voir plus',
+  'feed.loadingMore': 'Chargement…',
 }

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Bookmark, Clapperboard, MapPin, Search, Users } from 'lucide-react'
-import { Card, FormError, Input, Tag } from '@/components/ui'
+import { Button, Card, FormError, Input, Tag } from '@/components/ui'
 import { Skeleton } from '@/components/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
 import { SegmentedControl } from '@/components/form/SegmentedControl'
@@ -246,6 +246,20 @@ export function CastingCalls() {
             )
           })}
         </ul>
+      )}
+
+      {/* Les annonces arrivent par pages : le dire, et donner la suite. */}
+      {castings.hasMore && (
+        <div className="flex justify-center pt-1">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={castings.loadingMore}
+            onClick={() => void castings.loadMore()}
+          >
+            {castings.loadingMore ? t('feed.loadingMore') : t('feed.loadMore')}
+          </Button>
+        </div>
       )}
     </div>
   )

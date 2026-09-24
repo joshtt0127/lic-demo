@@ -493,6 +493,26 @@ export function TalentHome() {
             </ul>
           )}
 
+          {/* Le fil se lit par pages. Sans ce bouton, paginer ne ferait que
+              cacher le reste — le comédien croirait avoir tout vu. */}
+          {(castings.hasMore || posts.hasMore) && (
+            <div className="flex justify-center py-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={castings.loadingMore || posts.loadingMore}
+                onClick={() => {
+                  if (castings.hasMore) void castings.loadMore()
+                  if (posts.hasMore) void posts.loadMore()
+                }}
+              >
+                {castings.loadingMore || posts.loadingMore
+                  ? t('feed.loadingMore')
+                  : t('feed.loadMore')}
+              </Button>
+            </div>
+          )}
+
           <p className="pb-2 text-[12px] text-muted">
             {t('feed.footer', { email: user?.email ?? '' })}
           </p>

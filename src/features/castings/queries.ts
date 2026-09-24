@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { inviteTalentToCasting } from '@/data/repositories/castings'
 import { supabase } from '@/lib/supabase'
 import type { CastingCallRow, OrganizationRow, ProjectRow, RoleRow } from '@/types/database'
@@ -57,12 +57,35 @@ function shape(row: CastingJoin): CastingCallWithContext {
   }
 }
 
-export async function listOpenCastings(): Promise<CastingCallWithContext[]> {
-  const { data, error } = await supabase
+/** Combien d'annonces par page. Assez pour remplir un écran, pas la base. */
+export const CASTINGS_PAGE_SIZE = 20
+
+/**
+ * Les annonces ouvertes, par page.
+ *
+ * Le curseur est la **date de publication**, pas un décalage : avec un `offset`,
+ * une annonce publiée pendant qu'on lit décale toute la suite et fait réapparaître
+ * ou disparaître des lignes entre deux pages. Un curseur de date ne bouge pas.
+ *
+ * Et seules les annonces `public` sont listées : `private_link` existe, mais par
+ * définition elle ne se trouve pas en parcourant le catalogue.
+ */
+export async function listOpenCastings(options?: {
+  before?: string | null
+  limit?: number
+}): Promise<CastingCallWithContext[]> {
+  const limit = options?.limit ?? CASTINGS_PAGE_SIZE
+  let query = supabase
     .from('casting_calls')
     .select(CASTING_SELECT)
     .eq('status', 'published')
+    .eq('visibility', 'public')
     .order('published_at', { ascending: false })
+    .limit(limit)
+
+  if (options?.before) query = query.lt('published_at', options.before)
+
+  const { data, error } = await query
   if (error) throw error
   return ((data ?? []) as unknown as CastingJoin[]).map(shape)
 }
@@ -99,8 +122,32 @@ export async function listSavedCastingIds(talentId: string): Promise<string[]> {
 
 // ── Hooks ────────────────────────────────────────────────────────────────────
 
+/**
+ * Les annonces ouvertes, avec de quoi en demander plus.
+ *
+ * On renvoie une liste à plat plutôt que les pages brutes : les écrans trient,
+ * filtrent et mélangent ces annonces avec d'autres objets, et n'ont rien à
+ * faire de la découpe. Ils reçoivent en plus `hasMore` et `loadMore`.
+ */
 export function useOpenCastings() {
-  return useQuery({ queryKey: ['open-castings'], queryFn: listOpenCastings })
+  const query = useInfiniteQuery({
+    queryKey: ['open-castings'],
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) => listOpenCastings({ before: pageParam }),
+    getNextPageParam: (lastPage) =>
+      // Une page incomplète est la dernière : inutile d'aller frapper pour rien.
+      lastPage.length < CASTINGS_PAGE_SIZE
+        ? undefined
+        : (lastPage[lastPage.length - 1]?.published_at ?? undefined),
+  })
+
+  return {
+    ...query,
+    data: query.data?.pages.flat() ?? undefined,
+    hasMore: query.hasNextPage,
+    loadMore: query.fetchNextPage,
+    loadingMore: query.isFetchingNextPage,
+  }
 }
 
 export function useCasting(id: string | undefined) {

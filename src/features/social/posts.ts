@@ -1,8 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   createPost,
   deletePost,
   listPosts,
+  POSTS_PAGE_SIZE,
   listPostsByAuthor,
   setLike,
   suggestedProfiles,
@@ -16,13 +17,28 @@ import {
  * compte qui ne suit encore personne — un fil vide ne donne envie de suivre
  * personne.
  */
+/** Voir `useOpenCastings` : liste à plat, plus `hasMore` / `loadMore`. */
 export function useNetworkPosts(viewerId: string | undefined, authorIds: string[]) {
   const key = [...authorIds].sort().join(',')
-  return useQuery({
+  const query = useInfiniteQuery({
     queryKey: ['posts', viewerId, key],
-    queryFn: () => listPosts({ viewerId: viewerId as string, authorIds }),
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) =>
+      listPosts({ viewerId: viewerId as string, authorIds, before: pageParam }),
+    getNextPageParam: (lastPage) =>
+      lastPage.length < POSTS_PAGE_SIZE
+        ? undefined
+        : (lastPage[lastPage.length - 1]?.createdAt ?? undefined),
     enabled: Boolean(viewerId),
   })
+
+  return {
+    ...query,
+    data: query.data?.pages.flat() ?? undefined,
+    hasMore: query.hasNextPage,
+    loadMore: query.fetchNextPage,
+    loadingMore: query.isFetchingNextPage,
+  }
 }
 
 export function useAuthorPosts(authorId: string | undefined, viewerId: string | undefined) {

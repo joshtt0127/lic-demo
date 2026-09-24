@@ -100,14 +100,19 @@ async function likesFor(postIds: string[], viewerId: string) {
  * Passer `authorIds` vide rend les publications récentes de tout le monde —
  * c'est ce qui permet de découvrir quelqu'un avant de le suivre.
  */
+export const POSTS_PAGE_SIZE = 20
+
 export async function listPosts({
   viewerId,
   authorIds,
-  limit = 30,
+  limit = POSTS_PAGE_SIZE,
+  before,
 }: {
   viewerId: string
   authorIds?: string[]
   limit?: number
+  /** Curseur de date : la page suivante commence avant cette publication. */
+  before?: string | null
 }): Promise<Post[]> {
   let query = supabase
     .from('posts')
@@ -116,6 +121,7 @@ export async function listPosts({
     .limit(limit)
 
   if (authorIds && authorIds.length > 0) query = query.in('author_id', authorIds)
+  if (before) query = query.lt('created_at', before)
 
   const { data, error } = await query
   if (error) throw error
