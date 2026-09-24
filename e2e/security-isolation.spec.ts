@@ -70,7 +70,7 @@ async function castingFixture(stamp: number) {
 
   const { data: org } = await admin
     .from('organizations')
-    .insert({ name: `Secure Films ${stamp}`, slug: `secure-films-${stamp}`, created_by: ownerId })
+    .insert({ name: `Secure Films ${stamp}`, slug: `secure-films-${stamp}`, created_by: ownerId, verification_status: 'verified' })
     .select('id')
     .single()
   await admin
@@ -368,7 +368,7 @@ test('the legitimate ways in still work: creating an organization, accepting an 
   // Créer son organisation et s'en déclarer propriétaire.
   const { data: org, error: orgError } = await founder
     .from('organizations')
-    .insert({ name: `Founder Films ${stamp}`, slug: `founder-films-${stamp}`, created_by: founderId })
+    .insert({ name: `Founder Films ${stamp}`, slug: `founder-films-${stamp}`, created_by: founderId, verification_status: 'verified' })
     .select('id')
     .single()
   expect(orgError).toBeNull()

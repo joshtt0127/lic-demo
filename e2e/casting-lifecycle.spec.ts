@@ -44,7 +44,7 @@ test('a casting goes from draft to cast, and the talent sees the truth at each s
     .eq('id', producerId)
   const { data: org } = await admin
     .from('organizations')
-    .insert({ name: `Cycle Films ${stamp}`, slug: `cycle-films-${stamp}`, created_by: producerId })
+    .insert({ name: `Cycle Films ${stamp}`, slug: `cycle-films-${stamp}`, created_by: producerId, verification_status: 'verified' })
     .select('id')
     .single()
   await admin

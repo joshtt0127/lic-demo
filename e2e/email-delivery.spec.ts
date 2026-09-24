@@ -39,7 +39,7 @@ test('a message produces an email, and the opt-out stops it', async ({ page, bro
 
   const { data: org } = await admin
     .from('organizations')
-    .insert({ name: `Post Films ${stamp}`, slug: `post-films-${stamp}`, created_by: producerId })
+    .insert({ name: `Post Films ${stamp}`, slug: `post-films-${stamp}`, created_by: producerId, verification_status: 'verified' })
     .select('id')
     .single()
   await admin

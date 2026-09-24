@@ -101,6 +101,14 @@ test('a casting reaches a talent, and their application reaches the production b
   await production.getByRole('button', { name: /Add this role/ }).click()
   await expect(production.getByText(roleName).first()).toBeVisible()
 
+  // LIC vérifie l'organisation — sans quoi elle prépare tout, mais ne publie
+  // rien de public. C'est la barrière ajoutée en Phase 2, et ce parcours
+  // traverse justement la mise en ligne.
+  await admin
+    .from('organizations')
+    .update({ verification_status: 'verified', verified_at: new Date().toISOString() })
+    .eq('name', orgName)
+
   // Publish
   await production.getByRole('button', { name: /Publish casting/ }).click()
   await production.waitForURL('**/studio/casting/**', { timeout: 30_000 })

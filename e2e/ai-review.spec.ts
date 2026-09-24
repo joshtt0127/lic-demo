@@ -45,7 +45,7 @@ test('analysing a tape extracts frames, calls the function, and records the outc
 
   const { data: org } = await admin
     .from('organizations')
-    .insert({ name: `Read Films ${stamp}`, slug: `read-films-${stamp}`, created_by: producerId })
+    .insert({ name: `Read Films ${stamp}`, slug: `read-films-${stamp}`, created_by: producerId, verification_status: 'verified' })
     .select('id')
     .single()
   await admin

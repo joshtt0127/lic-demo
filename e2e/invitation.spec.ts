@@ -50,7 +50,7 @@ test('an emailed invitation link brings someone in, at the invited role', async 
 
   const { data: org } = await admin
     .from('organizations')
-    .insert({ name: `Invite Films ${stamp}`, slug: `invite-films-${stamp}`, created_by: ownerId })
+    .insert({ name: `Invite Films ${stamp}`, slug: `invite-films-${stamp}`, created_by: ownerId, verification_status: 'verified' })
     .select('id')
     .single()
   await admin

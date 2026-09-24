@@ -57,7 +57,7 @@ test('an organization changes hands without ever losing its owner', async () => 
 
   const { data: org } = await admin
     .from('organizations')
-    .insert({ name: `Relay Films ${stamp}`, slug: `relay-films-${stamp}`, created_by: ownerId })
+    .insert({ name: `Relay Films ${stamp}`, slug: `relay-films-${stamp}`, created_by: ownerId, verification_status: 'verified' })
     .select('id')
     .single()
   await admin.from('organization_members').insert([
@@ -138,4 +138,77 @@ test('an organization changes hands without ever losing its owner', async () => 
   for (const id of [ownerId, adminId, memberId]) {
     await admin.auth.admin.deleteUser(id).catch(() => {})
   }
+})
+
+test('an unverified organization prepares everything but does not go public', async () => {
+  const stamp = Date.now()
+  const email = `e2e.verif.owner.${stamp}@letitcast.dev`
+  const ownerId = await makeProduction(email, 'Vera')
+
+  const { data: org } = await admin
+    .from('organizations')
+    .insert({ name: `Unverified Films ${stamp}`, slug: `unverified-films-${stamp}`, created_by: ownerId })
+    .select('id, verification_status')
+    .single()
+  expect(org?.verification_status, 'a new organization starts unverified').toBe('unverified')
+  await admin
+    .from('organization_members')
+    .insert({ org_id: org!.id, profile_id: ownerId, role: 'owner', status: 'active' })
+
+  const owner = await signedIn(email)
+
+  // Préparer reste entièrement possible.
+  const { data: project, error: projectError } = await owner
+    .from('projects')
+    .insert({ org_id: org!.id, created_by: ownerId, title: `Quiet ${stamp}` })
+    .select('id')
+    .single()
+  expect(projectError, 'an unverified organization still prepares its projects').toBeNull()
+
+  const { data: draft, error: draftError } = await owner
+    .from('casting_calls')
+    .insert({ project_id: project!.id, created_by: ownerId, title: `Quiet ${stamp} — call` })
+    .select('id, status')
+    .single()
+  expect(draftError, 'and its castings, as drafts').toBeNull()
+  expect(draft?.status).toBe('draft')
+
+  // Mettre en ligne, non.
+  const { error: publishError } = await owner
+    .from('casting_calls')
+    .update({ status: 'published', published_at: new Date().toISOString() })
+    .eq('id', draft!.id)
+  expect(publishError, 'an unverified organization cannot publish publicly').not.toBeNull()
+
+  // Une fois vérifiée par LIC, la publication passe.
+  await admin
+    .from('organizations')
+    .update({ verification_status: 'verified', verified_at: new Date().toISOString() })
+    .eq('id', org!.id)
+  const { error: nowPublishes } = await owner
+    .from('casting_calls')
+    .update({ status: 'published', published_at: new Date().toISOString() })
+    .eq('id', draft!.id)
+  expect(nowPublishes, 'once verified, it publishes').toBeNull()
+
+  // Et une organisation suspendue ne publie plus.
+  const { data: second } = await owner
+    .from('casting_calls')
+    .insert({ project_id: project!.id, created_by: ownerId, title: `Quiet ${stamp} — second` })
+    .select('id')
+    .single()
+  await admin
+    .from('organizations')
+    .update({ verification_status: 'suspended', suspended_reason: 'e2e' })
+    .eq('id', org!.id)
+  const { error: suspended } = await owner
+    .from('casting_calls')
+    .update({ status: 'published', published_at: new Date().toISOString() })
+    .eq('id', second!.id)
+  expect(suspended, 'a suspended organization cannot publish').not.toBeNull()
+
+  await owner.auth.signOut()
+  await admin.from('projects').delete().eq('id', project!.id)
+  await admin.from('organizations').delete().eq('id', org!.id)
+  await admin.auth.admin.deleteUser(ownerId).catch(() => {})
 })

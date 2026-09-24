@@ -35,7 +35,7 @@ test('the console moves a candidate, and the wall shows who is cast', async ({ p
 
   const { data: org } = await admin
     .from('organizations')
-    .insert({ name: `Board Films ${stamp}`, slug: `board-films-${stamp}`, created_by: producerId })
+    .insert({ name: `Board Films ${stamp}`, slug: `board-films-${stamp}`, created_by: producerId, verification_status: 'verified' })
     .select('id')
     .single()
   await admin

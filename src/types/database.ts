@@ -181,6 +181,10 @@ export type OrganizationRow = {
   city: string | null
   country: string | null
   created_by: string | null
+  /** unverified (défaut) · verified (peut publier) · suspended. */
+  verification_status: 'unverified' | 'verified' | 'suspended'
+  verified_at: string | null
+  suspended_reason: string | null
   created_at: string
   updated_at: string
 }

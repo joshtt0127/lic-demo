@@ -109,6 +109,11 @@ export function CastingDashboardPage() {
 
   // What this member is allowed to do — mirrors the RLS policies.
   const mayPublish = can(organization?.role, 'casting:publish')
+  // Une organisation non vérifiée prépare tout, mais ne met pas en ligne : c'est
+  // la seule barrière entre un comédien et un faux casting. On le dit ici plutôt
+  // que de laisser la base refuser sans explication.
+  const orgVerified = organization?.verification_status === 'verified'
+  const orgSuspended = organization?.verification_status === 'suspended'
   const mayManageRoles = can(organization?.role, 'role:manage')
   const mayDecide = can(organization?.role, 'candidate:decide')
   const mayMessage = can(organization?.role, 'message:send')
@@ -296,7 +301,13 @@ export function CastingDashboardPage() {
             <Layers className="h-3.5 w-3.5" />
             Casting console
           </Link>
-          {!mayPublish ? null : published ? (
+          {!mayPublish ? null : !published && !orgVerified ? (
+            <span className="inline-flex max-w-[320px] items-center rounded-field bg-cream px-3 py-2 text-[12.5px] leading-snug text-ink">
+              {orgSuspended
+                ? 'This organization is suspended and cannot publish.'
+                : 'Your organization needs to be verified before its castings go public. Everything else stays editable.'}
+            </span>
+          ) : published ? (
             <Button
               size="sm"
               variant="secondary"

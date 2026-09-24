@@ -41,7 +41,7 @@ test('a talent sends a self-tape, replaces it, and the production plays it', asy
 
   const { data: org } = await admin
     .from('organizations')
-    .insert({ name: `Tape Films ${stamp}`, slug: `tape-films-${stamp}`, created_by: producerId })
+    .insert({ name: `Tape Films ${stamp}`, slug: `tape-films-${stamp}`, created_by: producerId, verification_status: 'verified' })
     .select('id')
     .single()
   await admin
@@ -208,7 +208,7 @@ test.describe('camera', () => {
     const producerId = producer!.user.id
     const { data: org } = await admin
       .from('organizations')
-      .insert({ name: `Cam Films ${stamp}`, slug: `cam-films-${stamp}`, created_by: producerId })
+      .insert({ name: `Cam Films ${stamp}`, slug: `cam-films-${stamp}`, created_by: producerId, verification_status: 'verified' })
       .select('id')
       .single()
     const { data: project } = await admin

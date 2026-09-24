@@ -46,7 +46,7 @@ test('a team reviews together, and a viewer stays read-only', async ({ browser }
 
   const { data: org } = await admin
     .from('organizations')
-    .insert({ name: `Team Films ${stamp}`, slug: `team-films-${stamp}`, created_by: owner.id })
+    .insert({ name: `Team Films ${stamp}`, slug: `team-films-${stamp}`, created_by: owner.id, verification_status: 'verified' })
     .select('id')
     .single()
   await admin.from('organization_members').insert([

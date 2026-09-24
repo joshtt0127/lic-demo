@@ -33,7 +33,7 @@ test('the reports count what really happened, and export it', async ({ page }) =
 
   const { data: org } = await admin
     .from('organizations')
-    .insert({ name: `Count Films ${stamp}`, slug: `count-films-${stamp}`, created_by: producerId })
+    .insert({ name: `Count Films ${stamp}`, slug: `count-films-${stamp}`, created_by: producerId, verification_status: 'verified' })
     .select('id')
     .single()
   await admin
