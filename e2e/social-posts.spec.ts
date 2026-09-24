@@ -52,11 +52,26 @@ test('a post reaches the people who follow its author, and likes are counted', a
   await page.getByRole('button', { name: /Share something with your network/ }).click()
   await page.getByLabel('New post').fill(body)
   await page.getByRole('button', { name: 'Publish' }).click()
-  await expect(page.getByText(body)).toBeVisible({ timeout: 20_000 })
+
+  // La publication est vraie ou elle n'est pas : on attend la **ligne en base**,
+  // pas un texte à l'écran. Un composeur qui garde sa saisie après un échec
+  // affiche exactement le même mot que le fil : l'écran ne peut pas servir de
+  // preuve ici. Et si l'écriture est seulement lente, la sonde le dira au lieu
+  // de la déclarer absente.
+  await expect
+    .poll(
+      async () => {
+        const { data } = await admin.from('posts').select('id, author_id').eq('body', body)
+        return data?.length ?? 0
+      },
+      { timeout: 20_000, message: 'the post must reach the database' },
+    )
+    .toBe(1)
 
   const { data: posts } = await admin.from('posts').select('id, author_id').eq('body', body)
-  expect(posts).toHaveLength(1)
   expect(posts![0].author_id).toBe(author.id)
+  // Et il apparaît dans le fil de son auteur.
+  await expect(page.getByText(body)).toBeVisible({ timeout: 20_000 })
 
   // ── Quelqu'un qui ne le suit pas ne le voit pas dans son réseau ──
   const followerContext = await browser.newContext()
