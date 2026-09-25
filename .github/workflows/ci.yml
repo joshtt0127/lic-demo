@@ -21,7 +21,11 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # La même version que celle sur laquelle la suite est vérifiée en
+          # local. Sur Node 20, `jsdom` tire un `undici` qui appelle
+          # `webidl.util.markAsUncloneable`, absent avant Node 22 : les neuf
+          # fichiers de tests unitaires ne se chargeaient même pas.
+          node-version: 24
           cache: npm
 
       - run: npm ci

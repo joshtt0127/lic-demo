@@ -1,3 +1,11 @@
+# Ce workflow vient du dépôt d'origine (danohayon-create) et y déploie sa
+# démonstration GitHub Pages. Sur ce fork, Pages n'est pas activé et l'app est
+# servie par Vercel : il échouait donc à chaque commit.
+#
+# Plutôt que de le supprimer — il appartient au dépôt amont, et cette branche a
+# vocation à y revenir — on le borne à son dépôt d'origine. Il reste intact
+# là-bas, et cesse de peindre ce fork en rouge. Une vérification toujours rouge
+# apprend surtout à ne plus regarder les vérifications.
 name: Deploy to GitHub Pages
 
 on:
@@ -16,6 +24,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.repository == 'danohayon-create/lic-demo'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
