@@ -458,6 +458,90 @@ export type OpsHealthViewRow = {
   deletions_pending: number
 }
 
+/**
+ * Une bande d'attention. Trois valeurs, jamais un nombre.
+ *
+ * `priority` — quelque chose attend une décision · `discovery` — un dossier
+ * complet que cette production ne connaît pas et que personne n'a ouvert ·
+ * `all` — tout le reste, toujours accessible.
+ */
+export type AttentionBand = 'priority' | 'discovery' | 'all'
+
+/**
+ * Pourquoi une candidature est remontée, avec les faits qui le prouvent.
+ *
+ * La base renvoie un code et des nombres, jamais une phrase : c'est l'interface
+ * qui écrit, et c'est la seule façon de garantir qu'une explication ne peut pas
+ * dire autre chose que ce que la règle a réellement fait.
+ */
+export type AttentionReason =
+  | { code: 'deadline_close'; hours_left: number }
+  | { code: 'overdue'; waiting_hours: number; usual_hours: number }
+  | { code: 'worked_with_you'; times: number }
+  | { code: 'called_back_before'; times: number }
+  | { code: 'shortlisted_before'; times: number }
+  | { code: 'team_waiting'; votes: number }
+  | { code: 'rewatched'; times: number }
+  | { code: 'watched_fully' }
+  | { code: 'new_to_you' }
+  | { code: 'tape_ready'; quality: number | null }
+  | { code: 'complete_submission' }
+  | { code: 'never_opened'; waiting_hours: number }
+
+/** Une ligne du feed d'attention : la candidature, sa bande, et ses raisons. */
+export type IntelligenceFeedRow = {
+  application_id: string
+  talent_id: string
+  role_id: string
+  role_name: string
+  status: ApplicationStatus
+  submitted_at: string | null
+  waiting_hours: number
+  band: AttentionBand
+  band_rank: number
+  queue_rank: number
+  reasons: AttentionReason[]
+  engine_version: string
+  computed_at: string
+}
+
+/** Talent Graph : ce qu'une organisation se rappelle d'un comédien. */
+export type TalentMemoryViewRow = {
+  talent_id: string
+  org_id: string
+  applications: number
+  shortlisted: number
+  callbacks: number
+  cast_in: number
+  passed: number
+  withdrawn: number
+  first_application_at: string | null
+  last_application_at: string | null
+  last_decision_at: string | null
+  role_types: string[]
+  profile_views: number
+  tape_opens: number
+  tape_completions: number
+  tape_rewatches: number
+  last_attention_at: string | null
+  known_here: boolean
+}
+
+/** Production Graph : le comportement observé d'une organisation. */
+export type ProductionMemoryViewRow = {
+  org_id: string
+  applications_seen: number
+  talents_seen: number
+  applications_reviewed: number
+  applications_decided: number
+  shortlisted: number
+  cast_total: number
+  median_hours_to_first_view: number | null
+  median_hours_to_decision: number | null
+  review_coverage: number | null
+  shortlisted_by_role_type: Record<string, number>
+}
+
 /** La carte d'un comédien dans le fil : nom professionnel et accroche, rien d'autre. */
 export type TalentCardViewRow = {
   profile_id: string
@@ -727,6 +811,8 @@ export type Database = {
       v_profile_network: ReadOnly<ProfileNetworkViewRow>
       v_talent_card: ReadOnly<TalentCardViewRow>
       v_ops_health: ReadOnly<OpsHealthViewRow>
+      v_talent_memory: ReadOnly<TalentMemoryViewRow>
+      v_production_memory: ReadOnly<ProductionMemoryViewRow>
     }
     Functions: {
       accept_organization_invite: {
@@ -763,6 +849,18 @@ export type Database = {
       }
       request_account_deletion: {
         Args: { p_reason: string | null }
+        Returns: void
+      }
+      intelligence_feed: {
+        Args: { p_casting: string }
+        Returns: IntelligenceFeedRow[]
+      }
+      record_review_engagement: {
+        Args: { p_application: string; p_kind: string; p_progress: number | null }
+        Returns: void
+      }
+      record_profile_view: {
+        Args: { p_talent: string }
         Returns: void
       }
     }

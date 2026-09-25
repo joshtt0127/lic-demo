@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -17,6 +17,7 @@ import { InviteToCastingModal } from "@/studio/InviteToCastingModal";
 import { useCurrentOrganization } from "@/features/organizations/queries";
 import { can } from "@/lib/access";
 import { useTalentProfile } from "@/features/talent/queries";
+import { recordProfileView } from "@/features/intelligence/queries";
 import { publicUrl } from "@/lib/storage";
 import { errorMessage } from "@/lib/supabase";
 
@@ -34,6 +35,19 @@ export function StudioTalentProfilePage() {
   const talent = useTalentProfile(profileId);
   const [messaging, setMessaging] = useState(false);
   const [inviting, setInviting] = useState(false);
+
+  /**
+   * Consulter un profil est un geste de sourcing, donc un signal.
+   *
+   * Il compte pour la production — « on a déjà regardé ce comédien » — et il
+   * n'est jamais rendu au comédien : la policy de `events` refuse les gestes de
+   * revue à leur sujet. Un compteur de vues de profil visible transformerait le
+   * sourcing en métrique de popularité, et le produit n'en veut pas.
+   */
+  useEffect(() => {
+    if (!profileId) return;
+    void recordProfileView(profileId);
+  }, [profileId]);
 
   if (talent.isLoading || (!talent.data && !talent.error)) {
     return (
