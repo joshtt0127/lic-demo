@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Button, Logo } from '@/components/ui'
+import { Logo } from '@/components/ui'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { homeRouteFor } from '@/lib/access'
 import { useT } from '@/lib/i18n'
@@ -43,10 +43,11 @@ export function PublicCastingPage() {
               {t('publicCasting.backToSpace')}
             </Link>
           ) : (
-            <Link to={`/auth/sign-in?next=${next}`}>
-              <Button size="sm" variant="secondary">
-                {t('publicCasting.signIn')}
-              </Button>
+            <Link
+              to={`/auth/sign-in?next=${next}`}
+              className="inline-flex h-9 items-center rounded-field bg-cream px-3.5 text-[13px] font-bold text-ink transition-colors hover:bg-cream/80"
+            >
+              {t('publicCasting.signIn')}
             </Link>
           )}
         </div>
@@ -62,8 +63,11 @@ export function PublicCastingPage() {
               <p className="text-[15px] font-bold text-ink">{t('publicCasting.applyTitle')}</p>
               <p className="mt-0.5 text-[13.5px] text-muted">{t('publicCasting.applyHint')}</p>
             </div>
-            <Link to={`/auth/sign-up?next=${next}`} className="shrink-0">
-              <Button>{t('publicCasting.createAccount')}</Button>
+            <Link
+              to={`/auth/sign-up?next=${next}`}
+              className="inline-flex h-12 shrink-0 items-center rounded-field bg-ink px-5 text-[14px] font-bold text-white transition-colors hover:bg-ink/90"
+            >
+              {t('publicCasting.createAccount')}
             </Link>
           </div>
         )}

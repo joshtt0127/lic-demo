@@ -92,7 +92,10 @@ test('a visitor with no account reads a shared casting, and nothing else', async
   await page.goto(`/casting/${casting!.id}`)
   await expect(page.getByText(roleName).first()).toBeVisible({ timeout: 20_000 })
   await expect(page.getByText(projectTitle).first()).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Create my account' })).toBeVisible()
+  // Un lien, pas un bouton : une navigation se fait avec un lien — et un
+  // <button> dans un <a> était du HTML invalide autant qu'un piège pour les
+  // lecteurs d'écran.
+  await expect(page.getByRole('link', { name: 'Create my account' })).toBeVisible()
 
   // ── Et rien d'autre : la clé publique, sans session, table par table ──
   const anon = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, {
@@ -117,7 +120,7 @@ test('a visitor with no account reads a shared casting, and nothing else', async
   expect(drafts ?? [], 'a draft casting is not shared').toHaveLength(0)
 
   // ── Le retour : se connecter depuis l'annonce ramène à l'annonce ──
-  await page.getByRole('button', { name: 'Sign in' }).click()
+  await page.getByRole('link', { name: 'Sign in' }).click()
   await expect(page).toHaveURL(new RegExp(`next=%2Fcasting%2F${casting!.id}`))
 
   const talentEmail = `e2e.pub.talent.${stamp}@letitcast.dev`
