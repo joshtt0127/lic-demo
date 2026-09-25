@@ -168,12 +168,6 @@ export function CandidateReviewModal({
               className="w-full rounded-btn border border-line bg-black"
             />
             {tape.check && <TapeCheckCard check={tape.check} />}
-            <AiTapeReview
-              selfTapeId={tape.id}
-              tapeUrl={tape.url}
-              role={role ?? null}
-              canRequest={mayReview}
-            />
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted">
               <span>Sent {relativeTime(tape.submittedAt)}</span>
               {tapeDuration && <span className="font-mono">{tapeDuration}</span>}
@@ -346,6 +340,22 @@ export function CandidateReviewModal({
           The talent sees this status on their audition — votes and notes stay inside your team.
         </p>
       </FormField>
+
+      {/* L'avis de l'IA vient **après** le vote et la décision.
+          Deux raisons, et la seconde compte plus que la première :
+            · sur un téléphone, il fallait faire défiler une analyse entière
+              avant d'atteindre les boutons — l'action principale était enterrée ;
+            · le cahier des charges dit que l'IA reste assistive. Lire une note
+              chiffrée avant de se prononcer, c'est se laisser influencer par
+              elle. On regarde, on tranche, puis on confronte. */}
+      {tape && (
+        <AiTapeReview
+          selfTapeId={tape.id}
+          tapeUrl={tape.url}
+          role={role ?? null}
+          canRequest={mayReview}
+        />
+      )}
 
       {/* ── Notes ── */}
       <FormField label="Team notes — internal" htmlFor="candidate-note" plainLabel>
