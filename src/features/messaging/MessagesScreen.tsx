@@ -14,6 +14,7 @@ import {
   type ConversationSummary,
 } from '@/features/messaging/queries'
 import { formatTime, relativeTime } from '@/lib/format'
+import { ReportOrBlock } from '@/components/ReportOrBlock'
 import { useT } from '@/lib/i18n'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
@@ -241,6 +242,15 @@ export function MessagesScreen() {
                   )}
                 </div>
                 <ContextLink conversation={active} isProduction={isProduction} />
+
+                {/* Signaler ou bloquer depuis le fil : c'est là qu'un échange
+                    dérape, pas dans un écran de réglages. */}
+                <ReportOrBlock
+                  subjectType="message"
+                  subjectId={active.id}
+                  authorId={active.participants[0]?.id ?? null}
+                  authorName={participantName(active.participants[0])}
+                />
               </header>
 
               <div

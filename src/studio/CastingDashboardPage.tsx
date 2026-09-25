@@ -58,6 +58,7 @@ import type {
 } from '@/types/database'
 import type { RoleInput } from '@/data/repositories/castings'
 import { RoleForm } from './NewCastingPage'
+import { EditCastingModal } from '@/studio/EditCastingModal'
 import { CandidateReviewModal } from './CandidateReviewModal'
 
 /**
@@ -112,6 +113,7 @@ export function CastingDashboardPage() {
   // Une organisation non vérifiée prépare tout, mais ne met pas en ligne : c'est
   // la seule barrière entre un comédien et un faux casting. On le dit ici plutôt
   // que de laisser la base refuser sans explication.
+  const [editing, setEditing] = useState(false)
   const orgVerified = organization?.verification_status === 'verified'
   const orgSuspended = organization?.verification_status === 'suspended'
   const mayManageRoles = can(organization?.role, 'role:manage')
@@ -275,6 +277,18 @@ export function CastingDashboardPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* La règle de modification existait en base sans son geste : une
+              annonce publiée n'était éditable nulle part. */}
+          {mayPublish && (
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<Pencil className="h-3.5 w-3.5" />}
+              onClick={() => setEditing(true)}
+            >
+              Edit casting
+            </Button>
+          )}
           <Button
             variant="secondary"
             size="sm"
@@ -779,6 +793,16 @@ export function CastingDashboardPage() {
           <h2 className="font-display text-[19px] font-bold text-ink">Activity</h2>
           <ActivityList entries={activity.data ?? []} loading={activity.isLoading} />
         </Card>
+      )}
+
+      {editing && (
+        <EditCastingModal
+          casting={data}
+          orgId={organization?.id}
+          profileId={profile?.id}
+          applicantCount={rows.length}
+          onClose={() => setEditing(false)}
+        />
       )}
 
       {reviewing && (

@@ -25,6 +25,7 @@ import {
   ROLE_STATUS_TONE,
   CASTING_STATUS_KEY,
 } from '@/features/castings/lifecycle'
+import { ReportOrBlock } from '@/components/ReportOrBlock'
 import { useT } from '@/lib/i18n'
 import { useLanguagesCatalog } from '@/features/talent/queries'
 import {
@@ -123,6 +124,17 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
               </h1>
               {data.project?.production_type && <Tag>{data.project.production_type}</Tag>}
               {data.project?.genre && <Tag tone="cream">{data.project.genre}</Tag>}
+
+              {/* Un faux casting se signale d'ici : c'est là qu'on le découvre. */}
+              {!readOnly && (
+                <span className="ml-auto">
+                  <ReportOrBlock
+                    subjectType="casting_call"
+                    subjectId={data.id}
+                    authorName={data.project?.title ?? data.title}
+                  />
+                </span>
+              )}
             </div>
 
             <p className="mt-1 text-[15px] text-muted">{data.title}</p>

@@ -369,3 +369,92 @@ test('a production chooses who can see a casting, and whether a role needs a tap
   await admin.from('organizations').delete().eq('id', org!.id)
   await admin.auth.admin.deleteUser(ownerId).catch(() => {})
 })
+
+test('a production edits a published casting from the app, and applicants are told', async ({
+  page,
+}) => {
+  const stamp = Date.now()
+  const ownerEmail = `e2e.edit.owner.${stamp}@letitcast.dev`
+  const talentEmail = `e2e.edit.talent.${stamp}@letitcast.dev`
+  const ownerId = await makeAccount(ownerEmail, 'production', 'Elsa')
+  const talentId = await makeAccount(talentEmail, 'talent', 'Marc')
+
+  const { data: org } = await admin
+    .from('organizations')
+    .insert({
+      name: `Edit Films ${stamp}`,
+      slug: `edit-films-${stamp}`,
+      created_by: ownerId,
+      verification_status: 'verified',
+    })
+    .select('id')
+    .single()
+  await admin
+    .from('organization_members')
+    .insert({ org_id: org!.id, profile_id: ownerId, role: 'owner', status: 'active' })
+  const { data: project } = await admin
+    .from('projects')
+    .insert({ org_id: org!.id, created_by: ownerId, title: `Second Thoughts ${stamp}` })
+    .select('id')
+    .single()
+  const { data: casting } = await admin
+    .from('casting_calls')
+    .insert({
+      project_id: project!.id,
+      created_by: ownerId,
+      title: `Second Thoughts ${stamp} — call`,
+      location: 'Lyon',
+      status: 'published',
+      published_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single()
+  const { data: role } = await admin
+    .from('roles')
+    .insert({ casting_call_id: casting!.id, name: `Lead ${stamp}` })
+    .select('id')
+    .single()
+  await admin.from('applications').insert({
+    role_id: role!.id,
+    talent_id: talentId,
+    status: 'submitted',
+    submitted_at: new Date().toISOString(),
+  })
+
+  await signInAs(page, ownerEmail, 'studio')
+  await page.goto(`/studio/casting/${casting!.id}`)
+  await page.getByRole('button', { name: 'Edit casting' }).click()
+
+  // L'avertissement n'apparaît que parce que quelqu'un a candidaté.
+  await expect(page.getByText(/1 person has applied/)).toBeVisible({ timeout: 20_000 })
+
+  await page.getByLabel('Location').fill('Marseille')
+  await page.getByRole('button', { name: 'Save changes' }).click()
+
+  await expect
+    .poll(async () => {
+      const { data } = await admin
+        .from('casting_calls')
+        .select('location')
+        .eq('id', casting!.id)
+        .single()
+      return data?.location
+    }, { timeout: 20_000 })
+    .toBe('Marseille')
+
+  // Le candidat est prévenu, parce que le lieu fait partie de son travail.
+  await expect
+    .poll(async () => {
+      const { data } = await admin
+        .from('notifications')
+        .select('id')
+        .eq('recipient_id', talentId)
+        .eq('type', 'casting_updated')
+      return data?.length ?? 0
+    }, { timeout: 20_000 })
+    .toBe(1)
+
+  await admin.from('projects').delete().eq('id', project!.id)
+  await admin.from('organizations').delete().eq('id', org!.id)
+  for (const id of [ownerId, talentId]) await admin.auth.admin.deleteUser(id).catch(() => {})
+})
