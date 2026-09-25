@@ -409,3 +409,95 @@ test('the legitimate ways in still work: creating an organization, accepting an 
   await squatter.auth.signOut()
   await cleanUp([founderId, squatterId], org!.id)
 })
+
+test('a talent cannot read another talent’s personal details', async () => {
+  const stamp = Date.now()
+  const oneEmail = `e2e.priv.one.${stamp}@letitcast.dev`
+  const twoEmail = `e2e.priv.two.${stamp}@letitcast.dev`
+  const oneId = await createAccount(oneEmail, 'talent', 'Ana')
+  const twoId = await createAccount(twoEmail, 'talent', 'Bea')
+
+  // Bea a renseigné ce qu'un profil de casting contient de plus personnel.
+  await admin
+    .from('talent_profiles')
+    .update({
+      professional_name: 'Bea Stone',
+      headline: 'Stage and screen',
+      agent_email: 'agent@example.com',
+      agent_phone: '+33 6 00 00 00 00',
+      ethnicities: ['south-asian'],
+      gender: 'female',
+      height_cm: 170,
+      nationalities: ['FR'],
+    })
+    .eq('profile_id', twoId)
+
+  const one = await signedIn(oneEmail)
+
+  // ── Le profil complet d'un autre comédien n'est plus lisible ──
+  const { data: peeked } = await one
+    .from('talent_profiles')
+    .select('agent_email, agent_phone, ethnicities, height_cm')
+    .eq('profile_id', twoId)
+  expect(peeked ?? [], 'a talent reads no personal detail of another').toHaveLength(0)
+
+  // ── Mais la carte du fil fonctionne toujours : nom et accroche, rien d'autre ──
+  const { data: card } = await one
+    .from('v_talent_card')
+    .select('professional_name, headline')
+    .eq('profile_id', twoId)
+    .single()
+  expect(card?.professional_name, 'the feed card still names its author').toBe('Bea Stone')
+  expect(card?.headline).toBe('Stage and screen')
+  expect(Object.keys(card ?? {}), 'and carries nothing else').toEqual([
+    'professional_name',
+    'headline',
+  ])
+
+  // ── Son propre profil reste entier ──
+  const { data: own } = await one
+    .from('talent_profiles')
+    .select('profile_id')
+    .eq('profile_id', oneId)
+  expect(own ?? [], 'their own profile is theirs').toHaveLength(1)
+
+  await one.auth.signOut()
+  await cleanUp([oneId, twoId])
+})
+
+test('a production can still search talents — that is the job', async () => {
+  const stamp = Date.now()
+  const prodEmail = `e2e.priv.prod.${stamp}@letitcast.dev`
+  const talentEmail = `e2e.priv.talent.${stamp}@letitcast.dev`
+  const prodId = await createAccount(prodEmail, 'production', 'Cléo')
+  const talentId = await createAccount(talentEmail, 'talent', 'Dana')
+
+  const { data: org } = await admin
+    .from('organizations')
+    .insert({
+      name: `Sourcing Films ${stamp}`,
+      slug: `sourcing-films-${stamp}`,
+      created_by: prodId,
+      verification_status: 'verified',
+    })
+    .select('id')
+    .single()
+  await admin
+    .from('organization_members')
+    .insert({ org_id: org!.id, profile_id: prodId, role: 'owner', status: 'active' })
+  await admin
+    .from('talent_profiles')
+    .update({ gender: 'female', playing_age_min: 25, playing_age_max: 35 })
+    .eq('profile_id', talentId)
+
+  const production = await signedIn(prodEmail)
+  const { data: found } = await production
+    .from('talent_profiles')
+    .select('profile_id, gender, playing_age_min')
+    .eq('profile_id', talentId)
+  expect(found ?? [], 'casting by playing age and gender is the métier').toHaveLength(1)
+
+  await production.auth.signOut()
+  await admin.from('organizations').delete().eq('id', org!.id)
+  await cleanUp([prodId, talentId])
+})

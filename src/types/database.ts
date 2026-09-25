@@ -434,6 +434,13 @@ export type TapeAiReviewRow = {
   completed_at: string | null
 }
 
+/** La carte d'un comédien dans le fil : nom professionnel et accroche, rien d'autre. */
+export type TalentCardViewRow = {
+  profile_id: string
+  professional_name: string | null
+  headline: string | null
+}
+
 /** Le journal des actions administratives : qui, quoi, pourquoi, quand. */
 export type AdminActionRow = {
   id: string
@@ -693,6 +700,7 @@ export type Database = {
       v_role_stats: ReadOnly<RoleStatsViewRow>
       v_project_stats: ReadOnly<ProjectStatsViewRow>
       v_profile_network: ReadOnly<ProfileNetworkViewRow>
+      v_talent_card: ReadOnly<TalentCardViewRow>
     }
     Functions: {
       accept_organization_invite: {

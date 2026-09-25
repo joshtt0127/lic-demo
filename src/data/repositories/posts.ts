@@ -34,27 +34,46 @@ type Joined = {
   media_assets: Pick<MediaAssetRow, 'bucket' | 'path' | 'kind'> | null
   profiles:
     | (Pick<ProfileRow, 'id' | 'first_name' | 'last_name' | 'avatar_url'> & {
-        talent_profiles: { headline: string | null; professional_name: string | null } | null
       })
     | null
 }
 
 /**
- * `talent_profiles!talent_profiles_profile_id_fkey` : depuis que `saved_talents`
- * existe, PostgREST voit deux chemins entre `profiles` et `talent_profiles` et
- * refuse l'embed. Nommer la contrainte lève l'ambiguïté (cf. data-access.spec).
+ * L'auteur d'une publication, sans ouvrir son profil.
+ *
+ * `talent_profiles` n'est plus lisible par tout le monde — c'est le correctif de
+ * confidentialité : un comédien n'a pas à lire l'e-mail de l'agent d'un autre.
+ * La carte du fil a pourtant besoin du nom professionnel et de l'accroche ; elle
+ * les prend donc dans `v_talent_card`, une vue qui n'expose que ces deux
+ * colonnes, en une requête pour toute la page plutôt qu'un embed par ligne.
  */
 const SELECT = `
   id, body, created_at, author_id,
   media_assets ( bucket, path, kind ),
-  profiles!posts_author_id_fkey (
-    id, first_name, last_name, avatar_url,
-    talent_profiles!talent_profiles_profile_id_fkey ( headline, professional_name )
-  )
+  profiles!posts_author_id_fkey ( id, first_name, last_name, avatar_url )
 `
 
-function shape(row: Joined, likes: Map<string, number>, mine: Set<string>): Post {
+type TalentCard = { profile_id: string; professional_name: string | null; headline: string | null }
+
+async function cardsFor(profileIds: string[]): Promise<Map<string, TalentCard>> {
+  const unique = [...new Set(profileIds.filter(Boolean))]
+  if (unique.length === 0) return new Map()
+  const { data, error } = await supabase
+    .from('v_talent_card')
+    .select('profile_id, professional_name, headline')
+    .in('profile_id', unique)
+  if (error) throw error
+  return new Map((data ?? []).map((row) => [row.profile_id, row as TalentCard]))
+}
+
+function shape(
+  row: Joined,
+  likes: Map<string, number>,
+  mine: Set<string>,
+  cards: Map<string, TalentCard>,
+): Post {
   const profile = row.profiles
+  const card = profile ? cards.get(profile.id) : undefined
   return {
     id: row.id,
     body: row.body,
@@ -65,8 +84,8 @@ function shape(row: Joined, likes: Map<string, number>, mine: Set<string>): Post
           first_name: profile.first_name,
           last_name: profile.last_name,
           avatar_url: profile.avatar_url,
-          headline: profile.talent_profiles?.headline ?? null,
-          professionalName: profile.talent_profiles?.professional_name ?? null,
+          headline: card?.headline ?? null,
+          professionalName: card?.professional_name ?? null,
         }
       : null,
     mediaUrl: row.media_assets ? publicUrl(row.media_assets.bucket, row.media_assets.path) : null,
@@ -127,11 +146,14 @@ export async function listPosts({
   if (error) throw error
 
   const rows = (data ?? []) as unknown as Joined[]
-  const { counts, mine } = await likesFor(
-    rows.map((row) => row.id),
-    viewerId,
-  )
-  return rows.map((row) => shape(row, counts, mine))
+  const [{ counts, mine }, cards] = await Promise.all([
+    likesFor(
+      rows.map((row) => row.id),
+      viewerId,
+    ),
+    cardsFor(rows.map((row) => row.author_id)),
+  ])
+  return rows.map((row) => shape(row, counts, mine, cards))
 }
 
 export async function listPostsByAuthor(authorId: string, viewerId: string): Promise<Post[]> {
@@ -202,25 +224,23 @@ export async function suggestedProfiles(viewerId: string, limit = 5): Promise<Po
   )
   if (candidates.length === 0) return []
 
-  const { data: profiles, error } = await supabase
-    .from('profiles')
-    .select(
-      `id, first_name, last_name, avatar_url,
-       talent_profiles!talent_profiles_profile_id_fkey ( headline, professional_name )`,
-    )
-    .in('id', candidates.slice(0, limit))
+  // Même raison que le fil : le profil complet n'est plus lisible, la carte l'est.
+  const shortlist = candidates.slice(0, limit)
+  const [{ data: profiles, error }, cards] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, first_name, last_name, avatar_url')
+      .in('id', shortlist),
+    cardsFor(shortlist),
+  ])
   if (error) throw error
 
-  type ProfileJoin = Pick<ProfileRow, 'id' | 'first_name' | 'last_name' | 'avatar_url'> & {
-    talent_profiles: { headline: string | null; professional_name: string | null } | null
-  }
-
-  return ((profiles ?? []) as unknown as ProfileJoin[]).map((profile) => ({
+  return (profiles ?? []).map((profile) => ({
     id: profile.id,
     first_name: profile.first_name,
     last_name: profile.last_name,
     avatar_url: profile.avatar_url,
-    headline: profile.talent_profiles?.headline ?? null,
-    professionalName: profile.talent_profiles?.professional_name ?? null,
+    headline: cards.get(profile.id)?.headline ?? null,
+    professionalName: cards.get(profile.id)?.professional_name ?? null,
   }))
 }
