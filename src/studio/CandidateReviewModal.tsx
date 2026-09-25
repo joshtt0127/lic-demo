@@ -1,49 +1,26 @@
-import { useEffect, useRef, useState } from "react";
-import {
-  Check,
-  Film,
-  MessageSquare,
-  Minus,
-  ThumbsDown,
-  ThumbsUp,
-} from "lucide-react";
-import {
-  Avatar,
-  Button,
-  FormError,
-  FormField,
-  SelectInput,
-  Spinner,
-  Tag,
-} from "@/components/ui";
-import { EditModal, TextArea } from "@/components/EditModal";
-import { EmptyState } from "@/components/EmptyState";
-import { RequestCallbackModal } from "@/studio/RequestCallbackModal";
-import { useRecordEngagement } from "@/features/intelligence/queries";
-import { useAuth } from "@/features/auth/AuthProvider";
-import {
-  useCurrentOrganization,
-  useOrgMembers,
-} from "@/features/organizations/queries";
-import { can } from "@/lib/access";
+import { useEffect, useRef, useState } from 'react'
+import { Check, Film, MessageSquare, Minus, ThumbsDown, ThumbsUp } from 'lucide-react'
+import { Avatar, Button, FormError, FormField, SelectInput, Spinner, Tag } from '@/components/ui'
+import { EditModal, TextArea } from '@/components/EditModal'
+import { EmptyState } from '@/components/EmptyState'
+import { RequestCallbackModal } from '@/studio/RequestCallbackModal'
+import { useRecordEngagement } from '@/features/intelligence/queries'
+import { useAuth } from '@/features/auth/AuthProvider'
+import { useCurrentOrganization, useOrgMembers } from '@/features/organizations/queries'
+import { can } from '@/lib/access'
 import {
   useCandidateNotes,
   useCandidateReviews,
   useStudioMutations,
-} from "@/features/studio/queries";
-import { useSelfTapes } from "@/features/selftapes/queries";
-import { TapeCheckCard } from "@/components/upload/TapeCheckCard";
-import { AiTapeReview } from "./AiTapeReview";
-import { APPLICATION_STATUS_LABEL, relativeTime } from "@/lib/format";
-import { formatBytes } from "@/lib/storage";
-import { errorMessage } from "@/lib/supabase";
-import { cn } from "@/lib/cn";
-import type {
-  ApplicationStatus,
-  CandidateViewRow,
-  ReviewVote,
-  RoleRow,
-} from "@/types/database";
+} from '@/features/studio/queries'
+import { useSelfTapes } from '@/features/selftapes/queries'
+import { TapeCheckCard } from '@/components/upload/TapeCheckCard'
+import { AiTapeReview } from './AiTapeReview'
+import { APPLICATION_STATUS_LABEL, relativeTime } from '@/lib/format'
+import { formatBytes } from '@/lib/storage'
+import { errorMessage } from '@/lib/supabase'
+import { cn } from '@/lib/cn'
+import type { ApplicationStatus, CandidateViewRow, ReviewVote, RoleRow } from '@/types/database'
 
 /**
  * Candidate review: the self-tape, the team's votes, the notes and the decision.
@@ -59,29 +36,19 @@ import type {
  * son lien — et c'est l'envoi qui fait avancer la candidature.
  */
 const DECISIONS: ApplicationStatus[] = [
-  "viewed",
-  "under_review",
-  "shortlisted",
-  "offer",
-  "cast",
-  "not_selected",
-];
+  'viewed',
+  'under_review',
+  'shortlisted',
+  'offer',
+  'cast',
+  'not_selected',
+]
 
-const VOTES: {
-  value: ReviewVote;
-  label: string;
-  icon: typeof ThumbsUp;
-  tone: string;
-}[] = [
-  { value: "no", label: "No go", icon: ThumbsDown, tone: "text-signal-no" },
-  { value: "maybe", label: "Maybe", icon: Minus, tone: "text-signal-maybe" },
-  {
-    value: "good",
-    label: "Good match",
-    icon: ThumbsUp,
-    tone: "text-signal-good",
-  },
-];
+const VOTES: { value: ReviewVote; label: string; icon: typeof ThumbsUp; tone: string }[] = [
+  { value: 'no', label: 'No go', icon: ThumbsDown, tone: 'text-signal-no' },
+  { value: 'maybe', label: 'Maybe', icon: Minus, tone: 'text-signal-maybe' },
+  { value: 'good', label: 'Good match', icon: ThumbsUp, tone: 'text-signal-good' },
+]
 
 export function CandidateReviewModal({
   candidate,
@@ -90,37 +57,37 @@ export function CandidateReviewModal({
   onClose,
   onMessage,
 }: {
-  candidate: CandidateViewRow;
+  candidate: CandidateViewRow
   /** The role they applied for — the AI read needs its brief. */
-  role?: RoleRow | null;
-  orgId: string | undefined;
-  onClose: () => void;
+  role?: RoleRow | null
+  orgId: string | undefined
+  onClose: () => void
   /** Write to the actor — the parent owns the message modal. */
-  onMessage?: () => void;
+  onMessage?: () => void
 }) {
-  const { profile } = useAuth();
-  const { organization } = useCurrentOrganization(profile?.id);
-  const members = useOrgMembers(orgId);
-  const mutations = useStudioMutations(orgId, profile?.id);
+  const { profile } = useAuth()
+  const { organization } = useCurrentOrganization(profile?.id)
+  const members = useOrgMembers(orgId)
+  const mutations = useStudioMutations(orgId, profile?.id)
 
-  const mayReview = can(organization?.role, "candidate:review");
-  const mayDecide = can(organization?.role, "candidate:decide");
-  const [callbackOpen, setCallbackOpen] = useState(false);
-  const mayNote = can(organization?.role, "candidate:note");
-  const selfTapes = useSelfTapes(candidate.application_id);
-  const reviews = useCandidateReviews(candidate.application_id);
-  const notes = useCandidateNotes(candidate.application_id);
+  const mayReview = can(organization?.role, 'candidate:review')
+  const mayDecide = can(organization?.role, 'candidate:decide')
+  const [callbackOpen, setCallbackOpen] = useState(false)
+  const mayNote = can(organization?.role, 'candidate:note')
+  const selfTapes = useSelfTapes(candidate.application_id)
+  const reviews = useCandidateReviews(candidate.application_id)
+  const notes = useCandidateNotes(candidate.application_id)
 
-  const [note, setNote] = useState("");
-  const [voteComment, setVoteComment] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState('')
+  const [voteComment, setVoteComment] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   // Opening a submitted application is what "viewed" means.
   useEffect(() => {
-    if (candidate.status !== "submitted") return;
-    mutations.markViewed.mutate(candidate.application_id);
+    if (candidate.status !== 'submitted') return
+    mutations.markViewed.mutate(candidate.application_id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [candidate.application_id]);
+  }, [candidate.application_id])
 
   /**
    * Ce que l'équipe regarde, et jusqu'où.
@@ -130,61 +97,45 @@ export function CandidateReviewModal({
    * visionnages complets — or c'est exactement cette différence qui dit où va
    * l'attention d'une équipe, et c'est elle qui alimente la bande « Priority ».
    *
-   * Aucun de ces enregistrements n'est visible du comédien : ce sont des
-   * données de délibération, et la policy de `events` les lui refuse.
+   * Rien de tout ça n'est visible du comédien : ce sont des données de
+   * délibération, et la policy de `events` les lui refuse.
    */
-  const engagement = useRecordEngagement();
-  const watched = useRef({ opened: false, completed: false, plays: 0 });
+  const engagement = useRecordEngagement()
+  const watched = useRef({ opened: false, completed: false, plays: 0 })
 
   useEffect(() => {
-    watched.current = { opened: false, completed: false, plays: 0 };
-  }, [candidate.application_id]);
-
-  useEffect(() => {
-    if (watched.current.opened) return;
-    watched.current.opened = true;
-    engagement.mutate({
-      applicationId: candidate.application_id,
-      kind: "AUDITION_OPENED",
-    });
+    watched.current = { opened: false, completed: false, plays: 0 }
+    engagement.mutate({ applicationId: candidate.application_id, kind: 'AUDITION_OPENED' })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [candidate.application_id]);
+  }, [candidate.application_id])
 
-  const myVote = (reviews.data ?? []).find(
-    (review) => review.reviewer_id === profile?.id,
-  )?.vote;
+  const myVote = (reviews.data ?? []).find((review) => review.reviewer_id === profile?.id)?.vote
 
-  const reviewByMember = new Map(
-    (reviews.data ?? []).map((review) => [review.reviewer_id, review]),
-  );
+  const reviewByMember = new Map((reviews.data ?? []).map((review) => [review.reviewer_id, review]))
   const teamReviews = (members.data ?? []).map((member) => ({
     id: member.profile_id,
     name:
-      [member.profile?.first_name, member.profile?.last_name]
-        .filter(Boolean)
-        .join(" ") || "Member",
+      [member.profile?.first_name, member.profile?.last_name].filter(Boolean).join(' ') || 'Member',
     avatarUrl: member.profile?.avatar_url ?? null,
     review: reviewByMember.get(member.profile_id) ?? null,
-  }));
-  const teamCount = teamReviews.length;
-  const votedCount = teamReviews.filter((member) => member.review).length;
-  const reviewsWithComment = (reviews.data ?? []).filter((review) =>
-    review.comment?.trim(),
-  );
+  }))
+  const teamCount = teamReviews.length
+  const votedCount = teamReviews.filter((member) => member.review).length
+  const reviewsWithComment = (reviews.data ?? []).filter((review) => review.comment?.trim())
 
-  const tape = selfTapes.data?.[0] ?? null;
-  const tapeSeconds = tape?.durationSeconds ?? null;
+  const tape = selfTapes.data?.[0] ?? null
+  const tapeSeconds = tape?.durationSeconds ?? null
   const tapeDuration =
     tapeSeconds && Number.isFinite(tapeSeconds)
-      ? `${Math.floor(Math.round(tapeSeconds) / 60)}:${`${Math.round(tapeSeconds) % 60}`.padStart(2, "0")}`
-      : null;
+      ? `${Math.floor(Math.round(tapeSeconds) / 60)}:${`${Math.round(tapeSeconds) % 60}`.padStart(2, '0')}`
+      : null
 
   async function run(action: () => Promise<unknown>, message: string) {
-    setError(null);
+    setError(null)
     try {
-      await action();
+      await action()
     } catch (actionError) {
-      setError(errorMessage(actionError, message));
+      setError(errorMessage(actionError, message))
     }
   }
 
@@ -193,15 +144,9 @@ export function CandidateReviewModal({
       {error && <FormError>{error}</FormError>}
 
       <div className="flex items-center gap-3">
-        <Avatar
-          src={candidate.avatar_url ?? undefined}
-          name={candidate.name}
-          size="md"
-        />
+        <Avatar src={candidate.avatar_url ?? undefined} name={candidate.name} size="md" />
         <div className="min-w-0">
-          <p className="truncate text-[15px] font-bold text-ink">
-            {candidate.name}
-          </p>
+          <p className="truncate text-[15px] font-bold text-ink">{candidate.name}</p>
           <p className="truncate text-[13px] text-muted">
             {[
               candidate.role_name,
@@ -211,12 +156,10 @@ export function CandidateReviewModal({
                 : null,
             ]
               .filter(Boolean)
-              .join(" · ")}
+              .join(' · ')}
           </p>
         </div>
-        <Tag className="ml-auto shrink-0">
-          {APPLICATION_STATUS_LABEL[candidate.status]}
-        </Tag>
+        <Tag className="ml-auto shrink-0">{APPLICATION_STATUS_LABEL[candidate.status]}</Tag>
       </div>
 
       {candidate.note && (
@@ -235,7 +178,7 @@ export function CandidateReviewModal({
           </span>
         ) : selfTapes.error ? (
           <FormError>
-            {errorMessage(selfTapes.error, "Could not open this tape")}
+            {errorMessage(selfTapes.error, 'Could not open this tape')}
           </FormError>
         ) : tape ? (
           <div className="flex flex-col gap-2">
@@ -245,44 +188,40 @@ export function CandidateReviewModal({
               preload="metadata"
               className="w-full rounded-btn border border-line bg-black"
               onPlay={() => {
-                watched.current.plays += 1;
-                // Revenir sur une tape déjà lue est un signal en soi — c'est le
+                watched.current.plays += 1
+                // Revenir sur une tape déjà lue est un signal en soi : c'est le
                 // geste d'une équipe qui hésite, pas celui d'un premier tri.
                 if (watched.current.plays > 1) {
                   engagement.mutate({
                     applicationId: candidate.application_id,
-                    kind: "AUDITION_REWATCHED",
-                  });
+                    kind: 'AUDITION_REWATCHED',
+                  })
                 }
               }}
               onTimeUpdate={(event) => {
-                if (watched.current.completed) return;
-                const video = event.currentTarget;
-                if (!video.duration || !Number.isFinite(video.duration)) return;
-                const progress = video.currentTime / video.duration;
-                // 90 % plutôt que `onEnded` : personne ne regarde le générique
-                // d'une self-tape, et `ended` ne se déclenche pas si on ferme
-                // la fiche sur les dernières secondes.
-                if (progress < 0.9) return;
-                watched.current.completed = true;
+                if (watched.current.completed) return
+                const video = event.currentTarget
+                if (!video.duration || !Number.isFinite(video.duration)) return
+                const progress = video.currentTime / video.duration
+                // 90 % plutôt que `onEnded` : personne ne regarde la fin d'une
+                // self-tape, et `ended` ne part pas si on ferme la fiche sur
+                // les dernières secondes.
+                if (progress < 0.9) return
+                watched.current.completed = true
                 engagement.mutate({
                   applicationId: candidate.application_id,
-                  kind: "AUDITION_COMPLETED",
+                  kind: 'AUDITION_COMPLETED',
                   progress,
-                });
+                })
               }}
             />
             {tape.check && <TapeCheckCard check={tape.check} />}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted">
               <span>Sent {relativeTime(tape.submittedAt)}</span>
-              {tapeDuration && (
-                <span className="font-mono">{tapeDuration}</span>
-              )}
+              {tapeDuration && <span className="font-mono">{tapeDuration}</span>}
               {tape.bytes && <span>{formatBytes(tape.bytes)}</span>}
               {(selfTapes.data?.length ?? 0) > 1 && (
-                <span>
-                  {(selfTapes.data?.length ?? 0) - 1} earlier take(s) replaced
-                </span>
+                <span>{(selfTapes.data?.length ?? 0) - 1} earlier take(s) replaced</span>
               )}
             </div>
           </div>
@@ -312,8 +251,7 @@ export function CandidateReviewModal({
       <FormField label="Your vote" plainLabel>
         {!mayReview ? (
           <p className="text-[13px] text-muted">
-            Your role in this organization is read-only — you can watch the
-            tape, not vote.
+            Your role in this organization is read-only — you can watch the tape, not vote.
           </p>
         ) : (
           <>
@@ -321,8 +259,8 @@ export function CandidateReviewModal({
                 qu'un retour à la ligne 2+1. */}
             <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
               {VOTES.map((vote) => {
-                const Icon = vote.icon;
-                const active = myVote === vote.value;
+                const Icon = vote.icon
+                const active = myVote === vote.value
                 return (
                   <button
                     key={vote.value}
@@ -333,21 +271,19 @@ export function CandidateReviewModal({
                           applicationId: candidate.application_id,
                           vote: vote.value,
                           comment: voteComment.trim() || null,
-                        });
-                        setVoteComment("");
-                      }, "Could not save your vote")
+                        })
+                        setVoteComment('')
+                      }, 'Could not save your vote')
                     }
                     className={cn(
-                      "inline-flex items-center justify-center gap-1.5 rounded-field border px-2 py-2.5 text-[13px] font-semibold transition-colors sm:gap-2 sm:px-3.5 sm:text-[14px]",
-                      active
-                        ? "border-ink bg-ink text-white"
-                        : "border-line bg-card hover:bg-paper",
+                      'inline-flex items-center justify-center gap-1.5 rounded-field border px-2 py-2.5 text-[13px] font-semibold transition-colors sm:gap-2 sm:px-3.5 sm:text-[14px]',
+                      active ? 'border-ink bg-ink text-white' : 'border-line bg-card hover:bg-paper',
                     )}
                   >
-                    <Icon className={cn("h-4 w-4", !active && vote.tone)} />
+                    <Icon className={cn('h-4 w-4', !active && vote.tone)} />
                     {vote.label}
                   </button>
-                );
+                )
               })}
             </div>
 
@@ -364,18 +300,15 @@ export function CandidateReviewModal({
         {/* Who reviewed, and who the team is still waiting on. */}
         <div className="mt-3 flex flex-col gap-2">
           <span className="text-[12px] font-semibold text-muted">
-            {votedCount} of {teamCount} teammate{teamCount === 1 ? "" : "s"}{" "}
-            reviewed
+            {votedCount} of {teamCount} teammate{teamCount === 1 ? '' : 's'} reviewed
           </span>
           <ul className="flex flex-wrap gap-2">
             {teamReviews.map(({ id, name, avatarUrl, review }) => (
               <li
                 key={id}
                 className={cn(
-                  "inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px]",
-                  review
-                    ? "bg-paper text-ink"
-                    : "border border-dashed border-line text-muted",
+                  'inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px]',
+                  review ? 'bg-paper text-ink' : 'border border-dashed border-line text-muted',
                 )}
                 title={review?.comment ?? undefined}
               >
@@ -383,12 +316,12 @@ export function CandidateReviewModal({
                 <span className="truncate">{name}</span>
                 <span className="shrink-0 font-semibold">
                   {review
-                    ? review.vote === "good"
-                      ? "· Good"
-                      : review.vote === "maybe"
-                        ? "· Maybe"
-                        : "· No go"
-                    : "· not yet"}
+                    ? review.vote === 'good'
+                      ? '· Good'
+                      : review.vote === 'maybe'
+                        ? '· Maybe'
+                        : '· No go'
+                    : '· not yet'}
                 </span>
               </li>
             ))}
@@ -397,16 +330,13 @@ export function CandidateReviewModal({
           {reviewsWithComment.length > 0 && (
             <ul className="flex flex-col gap-1.5">
               {reviewsWithComment.map((review) => (
-                <li
-                  key={`why-${review.id}`}
-                  className="text-[12.5px] text-muted"
-                >
+                <li key={`why-${review.id}`} className="text-[12.5px] text-muted">
                   <span className="font-semibold text-ink">
                     {[review.reviewer?.first_name, review.reviewer?.last_name]
                       .filter(Boolean)
-                      .join(" ") || "Teammate"}
+                      .join(' ') || 'Teammate'}
                     :
-                  </span>{" "}
+                  </span>{' '}
                   {review.comment}
                 </li>
               ))}
@@ -416,13 +346,8 @@ export function CandidateReviewModal({
       </FormField>
 
       {/* Un callback se propose avec ce qu'il faut pour l'honorer. */}
-      {mayDecide && ["shortlisted", "callback"].includes(candidate.status) && (
-        <Button
-          variant="secondary"
-          size="sm"
-          className="w-fit"
-          onClick={() => setCallbackOpen(true)}
-        >
+      {mayDecide && ['shortlisted', 'callback'].includes(candidate.status) && (
+        <Button variant="secondary" size="sm" className="w-fit" onClick={() => setCallbackOpen(true)}>
           Request a callback
         </Button>
       )}
@@ -430,7 +355,7 @@ export function CandidateReviewModal({
       {callbackOpen && (
         <RequestCallbackModal
           applicationId={candidate.application_id}
-          talentName={candidate.name ?? "this talent"}
+          talentName={candidate.name ?? 'this talent'}
           onClose={() => setCallbackOpen(false)}
         />
       )}
@@ -440,9 +365,7 @@ export function CandidateReviewModal({
         <SelectInput
           id="candidate-status"
           disabled={!mayDecide}
-          title={
-            mayDecide ? undefined : "Your role cannot decide on candidates"
-          }
+          title={mayDecide ? undefined : 'Your role cannot decide on candidates'}
           value={candidate.status}
           onChange={(event) =>
             run(
@@ -451,7 +374,7 @@ export function CandidateReviewModal({
                   applicationId: candidate.application_id,
                   status: event.target.value as ApplicationStatus,
                 }),
-              "Could not change the status",
+              'Could not change the status',
             )
           }
         >
@@ -462,8 +385,7 @@ export function CandidateReviewModal({
           ))}
         </SelectInput>
         <p className="mt-1.5 text-[12px] text-muted">
-          The talent sees this status on their audition — votes and notes stay
-          inside your team.
+          The talent sees this status on their audition — votes and notes stay inside your team.
         </p>
       </FormField>
 
@@ -484,19 +406,15 @@ export function CandidateReviewModal({
       )}
 
       {/* ── Notes ── */}
-      <FormField
-        label="Team notes — internal"
-        htmlFor="candidate-note"
-        plainLabel
-      >
+      <FormField label="Team notes — internal" htmlFor="candidate-note" plainLabel>
         <TextArea
           id="candidate-note"
           rows={2}
           disabled={!mayNote}
           placeholder={
             mayNote
-              ? "What you want the team to know. The actor never sees this."
-              : "Your role cannot add notes."
+              ? 'What you want the team to know. The actor never sees this.'
+              : 'Your role cannot add notes.'
           }
           value={note}
           onChange={(event) => setNote(event.target.value)}
@@ -506,20 +424,16 @@ export function CandidateReviewModal({
             size="sm"
             disabled={!mayNote || !note.trim() || mutations.addNote.isPending}
             icon={
-              mutations.addNote.isPending ? (
-                <Spinner />
-              ) : (
-                <MessageSquare className="h-3.5 w-3.5" />
-              )
+              mutations.addNote.isPending ? <Spinner /> : <MessageSquare className="h-3.5 w-3.5" />
             }
             onClick={() =>
               run(async () => {
                 await mutations.addNote.mutateAsync({
                   applicationId: candidate.application_id,
                   body: note,
-                });
-                setNote("");
-              }, "Could not save your note")
+                })
+                setNote('')
+              }, 'Could not save your note')
             }
           >
             Add note
@@ -535,17 +449,13 @@ export function CandidateReviewModal({
                     src={item.author?.avatar_url ?? undefined}
                     name={[item.author?.first_name, item.author?.last_name]
                       .filter(Boolean)
-                      .join(" ")}
+                      .join(' ')}
                     size="xs"
                   />
                   <span className="text-[12px] font-semibold text-ink">
-                    {[item.author?.first_name, item.author?.last_name]
-                      .filter(Boolean)
-                      .join(" ")}
+                    {[item.author?.first_name, item.author?.last_name].filter(Boolean).join(' ')}
                   </span>
-                  <span className="text-[11px] text-muted">
-                    {relativeTime(item.created_at)}
-                  </span>
+                  <span className="text-[11px] text-muted">{relativeTime(item.created_at)}</span>
                 </div>
                 <p className="mt-1.5 text-[13px] text-ink/90">{item.body}</p>
               </li>
@@ -562,18 +472,13 @@ export function CandidateReviewModal({
             icon={<MessageSquare className="h-4 w-4" />}
             onClick={onMessage}
           >
-            Message {candidate.name.split(" ")[0]}
+            Message {candidate.name.split(' ')[0]}
           </Button>
         )}
-        <Button
-          variant="secondary"
-          size="sm"
-          icon={<Check className="h-4 w-4" />}
-          onClick={onClose}
-        >
+        <Button variant="secondary" size="sm" icon={<Check className="h-4 w-4" />} onClick={onClose}>
           Done
         </Button>
       </div>
     </EditModal>
-  );
+  )
 }

@@ -111,7 +111,15 @@ for (const [label, email, routes] of [
         .getAttribute('href')
         .catch(() => null)
       const id = href?.split('/studio/casting/')[1]?.split('/')[0]
-      if (id) scoped.push(`/studio/casting/${id}`, `/studio/casting/${id}/console`)
+      // L'onglet Submissions porte le feed d'attention — bandes, compteurs et
+      // « why this surfaced ». C'est l'écran le plus dense du studio : s'il
+      // déborde quelque part, c'est là.
+      if (id)
+        scoped.push(
+          `/studio/casting/${id}`,
+          `/studio/casting/${id}?tab=submissions`,
+          `/studio/casting/${id}/console`,
+        )
     }
 
     for (const route of [...routes, ...scoped]) {
