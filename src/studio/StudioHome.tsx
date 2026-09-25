@@ -332,7 +332,9 @@ function SessionCard({
           </button>
           <span
             title="The Cast Assistant needs the AI layer — not connected yet."
-            className="inline-flex h-12 cursor-not-allowed items-center gap-2 rounded-field border border-dashed border-line bg-transparent px-5 text-[14px] font-semibold text-muted/70"
+            // 2,86:1 à 70 % d'opacité : un libellé désactivé reste un libellé
+            // qu'on doit pouvoir lire pour comprendre pourquoi il est désactivé.
+            className="inline-flex h-12 cursor-not-allowed items-center gap-2 rounded-field border border-dashed border-line bg-transparent px-5 text-[14px] font-semibold text-muted"
           >
             <Sparkles className="h-4 w-4" />
             Cast Assistant — coming with the AI layer

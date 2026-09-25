@@ -11,7 +11,9 @@ export default {
 
         // Text
         ink: '#15140F', // primary, near-black
-        muted: '#6E6A60', // secondary, warm grey
+        // Assombri d'un cheveu : sur les surfaces crème, l'ancien gris donnait
+        // 4,48:1 pour 4,5 exigés. Mesuré, pas ressenti.
+        muted: '#67635A', // secondary, warm grey
 
         // Premium / brand accents
         cream: '#F1E4C3', // premium CTA background (Snap apply, Self Tape)
@@ -22,7 +24,9 @@ export default {
           // Assombri : sur blanc, l'ancien rouge donnait 4,06:1 pour 4,5 exigés.
           // C'est la couleur des messages d'erreur — celle qu'il faut pouvoir
           // lire quand quelque chose ne va pas.
-          no: '#C9372C', // No go
+          // Encore un cran : sur les fonds teintés de rouge pâle (une alerte
+          // posée sur son propre fond), 4,42:1 restait sous la barre.
+          no: '#B32D23', // No go
           maybe: '#F4B400', // Maybe
           // Assombri : sur `good-bg`, l'ancien vert donnait 2,6:1 pour 4,5 exigés
           // (mesuré par axe). Même couleur, lisible.

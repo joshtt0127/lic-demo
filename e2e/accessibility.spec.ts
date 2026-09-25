@@ -101,3 +101,82 @@ test('the screens a talent goes through are usable', async ({ page }) => {
 
   await admin.auth.admin.deleteUser(id).catch(() => {})
 })
+
+test('the screens a production works in are usable', async ({ page }) => {
+  const stamp = Date.now()
+  const email = `e2e.a11y.prod.${stamp}@letitcast.dev`
+  const { data } = await admin.auth.admin.createUser({
+    email,
+    password: DEMO_PASSWORD,
+    email_confirm: true,
+    user_metadata: { first_name: 'Remi', last_name: 'Access' },
+  })
+  const id = data!.user.id
+  await admin
+    .from('profiles')
+    .update({
+      account_type: 'production',
+      first_name: 'Remi',
+      last_name: 'Access',
+      platform_role: 'admin',
+      onboarding_step: null,
+      onboarding_completed_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+
+  const { data: org } = await admin
+    .from('organizations')
+    .insert({
+      name: `Access Films ${stamp}`,
+      slug: `access-films-${stamp}`,
+      created_by: id,
+      verification_status: 'verified',
+    })
+    .select('id')
+    .single()
+  await admin
+    .from('organization_members')
+    .insert({ org_id: org!.id, profile_id: id, role: 'owner', status: 'active' })
+  const { data: project } = await admin
+    .from('projects')
+    .insert({ org_id: org!.id, created_by: id, title: `Access Road ${stamp}` })
+    .select('id')
+    .single()
+  const { data: casting } = await admin
+    .from('casting_calls')
+    .insert({
+      project_id: project!.id,
+      created_by: id,
+      title: `Access Road ${stamp} — call`,
+      status: 'published',
+      published_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single()
+  await admin.from('roles').insert({ casting_call_id: casting!.id, name: `Part ${stamp}` })
+
+  await signInAs(page, email, 'studio')
+  await page.waitForTimeout(1500)
+  await scan(page, 'the studio home')
+
+  await page.goto('/studio/casting-calls')
+  await page.waitForTimeout(1200)
+  await scan(page, 'the casting list')
+
+  await page.goto(`/studio/casting/${casting!.id}`)
+  await page.waitForTimeout(1500)
+  await scan(page, 'the casting dashboard')
+
+  await page.goto('/studio/team')
+  await page.waitForTimeout(1200)
+  await scan(page, 'the team screen')
+
+  // La console d'exploitation compte aussi : le support s'en sert tous les jours.
+  await page.goto('/admin')
+  await page.waitForTimeout(1500)
+  await scan(page, 'the operations console')
+
+  await admin.from('projects').delete().eq('id', project!.id)
+  await admin.from('organizations').delete().eq('id', org!.id)
+  await admin.auth.admin.deleteUser(id).catch(() => {})
+})
