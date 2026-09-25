@@ -5,7 +5,12 @@ import { SignUp } from './pages/auth/SignUp'
 import { ForgotPassword } from './pages/auth/ForgotPassword'
 import { ResetPassword } from './pages/auth/ResetPassword'
 import { Continue } from './pages/auth/Continue'
-import { RedirectIfSignedIn, RequireAuth, RequireSurface } from './features/auth/guards'
+import {
+  RedirectIfSignedIn,
+  RequireAuth,
+  RequireLicStaff,
+  RequireSurface,
+} from './features/auth/guards'
 
 /**
  * Routes.
@@ -73,6 +78,18 @@ export const router = createBrowserRouter([
         lazy: async () => ({
           Component: (await import('./pages/InviteAcceptPage')).InviteAcceptPage,
         }),
+      },
+    ],
+  },
+
+  // La console d'exploitation LIC.
+  {
+    path: '/admin',
+    element: <RequireLicStaff />,
+    children: [
+      {
+        index: true,
+        lazy: async () => ({ Component: (await import('./admin/AdminPage')).AdminPage }),
       },
     ],
   },

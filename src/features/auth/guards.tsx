@@ -88,6 +88,27 @@ export function RequireAuth({ children }: { children?: ReactNode }) {
   return <>{children ?? <Outlet />}</>
 }
 
+/**
+ * Réservé au personnel LIC.
+ *
+ * La garde d'écran n'est qu'un confort : ce sont les policies et les fonctions
+ * `admin_*` qui refusent, et elles refuseraient même si quelqu'un atteignait
+ * l'URL. Un écran n'est jamais une frontière de sécurité.
+ */
+export function RequireLicStaff({ children }: { children?: ReactNode }) {
+  const { profile } = useAuth()
+
+  return (
+    <RequireAuth>
+      {profile && profile.platform_role !== 'none' ? (
+        (children ?? <Outlet />)
+      ) : (
+        <Navigate to={homeRouteFor(profile)} replace />
+      )}
+    </RequireAuth>
+  )
+}
+
 /** Signed in **and** on the right side of the marketplace. */
 export function RequireSurface({ surface, children }: { surface: Surface; children?: ReactNode }) {
   const { profile } = useAuth()

@@ -581,4 +581,16 @@ export const fr: Record<string, string> = {
   'moderation.reason.impersonation': 'Usurpation d’identité',
   'moderation.reason.fraudulent_casting': 'Faux casting',
   'moderation.reason.other': 'Autre chose',
+
+  // ── Console LIC ──
+  'admin.reports': 'Signalements',
+  'admin.noReports': 'Rien dans cette file',
+  'admin.search': 'Recherche',
+  'admin.searchPlaceholder': 'Un nom, une organisation, un casting…',
+  'admin.people': 'Personnes',
+  'admin.organizations': 'Organisations',
+  'admin.castings': 'Castings',
+  'admin.trail': 'Ce qui a été fait',
+  'admin.noTrail': 'Aucune action pour l’instant',
+  'admin.principle': 'Métadonnées par défaut, contenu privé par exception : les self-tapes, les messages privés et les notes internes ne sont pas lisibles d’ici. Chaque action est enregistrée avec son motif.',
 }

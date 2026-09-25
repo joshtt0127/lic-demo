@@ -72,6 +72,10 @@ export type ProfileRow = {
   onboarding_step: string | null
   /** Déclaration de majorité — aucune date de naissance stockée. */
   adult_confirmed_at: string | null
+  /** none · support · admin — posé en base, jamais depuis l'app. */
+  platform_role: 'none' | 'support' | 'admin'
+  suspended_at: string | null
+  suspended_reason: string | null
   onboarding_completed_at: string | null
   created_at: string
   updated_at: string
@@ -430,6 +434,18 @@ export type TapeAiReviewRow = {
   completed_at: string | null
 }
 
+/** Le journal des actions administratives : qui, quoi, pourquoi, quand. */
+export type AdminActionRow = {
+  id: string
+  actor_id: string | null
+  action: string
+  subject_type: string
+  subject_id: string | null
+  reason: string
+  metadata: Record<string, unknown>
+  created_at: string
+}
+
 export type ReportReason =
   | 'spam'
   | 'impersonation'
@@ -661,6 +677,7 @@ export type Database = {
       analytics_events: Writable<AnalyticsEventRow, 'name'>
       tape_checks: Writable<TapeCheckRow, 'self_tape_id'>
       tape_ai_reviews: Writable<TapeAiReviewRow, 'self_tape_id'>
+      admin_actions: Writable<AdminActionRow, 'action' | 'subject_type' | 'reason'>
       blocks: Writable<BlockRow, 'blocker_id' | 'blocked_id'>
       callbacks: Writable<CallbackRow, 'application_id' | 'kind'>
       reports: Writable<ReportRow, 'reporter_id' | 'subject_type' | 'subject_id' | 'reason'>
@@ -685,6 +702,26 @@ export type Database = {
       transfer_organization_ownership: {
         Args: { p_org: string; p_to: string }
         Returns: void
+      }
+      admin_set_report_status: {
+        Args: { p_report: string; p_status: string; p_resolution: string | null }
+        Returns: void
+      }
+      admin_set_organization_status: {
+        Args: { p_org: string; p_status: string; p_reason: string }
+        Returns: void
+      }
+      admin_set_user_suspended: {
+        Args: { p_profile: string; p_suspended: boolean; p_reason: string }
+        Returns: void
+      }
+      missing_for_application: {
+        Args: { p_talent: string }
+        Returns: string[]
+      }
+      can_message: {
+        Args: { p_other: string }
+        Returns: boolean
       }
     }
     Enums: {

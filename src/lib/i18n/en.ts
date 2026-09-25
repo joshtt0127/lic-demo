@@ -576,4 +576,16 @@ export const en: Record<string, string> = {
   'moderation.reason.impersonation': 'Impersonation',
   'moderation.reason.fraudulent_casting': 'Fake casting',
   'moderation.reason.other': 'Something else',
+
+  // ── Console LIC ──
+  'admin.reports': 'Reports',
+  'admin.noReports': 'Nothing in this queue',
+  'admin.search': 'Search',
+  'admin.searchPlaceholder': 'A name, an organization, a casting…',
+  'admin.people': 'People',
+  'admin.organizations': 'Organizations',
+  'admin.castings': 'Castings',
+  'admin.trail': 'What has been done',
+  'admin.noTrail': 'No action yet',
+  'admin.principle': 'Metadata by default, private content by exception: self-tapes, private messages and internal notes are not readable from here. Every action is recorded with its reason.',
 }

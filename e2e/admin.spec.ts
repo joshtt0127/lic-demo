@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { DEMO_PASSWORD, localEnv } from './env'
+import { DEMO_PASSWORD, localEnv, signInAs } from './env'
 
 /**
  * L'administration LIC : ce qu'elle peut, et surtout ce qu'elle ne peut pas.
@@ -61,6 +61,31 @@ async function makeAccount(
   }
   return data.user.id
 }
+
+test('the console is closed to everyone but LIC staff', async ({ page, browser }) => {
+  const stamp = Date.now()
+  const outsiderEmail = `e2e.adm.outsider.${stamp}@letitcast.dev`
+  const staffEmail = `e2e.adm.staff.${stamp}@letitcast.dev`
+  const outsiderId = await makeAccount(outsiderEmail, 'talent', 'Odile')
+  const staffId = await makeAccount(staffEmail, 'talent', 'Selma', 'support')
+
+  await signInAs(page, outsiderEmail, 'talent')
+  await page.goto('/admin')
+  // Renvoyé chez lui, sans écran d'exploitation.
+  await page.waitForURL('**/talent', { timeout: 30_000 })
+
+  // Un second navigateur : rester connecté empêcherait d'atteindre l'écran de
+  // connexion, qui renvoie les comptes déjà ouverts chez eux.
+  const staffContext = await browser.newContext()
+  const staffPage = await staffContext.newPage()
+  await signInAs(staffPage, staffEmail, 'talent')
+  await staffPage.goto('/admin')
+  await expect(staffPage.getByText('Let It Cast · operations')).toBeVisible({ timeout: 20_000 })
+  await expect(staffPage.getByRole('radio', { name: 'Reports' })).toBeVisible()
+  await staffContext.close()
+
+  for (const id of [outsiderId, staffId]) await admin.auth.admin.deleteUser(id).catch(() => {})
+})
 
 test('LIC reads metadata, never private content, and every action leaves a reason', async () => {
   const stamp = Date.now()
