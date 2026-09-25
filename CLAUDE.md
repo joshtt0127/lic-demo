@@ -284,6 +284,45 @@ fichier, capture d'écran), le dire et recommander `pass` au lieu d'inventer des
 traits pour avoir quelque chose à noter — vérifié en direct sur une vraie tape.
 La décision reste humaine : les votes et les notes de l'équipe font foi.
 
+## Architecture d'intelligence
+
+> On n'automatise pas le jugement. On optimise l'attention.
+
+`docs/INTELLIGENCE.md` pour le détail. La chaîne : **Workflow → Signal → Mémoire
+→ Contexte → Feed d'attention → Décision humaine**, et elle est dérivée de ce
+qui existait — aucune table nouvelle pour la mémoire.
+
+- **Signal** : `events` était déjà le magasin de faits ; ce qui manquait c'était
+  l'**attention** (`record_review_engagement`, `record_profile_view` →
+  `AUDITION_OPENED/VIEWED/COMPLETED/REWATCHED`, `PROFILE_VIEWED`). Les deux RPC
+  vérifient l'appartenance : de l'attention fabriquée empoisonnerait la mémoire.
+- **Mémoire** : `v_talent_memory` (Talent Graph) et `v_production_memory`
+  (Production Graph), deux **vues**. Règle non négociable : **rien n'agrège
+  plusieurs productions sur un même comédien** — ce serait le score universel que
+  le produit refuse, et `security_invoker` fait que la base ne peut pas répondre
+  autrement.
+- **Feed** : `intelligence_feed(casting)` rend **trois bandes** — Priority review
+  / Discovery / All applicants — et les **raisons** de chacune sous forme de
+  `{ code, faits }`. Pas de score, pas de pourcentage de correspondance, pas de
+  tri du meilleur au moins bon : le moteur range **le travail**, pas les gens.
+  L'ordre interne est celui de l'attente (deadline puis ancienneté), jamais un
+  attribut du comédien. Discovery existe pour contrer un effet du produit
+  lui-même : la mémoire, seule, se referme sur les visages connus. Aucune
+  candidature n'est jamais masquée.
+- **Explications** : la base ne renvoie jamais de phrase, `reasons.ts` rédige à
+  partir des nombres. La raison *est* la règle — pas un habillage posé après coup.
+- ⚠️ Les gestes de revue sont **invisibles du comédien** (policy `events` +
+  `export_my_data`) : ce sont des données de délibération, et un « vu à 21 h 14 »
+  sur une décision de carrière ferait hésiter une équipe à revoir une tape.
+- Tout est du SQL déterministe, **aucun appel de modèle par candidature**.
+  `intelligence_settings` porte les seuils et `engine_version`, que chaque ligne
+  du feed embarque.
+
+Vérifié par `e2e/intelligence.spec.ts` (cloisonnement, invisibilité de
+l'attention, exhaustivité de la liste, remontée d'un inconnu) et
+`src/features/intelligence/reasons.test.ts` (les phrases gardent leurs chiffres
+et ne qualifient jamais une personne).
+
 ## E-mails (ce qui sort de l'app)
 
 `notifications` → `email_outbox` (rendu + conservé) → `pg_net` vers un

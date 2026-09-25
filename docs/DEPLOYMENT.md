@@ -15,6 +15,13 @@ d'exploitation le plus élevé du projet : une migration part directement en
 production, sans répétition, et les tests E2E créent de vrais comptes dans la
 base qui sert les vrais utilisateurs.
 
+⚠️ **La suite E2E ne s'enchaîne pas deux fois de suite.** Chaque test crée de
+vrais comptes, et Supabase Auth plafonne les créations par heure. Enchaîner un
+fichier puis la suite complète fait échouer une douzaine de tests par timeout,
+avec des fichiers à quinze minutes — et ça ressemble trait pour trait à une
+régression qu'on vient d'introduire. Avant de partir en chasse : rejouer les
+tests en échec **isolément**. S'ils passent, c'est le plafond, pas le code.
+
 **Ce qu'il faut pour y remédier** (décision LIC, pas technique) : un second
 projet Supabase. Une fois créé :
 
