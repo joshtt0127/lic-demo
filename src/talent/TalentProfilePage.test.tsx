@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { TalentProfileFull } from '@/data/repositories/talent'
 import { TalentProfilePage } from './TalentProfilePage'
 
@@ -113,11 +114,21 @@ vi.mock('@/features/applications/queries', () => ({
   }),
 }))
 
+/**
+ * L'écran vit toujours sous un `QueryClientProvider` dans l'app ; le test doit
+ * lui offrir le même contexte, sinon il teste un montage qui n'existe pas.
+ * (La carte « Vos données » utilise une mutation React Query.)
+ */
 function renderPage() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
   return render(
-    <MemoryRouter>
-      <TalentProfilePage />
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <TalentProfilePage />
+      </MemoryRouter>
+    </QueryClientProvider>,
   )
 }
 

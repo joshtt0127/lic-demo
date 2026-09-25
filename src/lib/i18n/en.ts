@@ -588,4 +588,20 @@ export const en: Record<string, string> = {
   'admin.trail': 'What has been done',
   'admin.noTrail': 'No action yet',
   'admin.principle': 'Metadata by default, private content by exception: self-tapes, private messages and internal notes are not readable from here. Every action is recorded with its reason.',
+
+  // ── Mes données ──
+  'privacy.title': 'Your data',
+  'privacy.exportTitle': 'Take a copy',
+  'privacy.exportHint': 'Everything we hold about you, as a file: your profile, applications, tapes, posts and messages.',
+  'privacy.export': 'Download my data',
+  'privacy.preparing': 'Preparing…',
+  'privacy.exportFailed': 'Your data could not be exported',
+  'privacy.deleteTitle': 'Delete my account',
+  'privacy.deleteHint': 'Your name, photo and personal details are erased, and your files are deleted. Applications and casting decisions stay with the productions that made them — they are their records too.',
+  'privacy.delete': 'Delete my account',
+  'privacy.deleting': 'Deleting…',
+  'privacy.deleteConfirm': 'Delete your account? Your profile and files go, your casting history stays with the productions.',
+  'privacy.deleteType': 'Type DELETE to confirm.',
+  'privacy.deleted': 'Your account has been deleted',
+  'privacy.deleteFailed': 'Your account could not be deleted',
 }

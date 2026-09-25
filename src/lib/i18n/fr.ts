@@ -593,4 +593,20 @@ export const fr: Record<string, string> = {
   'admin.trail': 'Ce qui a été fait',
   'admin.noTrail': 'Aucune action pour l’instant',
   'admin.principle': 'Métadonnées par défaut, contenu privé par exception : les self-tapes, les messages privés et les notes internes ne sont pas lisibles d’ici. Chaque action est enregistrée avec son motif.',
+
+  // ── Mes données ──
+  'privacy.title': 'Vos données',
+  'privacy.exportTitle': 'En prendre une copie',
+  'privacy.exportHint': 'Tout ce que nous détenons sur vous, dans un fichier : profil, candidatures, tapes, publications et messages.',
+  'privacy.export': 'Télécharger mes données',
+  'privacy.preparing': 'Préparation…',
+  'privacy.exportFailed': 'Vos données n’ont pas pu être exportées',
+  'privacy.deleteTitle': 'Supprimer mon compte',
+  'privacy.deleteHint': 'Votre nom, votre photo et vos données personnelles sont effacés, vos fichiers supprimés. Les candidatures et les décisions de casting restent chez les productions qui les ont prises — ce sont aussi leurs archives.',
+  'privacy.delete': 'Supprimer mon compte',
+  'privacy.deleting': 'Suppression…',
+  'privacy.deleteConfirm': 'Supprimer votre compte ? Votre profil et vos fichiers partent, votre historique de casting reste chez les productions.',
+  'privacy.deleteType': 'Tapez DELETE pour confirmer.',
+  'privacy.deleted': 'Votre compte a été supprimé',
+  'privacy.deleteFailed': 'Votre compte n’a pas pu être supprimé',
 }

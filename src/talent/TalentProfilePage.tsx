@@ -15,6 +15,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { Avatar, Button, Card, FormError, Spinner, Tag } from '@/components/ui'
+import { PrivacyCard } from '@/components/PrivacyCard'
 import { EditModal, Field, Select, TextArea, TextInput } from '@/components/EditModal'
 import { Skeleton } from '@/components/Skeleton'
 import { MultiSelect } from '@/components/form/MultiSelect'
@@ -226,6 +227,9 @@ function ProfileView({ data }: { data: TalentProfileFull }) {
             {data.talent.bio || 'Add a short bio to introduce yourself to casting directors.'}
           </p>
         </Card>
+
+        {/* ── ses données, et le droit de partir ── */}
+        <PrivacyCard />
 
         {/* ── profile strength ── */}
         <Card flush className="overflow-hidden bg-ink p-5 text-white">

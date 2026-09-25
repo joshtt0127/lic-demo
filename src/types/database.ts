@@ -731,6 +731,14 @@ export type Database = {
         Args: { p_other: string }
         Returns: boolean
       }
+      export_my_data: {
+        Args: Record<string, never>
+        Returns: unknown
+      }
+      request_account_deletion: {
+        Args: { p_reason: string | null }
+        Returns: void
+      }
     }
     Enums: {
       account_type: AccountType
