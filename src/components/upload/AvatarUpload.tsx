@@ -75,6 +75,7 @@ export function AvatarUpload({
 
         <FileDropzone
           kind="avatar"
+          ariaLabel="Upload a profile photo"
           onFile={handleFile}
           onError={setError}
           disabled={busy}

@@ -83,7 +83,13 @@ export function TalentLayout() {
 
       <header className="sticky top-0 z-30 border-b border-line bg-card pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center gap-2 px-4 sm:gap-3 sm:px-6">
-          <Link to="/" className="inline-flex items-center text-muted hover:text-ink">
+          {/* Une flèche seule n'a pas de nom : un lecteur d'écran annonce
+              « lien », et rien d'autre. */}
+          <Link
+            to="/"
+            aria-label={t('nav.backHome')}
+            className="inline-flex items-center text-muted hover:text-ink"
+          >
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <Link to="/talent" className="-my-1.5 flex shrink-0 items-center py-1.5">

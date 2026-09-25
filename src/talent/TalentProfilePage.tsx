@@ -675,6 +675,7 @@ const AVAILABILITY_LABEL = {
 // ── Cover & avatar ───────────────────────────────────────────────────────────
 
 function CoverImage({ data }: { data: TalentProfileFull }) {
+  const t = useT()
   const media = useMediaMutations(data.profile.id)
   const updateTalent = useUpdateTalentProfile(data.profile.id)
   const [percent, setPercent] = useState<number | null>(null)
@@ -702,6 +703,8 @@ function CoverImage({ data }: { data: TalentProfileFull }) {
 
       <FileDropzone
         kind="cover"
+        // Une icône d'appareil photo seule n'annonce rien.
+        ariaLabel={t('profile.changeCover')}
         onFile={handleFile}
         onError={setError}
         disabled={percent !== null}
@@ -728,6 +731,7 @@ function CoverImage({ data }: { data: TalentProfileFull }) {
 }
 
 function AvatarWithUpload({ data, name }: { data: TalentProfileFull; name: string }) {
+  const t = useT()
   const media = useMediaMutations(data.profile.id)
   const updateAccount = useUpdateAccountProfile(data.profile.id)
   const [percent, setPercent] = useState<number | null>(null)
@@ -764,6 +768,8 @@ function AvatarWithUpload({ data, name }: { data: TalentProfileFull; name: strin
 
       <FileDropzone
         kind="avatar"
+        // Même chose que la couverture : une icône seule n'annonce rien.
+        ariaLabel={t('profile.changePhoto')}
         onFile={handleFile}
         onError={setError}
         disabled={percent !== null}

@@ -123,7 +123,22 @@ test('a casting goes from draft to cast, and the talent sees the truth at each s
   // ── 2. Publish: the role shows up and can be applied to ──
   await production.getByRole('button', { name: /Publish casting/ }).click()
   await production.waitForURL('**/studio/casting/**', { timeout: 30_000 })
-  await expect(production.getByText('published').first()).toBeVisible()
+
+  // On attend la publication **en base** avant de la chercher à l'écran : sinon
+  // l'échec dit « la production ne voit pas son casting publié » alors que la
+  // question est « la publication est-elle passée ? ».
+  await expect
+    .poll(async () => {
+      const { data } = await admin
+        .from('casting_calls')
+        .select('status')
+        .eq('id', castingId.id)
+        .maybeSingle()
+      return data?.status ?? null
+    }, { timeout: 20_000, message: 'the casting must be published' })
+    .toBe('published')
+
+  await expect(production.getByText('published').first()).toBeVisible({ timeout: 20_000 })
 
   await talent.goto('/talent')
   await expect(talent.getByText(projectTitle).first()).toBeVisible({ timeout: 20_000 })

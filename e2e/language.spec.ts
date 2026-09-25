@@ -29,7 +29,11 @@ test('a talent can use the app in French, and switch back', async ({ page }) => 
   await page.waitForURL('**/talent', { timeout: 30_000 })
 
   // The app itself, in French — navigation, counters, feed controls.
-  await expect(page.getByRole('link', { name: 'Accueil' })).toBeVisible({ timeout: 20_000 })
+  // `exact` depuis que le lien de retour s'appelle « Retour à l'accueil » : sans
+  // lui, le sélecteur attrape les deux.
+  await expect(page.getByRole('link', { name: 'Accueil', exact: true })).toBeVisible({
+    timeout: 20_000,
+  })
   await expect(page.getByText('Auditions envoyées')).toBeVisible()
   await expect(page.getByRole('radio', { name: 'Récents' })).toBeVisible()
 

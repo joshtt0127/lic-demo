@@ -148,8 +148,10 @@ export function CastingCalls() {
               <li key={casting.id}>
                 <Card flush className="overflow-hidden">
                   <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-5 sm:p-5">
+                    {/* Une affiche seule ne porte pas de nom : le lien le dit. */}
                     <Link
                       to={`/talent/casting/${casting.id}`}
+                      aria-label={casting.project?.title ?? casting.title}
                       className="h-24 w-full shrink-0 overflow-hidden rounded-btn bg-line sm:h-28 sm:w-20"
                     >
                       {casting.project?.poster_url && (

@@ -17,7 +17,10 @@ export type FieldSize = 'md' | 'lg'
 
 const fieldBase =
   'w-full border bg-card text-ink outline-none transition-colors ' +
-  'placeholder:text-muted/60 disabled:opacity-60'
+  // `text-muted` à pleine opacité : à 60 %, le contraste tombait à 2,06 pour
+  // 4,5 exigés — mesuré, pas supposé. Un indice de saisie qu'on ne peut pas lire
+  // ne rend service à personne.
+  'placeholder:text-muted disabled:opacity-60'
 
 const fieldSizes: Record<FieldSize, string> = {
   md: 'h-11 rounded-btn px-3 text-sm',

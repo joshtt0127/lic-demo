@@ -10,6 +10,7 @@ import type { MediaKind } from '@/types/database'
  */
 export function FileDropzone({
   kind,
+  ariaLabel,
   onFile,
   onError,
   disabled,
@@ -30,6 +31,13 @@ export function FileDropzone({
   /** No frame and no padding — for a bare icon trigger (avatar, cover). */
   bare?: boolean
   label?: string
+  /**
+   * Nom du déclencheur quand il n'affiche qu'une icône.
+   *
+   * À ne passer **que** dans ce cas : une `aria-label` écrase le nom visible, et
+   * un bouton « Remplacer » annoncé « MP4, MOV… » est moins clair, pas plus.
+   */
+  ariaLabel?: string
   /** Custom inner content (used by the gallery "add" tile). */
   children?: ReactNode
   className?: string
@@ -64,9 +72,13 @@ export function FileDropzone({
       }}
       className={className}
     >
+      {/* Un champ de fichier caché sans étiquette, et un bouton sans texte :
+          un lecteur d'écran n'annonçait ni l'un ni l'autre. Les deux portent
+          maintenant le nom de ce qu'ils envoient. */}
       <input
         ref={inputRef}
         type="file"
+        aria-label={label ?? RULES[kind].label}
         accept={RULES[kind].mimes.join(',')}
         className="sr-only"
         disabled={disabled}
@@ -79,6 +91,10 @@ export function FileDropzone({
       <button
         type="button"
         disabled={disabled}
+        // Une icône seule n'annonce rien ; du texte visible, si. On ne nomme
+        // donc que le premier cas — un test qui ne trouvait plus « Replace »
+        // a montré ce que coûte l'inverse.
+        aria-label={ariaLabel ?? (children ? undefined : (label ?? RULES[kind].label))}
         onClick={() => inputRef.current?.click()}
         className={cn(
           'flex flex-col items-center justify-center text-center transition-colors',

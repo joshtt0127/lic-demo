@@ -616,4 +616,10 @@ export const en: Record<string, string> = {
   'ops.deletionsPending': 'Deletions to finish',
   'ops.lastErrors': 'Last errors',
   'ops.noErrors': 'Nothing broke recently.',
+
+  'nav.backHome': 'Back to the home page',
+
+  'profile.changeCover': 'Change the cover photo',
+
+  'profile.changePhoto': 'Change your profile photo',
 }

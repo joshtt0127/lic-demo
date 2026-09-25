@@ -84,7 +84,11 @@ export function CastingPost({
     <Card flush className="overflow-hidden">
       {/* ── Author ── */}
       <div className="flex items-start gap-3 px-4 pt-4 sm:px-5">
-        <Link to={detailHref} className="shrink-0">
+        {/* La vignette mène au même endroit que le nom juste à côté. Plutôt
+            que d'annoncer deux fois le même lien, on la sort de l'arbre
+            d'accessibilité — un lecteur d'écran et une tabulation n'ont pas à
+            passer deux fois par la même porte. */}
+        <Link to={detailHref} className="shrink-0" aria-hidden tabIndex={-1}>
           <AuthorMark name={authorName} logo={author?.logo_url ?? null} />
         </Link>
         <div className="min-w-0 flex-1">

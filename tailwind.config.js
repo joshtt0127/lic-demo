@@ -19,9 +19,14 @@ export default {
 
         // Signal / rating system
         signal: {
-          no: '#E0483D', // No go
+          // Assombri : sur blanc, l'ancien rouge donnait 4,06:1 pour 4,5 exigés.
+          // C'est la couleur des messages d'erreur — celle qu'il faut pouvoir
+          // lire quand quelque chose ne va pas.
+          no: '#C9372C', // No go
           maybe: '#F4B400', // Maybe
-          good: '#2BA36B', // Good match
+          // Assombri : sur `good-bg`, l'ancien vert donnait 2,6:1 pour 4,5 exigés
+          // (mesuré par axe). Même couleur, lisible.
+          good: '#176B45', // Good match
           'good-bg': '#E7F6EE', // selected good-match background
         },
 
