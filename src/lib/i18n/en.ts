@@ -604,4 +604,16 @@ export const en: Record<string, string> = {
   'privacy.deleteType': 'Type DELETE to confirm.',
   'privacy.deleted': 'Your account has been deleted',
   'privacy.deleteFailed': 'Your account could not be deleted',
+
+  // ── État de santé ──
+  'ops.health': 'Health',
+  'ops.emailsNotSent': 'Emails not sent (24h)',
+  'ops.emailsStuck': 'Emails stuck',
+  'ops.aiFailures': 'AI failures (24h)',
+  'ops.aiStuck': 'AI stuck',
+  'ops.clientErrors': 'Client errors (24h)',
+  'ops.reportsOpen': 'Reports open',
+  'ops.deletionsPending': 'Deletions to finish',
+  'ops.lastErrors': 'Last errors',
+  'ops.noErrors': 'Nothing broke recently.',
 }

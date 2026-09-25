@@ -434,6 +434,30 @@ export type TapeAiReviewRow = {
   completed_at: string | null
 }
 
+/** Une erreur remontée par un navigateur. Aucun contenu utilisateur. */
+export type ClientErrorRow = {
+  id: number
+  occurred_at: string
+  profile_id: string | null
+  kind: string
+  message: string
+  stack: string | null
+  route: string | null
+  user_agent: string | null
+  release: string | null
+}
+
+/** Les compteurs qui disent qu'un parcours critique est cassé. */
+export type OpsHealthViewRow = {
+  emails_not_sent_24h: number
+  emails_stuck: number
+  ai_failures_24h: number
+  ai_stuck: number
+  client_errors_24h: number
+  reports_open: number
+  deletions_pending: number
+}
+
 /** La carte d'un comédien dans le fil : nom professionnel et accroche, rien d'autre. */
 export type TalentCardViewRow = {
   profile_id: string
@@ -685,6 +709,7 @@ export type Database = {
       tape_checks: Writable<TapeCheckRow, 'self_tape_id'>
       tape_ai_reviews: Writable<TapeAiReviewRow, 'self_tape_id'>
       admin_actions: Writable<AdminActionRow, 'action' | 'subject_type' | 'reason'>
+      client_errors: Writable<ClientErrorRow, 'kind' | 'message'>
       blocks: Writable<BlockRow, 'blocker_id' | 'blocked_id'>
       callbacks: Writable<CallbackRow, 'application_id' | 'kind'>
       reports: Writable<ReportRow, 'reporter_id' | 'subject_type' | 'subject_id' | 'reason'>
@@ -701,6 +726,7 @@ export type Database = {
       v_project_stats: ReadOnly<ProjectStatsViewRow>
       v_profile_network: ReadOnly<ProfileNetworkViewRow>
       v_talent_card: ReadOnly<TalentCardViewRow>
+      v_ops_health: ReadOnly<OpsHealthViewRow>
     }
     Functions: {
       accept_organization_invite: {

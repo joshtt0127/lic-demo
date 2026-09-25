@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { AdminActionRow, ProfileRow, ReportRow } from '@/types/database'
+import type {
+  AdminActionRow,
+  ClientErrorRow,
+  OpsHealthViewRow,
+  ProfileRow,
+  ReportRow,
+} from '@/types/database'
 
 /**
  * Ce que l'administration LIC lit et fait.
@@ -140,4 +146,33 @@ export function useAdminActions() {
   })
 
   return { setReportStatus, setOrganizationStatus, setUserSuspended }
+}
+
+/** L'état de santé : les quelques compteurs qui disent qu'un parcours est cassé. */
+export function useOpsHealth() {
+  return useQuery({
+    queryKey: ['ops-health'],
+    queryFn: async (): Promise<OpsHealthViewRow | null> => {
+      const { data, error } = await supabase.from('v_ops_health').select('*').maybeSingle()
+      if (error) throw error
+      return data
+    },
+    // Un tableau de bord qui ne bouge pas ne se regarde pas.
+    refetchInterval: 60_000,
+  })
+}
+
+export function useClientErrors() {
+  return useQuery({
+    queryKey: ['client-errors'],
+    queryFn: async (): Promise<ClientErrorRow[]> => {
+      const { data, error } = await supabase
+        .from('client_errors')
+        .select('*')
+        .order('occurred_at', { ascending: false })
+        .limit(30)
+      if (error) throw error
+      return data ?? []
+    },
+  })
 }

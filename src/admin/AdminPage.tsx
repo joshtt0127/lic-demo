@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Building2, Flag, History, Search, ShieldOff, User } from 'lucide-react'
+import { Activity, Building2, Flag, History, Search, ShieldOff, User } from 'lucide-react'
 import { Button, Card, FormError, Input, Logo, Spinner, Tag } from '@/components/ui'
 import { EmptyState } from '@/components/EmptyState'
 import { SegmentedControl } from '@/components/form/SegmentedControl'
@@ -10,6 +10,8 @@ import {
   useAdminActions,
   useAdminSearch,
   useAdminTrail,
+  useClientErrors,
+  useOpsHealth,
   useReportQueue,
 } from '@/features/admin/queries'
 import { relativeTime } from '@/lib/format'
@@ -28,7 +30,7 @@ import { useT } from '@/lib/i18n'
  * Trois onglets, qui suivent ce que fait une journée de support : la file, la
  * recherche, et ce qui a été fait.
  */
-type Tab = 'reports' | 'search' | 'trail'
+type Tab = 'health' | 'reports' | 'search' | 'trail'
 
 /** Demande un motif, et n'accepte pas le silence. Toute action en passe par là. */
 function askReason(question: string): string | null {
@@ -45,7 +47,7 @@ export function AdminPage() {
   const t = useT()
   const toast = useToast()
   const { profile } = useAuth()
-  const [tab, setTab] = useState<Tab>('reports')
+  const [tab, setTab] = useState<Tab>('health')
   const [error, setError] = useState<string | null>(null)
 
   const isAdmin = profile?.platform_role === 'admin'
@@ -69,6 +71,7 @@ export function AdminPage() {
           value={tab}
           onChange={(value) => setTab(value as Tab)}
           options={[
+            { value: 'health', label: 'Health' },
             { value: 'reports', label: 'Reports' },
             { value: 'search', label: 'Search' },
             { value: 'trail', label: 'Trail' },
@@ -77,12 +80,86 @@ export function AdminPage() {
 
         {error && <FormError>{error}</FormError>}
 
+        {tab === 'health' && <Health />}
         {tab === 'reports' && <Reports isAdmin={isAdmin} onError={setError} toast={toast} />}
         {tab === 'search' && <SearchPanel isAdmin={isAdmin} onError={setError} toast={toast} />}
         {tab === 'trail' && <Trail />}
 
         <p className="pb-4 text-[12px] leading-relaxed text-muted">{t('admin.principle')}</p>
       </main>
+    </div>
+  )
+}
+
+/**
+ * L'état de santé.
+ *
+ * Sept compteurs, pas un tableau de bord : ce sont les seuls chiffres qui, s'ils
+ * dérivent, veulent dire qu'un parcours critique est cassé. Un écran qui montre
+ * tout ne se regarde pas ; celui-ci tient en un coup d'œil, et se met à jour
+ * tout seul.
+ */
+function Health() {
+  const t = useT()
+  const health = useOpsHealth()
+  const errors = useClientErrors()
+
+  const cells: { label: string; value: number | undefined; bad: boolean }[] = [
+    { label: t('ops.emailsNotSent'), value: health.data?.emails_not_sent_24h, bad: (health.data?.emails_not_sent_24h ?? 0) > 0 },
+    { label: t('ops.emailsStuck'), value: health.data?.emails_stuck, bad: (health.data?.emails_stuck ?? 0) > 0 },
+    { label: t('ops.aiFailures'), value: health.data?.ai_failures_24h, bad: (health.data?.ai_failures_24h ?? 0) > 0 },
+    { label: t('ops.aiStuck'), value: health.data?.ai_stuck, bad: (health.data?.ai_stuck ?? 0) > 0 },
+    { label: t('ops.clientErrors'), value: health.data?.client_errors_24h, bad: (health.data?.client_errors_24h ?? 0) > 0 },
+    { label: t('ops.reportsOpen'), value: health.data?.reports_open, bad: (health.data?.reports_open ?? 0) > 0 },
+    { label: t('ops.deletionsPending'), value: health.data?.deletions_pending, bad: (health.data?.deletions_pending ?? 0) > 0 },
+  ]
+
+  return (
+    <div className="flex flex-col gap-5">
+      <Card className="flex flex-col gap-3">
+        <span className="tech-label inline-flex items-center gap-1.5">
+          <Activity className="h-3.5 w-3.5" />
+          {t('ops.health')}
+        </span>
+
+        {health.isLoading ? (
+          <Spinner />
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {cells.map((cell) => (
+              <div
+                key={cell.label}
+                className={`rounded-field border p-3 ${
+                  cell.bad ? 'border-signal-no/30 bg-signal-no/5' : 'border-line bg-paper'
+                }`}
+              >
+                <p className="font-mono text-[20px] font-bold text-ink">{cell.value ?? '—'}</p>
+                <p className="mt-0.5 text-[12px] leading-snug text-muted">{cell.label}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      <Card className="flex flex-col gap-3">
+        <span className="tech-label">{t('ops.lastErrors')}</span>
+        {errors.isLoading ? (
+          <Spinner />
+        ) : (errors.data ?? []).length === 0 ? (
+          <p className="text-[13px] text-muted">{t('ops.noErrors')}</p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-line">
+            {(errors.data ?? []).map((item) => (
+              <li key={item.id} className="flex flex-wrap items-baseline gap-2 py-2">
+                <Tag tone="no">{item.kind}</Tag>
+                <span className="min-w-0 flex-1 truncate text-[13px] text-ink">{item.message}</span>
+                <span className="font-mono text-[12px] text-muted">{item.route}</span>
+                <span className="text-[12px] text-muted">{relativeTime(item.occurred_at, t)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
     </div>
   )
 }

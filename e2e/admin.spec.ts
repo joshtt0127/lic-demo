@@ -314,3 +314,42 @@ test('LIC reads metadata, never private content, and every action leaves a reaso
     await admin.auth.admin.deleteUser(id).catch(() => {})
   }
 })
+
+test('an error that breaks a screen reaches the operations console', async () => {
+  const stamp = Date.now()
+  const staffEmail = `e2e.ops.staff.${stamp}@letitcast.dev`
+  const userEmail = `e2e.ops.user.${stamp}@letitcast.dev`
+  const staffId = await makeAccount(staffEmail, 'talent', 'Olga', 'support')
+  const userId = await makeAccount(userEmail, 'talent', 'Ugo')
+
+  const user = await signedIn(userEmail)
+  const staff = await signedIn(staffEmail)
+
+  // Ce que fait la frontière d'erreur quand un écran casse.
+  const { error: reported } = await user.from('client_errors').insert({
+    kind: 'render',
+    message: `Cannot read properties of undefined ${stamp}`,
+    route: '/talent/auditions',
+    user_agent: 'e2e',
+  })
+  expect(reported, 'the browser can report its own incident').toBeNull()
+
+  // Personne d'autre ne lit le journal d'incidents.
+  const { data: peeked } = await user.from('client_errors').select('id')
+  expect(peeked ?? [], 'incidents are not public reading').toHaveLength(0)
+
+  const { data: seen } = await staff
+    .from('client_errors')
+    .select('message, route')
+    .ilike('message', `%${stamp}%`)
+  expect(seen ?? [], 'but operations sees it').toHaveLength(1)
+  expect(seen![0].route).toBe('/talent/auditions')
+
+  // Et l'état de santé le compte.
+  const { data: health } = await staff.from('v_ops_health').select('client_errors_24h').maybeSingle()
+  expect((health?.client_errors_24h ?? 0) > 0, 'health counts it').toBe(true)
+
+  for (const client of [user, staff]) await client.auth.signOut()
+  await admin.from('client_errors').delete().ilike('message', `%${stamp}%`)
+  for (const id of [staffId, userId]) await admin.auth.admin.deleteUser(id).catch(() => {})
+})

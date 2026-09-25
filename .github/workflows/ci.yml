@@ -1,0 +1,41 @@
+# Ce qui doit passer avant qu'un commit arrive sur `main`.
+#
+# Volontairement : typage, tests unitaires, build. Pas les E2E — ils parlent au
+# vrai projet Supabase, créent de vrais comptes et suppriment de vraies lignes.
+# Les lancer depuis chaque branche viendrait écrire dans la base de production
+# et pousserait la limite d'envoi d'e-mails d'authentification. Ils tournent en
+# local avant chaque push, et ils tourneront ici le jour où un projet de
+# préproduction existera (voir docs/DEPLOYMENT.md).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Types
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npx vitest run
+
+      - name: Build
+        run: npm run build
+        env:
+          # Le build n'a pas besoin d'un vrai projet : l'app affiche son écran de
+          # configuration si les variables manquent, et rien n'est appelé ici.
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: build-only

@@ -609,4 +609,16 @@ export const fr: Record<string, string> = {
   'privacy.deleteType': 'Tapez DELETE pour confirmer.',
   'privacy.deleted': 'Votre compte a été supprimé',
   'privacy.deleteFailed': 'Votre compte n’a pas pu être supprimé',
+
+  // ── État de santé ──
+  'ops.health': 'État de santé',
+  'ops.emailsNotSent': 'E-mails non partis (24 h)',
+  'ops.emailsStuck': 'E-mails bloqués',
+  'ops.aiFailures': 'Analyses en échec (24 h)',
+  'ops.aiStuck': 'Analyses bloquées',
+  'ops.clientErrors': 'Erreurs navigateur (24 h)',
+  'ops.reportsOpen': 'Signalements ouverts',
+  'ops.deletionsPending': 'Effacements à terminer',
+  'ops.lastErrors': 'Dernières erreurs',
+  'ops.noErrors': 'Rien n’a cassé récemment.',
 }

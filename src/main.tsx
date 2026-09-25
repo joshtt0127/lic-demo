@@ -8,6 +8,8 @@ import { FullPageLoader } from './components/ui'
 import { AuthProvider } from './features/auth/AuthProvider'
 import { I18nProvider } from './lib/i18n'
 import { registerServiceWorker } from './lib/pwa'
+import { installErrorReporting } from './lib/report-error'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -25,21 +27,26 @@ const queryClient = new QueryClient({
 // La coquille hors ligne. Sans effet en dev, où le HMR doit rester maître.
 registerServiceWorker()
 
+// Les deux filets globaux, avant le premier rendu.
+installErrorReporting()
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <I18nProvider>
-        <AuthProvider>
-          <ToastProvider>
-            {/* Routes are code-split: this covers the first chunk's arrival. */}
-            <RouterProvider
-              router={router}
-              fallbackElement={<FullPageLoader />}
-              future={{ v7_startTransition: true }}
-            />
-          </ToastProvider>
-        </AuthProvider>
-      </I18nProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <I18nProvider>
+          <AuthProvider>
+            <ToastProvider>
+              {/* Routes are code-split: this covers the first chunk's arrival. */}
+              <RouterProvider
+                router={router}
+                fallbackElement={<FullPageLoader />}
+                future={{ v7_startTransition: true }}
+              />
+            </ToastProvider>
+          </AuthProvider>
+        </I18nProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   </React.StrictMode>,
 )
