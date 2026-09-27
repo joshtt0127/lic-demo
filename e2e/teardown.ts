@@ -51,10 +51,37 @@ export default async function teardown() {
     removed += 1
   }
 
-  if (created.length > 0 || removed > 0) {
+  /**
+   * Et les fichiers, que la suppression des comptes ne touche pas.
+   *
+   * Supprimer un compte fait partir ses lignes en cascade — `media_assets`
+   * comprise — mais **pas** l'objet dans le stockage : Postgres ne sait rien du
+   * bucket. Chaque exécution laissait donc ses tapes derrière elle. 427 s'étaient
+   * accumulées avant qu'on s'en aperçoive, et elles ne sont atteignables par
+   * personne : sans ligne `media_assets`, aucune URL signée ne peut être émise.
+   */
+  const { data: assets } = await admin.from('media_assets').select('bucket, path')
+  const known = new Set((assets ?? []).map((asset) => `${asset.bucket}/${asset.path}`))
+  let files = 0
+  for (const bucket of ['selftapes']) {
+    const { data: folders } = await admin.storage.from(bucket).list('', { limit: 1000 })
+    for (const folder of folders ?? []) {
+      if (folder.id !== null) continue
+      const { data: inside } = await admin.storage.from(bucket).list(folder.name, { limit: 1000 })
+      const stale = (inside ?? [])
+        .map((file) => `${folder.name}/${file.name}`)
+        .filter((key) => !known.has(`${bucket}/${key}`))
+      if (stale.length === 0) continue
+      await admin.storage.from(bucket).remove(stale)
+      files += stale.length
+    }
+  }
+
+  if (created.length > 0 || removed > 0 || files > 0) {
     console.log(
       `\n[teardown] removed ${created.length} E2E account(s)` +
-        (removed > 0 ? ` and ${removed} orphan row(s)` : ''),
+        (removed > 0 ? `, ${removed} orphan row(s)` : '') +
+        (files > 0 ? `, ${files} orphan file(s)` : ''),
     )
   }
 }
