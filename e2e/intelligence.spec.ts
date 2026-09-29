@@ -312,3 +312,75 @@ test.describe('Intelligence — attention, mémoire et cloisonnement', () => {
     expect(error).not.toBeNull()
   })
 })
+
+test.describe('Talent Graph™ — la trajectoire inter-productions', () => {
+  test('compte les productions distinctes, sans jamais dire lesquelles', async () => {
+    const stamp = Date.now() + 10
+    // Trois maisons de production indépendantes, qui ne se connaissent pas.
+    const houses = [
+      await organization(stamp, 'g1'),
+      await organization(stamp, 'g2'),
+      await organization(stamp, 'g3'),
+    ]
+
+    const talentEmail = `e2e.graph.talent.${stamp}@letitcast.dev`
+    const talentId = await createAccount(talentEmail, 'talent', 'Camille')
+
+    // Le scénario du mémo : trois auditions, deux callbacks indépendants.
+    const outcomes = ['callback', 'callback', 'not_selected'] as const
+    for (const [index, house] of houses.entries()) {
+      const casting = await castingFor(house.orgId, house.ownerId, stamp + index, `Graph${index}`)
+      const applicationId = await applicationWithTape(casting.roleId, talentId)
+      await admin
+        .from('applications')
+        .update({ status: outcomes[index], decided_at: new Date().toISOString() })
+        .eq('id', applicationId)
+    }
+
+    const viewer = await signedIn(houses[0].email)
+    const { data, error } = await viewer.rpc('talent_graph', { p_talents: [talentId] })
+    expect(error).toBeNull()
+    expect(data!.length).toBe(1)
+
+    const graph = data![0]
+    expect(graph.productions_applied).toBe(3)
+    expect(graph.productions_callback).toBe(2)
+    expect(graph.productions_shortlisted).toBe(2)
+    expect(graph.productions_cast).toBe(0)
+    expect(graph.auditions_total).toBe(3)
+
+    // La trajectoire est datée : c'est ce qui l'empêche de figer quelqu'un.
+    expect(graph.by_year.length).toBeGreaterThan(0)
+    expect(graph.by_year[0]).toHaveProperty('year')
+
+    // **L'identité des autres productions ne sort jamais.** Un compte est une
+    // information de casting ; savoir lesquelles est une information
+    // concurrentielle, et elle ne nous appartient pas.
+    const payload = JSON.stringify(graph)
+    for (const house of houses) {
+      expect(payload).not.toContain(house.orgId)
+      expect(payload).not.toContain(house.ownerId)
+    }
+
+    // Et aucun agrégat pondéré : que des comptes entiers, rien sur 100.
+    for (const [key, value] of Object.entries(graph)) {
+      if (typeof value !== 'number') continue
+      expect(Number.isInteger(value), `${key} doit rester un compte, pas un score`).toBe(true)
+    }
+  })
+
+  test('le comédien ne voit pas sa propre trajectoire', async () => {
+    const stamp = Date.now() + 11
+    const house = await organization(stamp, 'g4')
+    const casting = await castingFor(house.orgId, house.ownerId, stamp, 'Hidden')
+    const talentEmail = `e2e.graph.hidden.${stamp}@letitcast.dev`
+    const talentId = await createAccount(talentEmail, 'talent', 'Hugo')
+    await applicationWithTape(casting.roleId, talentId)
+
+    // « 0 production ne vous a rappelé » se lirait comme un verdict de carrière
+    // là où il n'y a qu'un compteur. Le graphe est fermé aux comédiens.
+    const talent = await signedIn(talentEmail)
+    const { data } = await talent.rpc('talent_graph', { p_talents: [talentId] })
+    expect(data ?? []).toEqual([])
+  })
+})
