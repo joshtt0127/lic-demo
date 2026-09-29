@@ -78,7 +78,35 @@ export function IntelligenceLive({
    */
   const unavailable = Boolean(trace.error ?? feed.error ?? recent.error)
 
-  if (!orgId || !focus) return null
+  if (!orgId) return null
+
+  /**
+   * Pas encore de casting : la fenêtre se montre quand même.
+   *
+   * Elle renvoyait `null`, donc elle s'évanouissait sans un mot — et une
+   * absence silencieuse se lit comme un bug, pas comme un état. Quelqu'un qui
+   * vient d'ouvrir son compte cherche alors une fonctionnalité qu'on lui a
+   * annoncée et ne la trouve pas.
+   *
+   * Elle dit donc ce qu'elle attend. C'est aussi plus honnête : il n'y a
+   * effectivement rien à observer tant qu'aucun casting n'existe.
+   */
+  if (!focus) {
+    return (
+      <section
+        aria-label="Intelligence Live"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-card p-4 sm:p-5"
+      >
+        <div className="flex min-w-0 items-center gap-2">
+          <LivePulse active={false} />
+          <span className="tech-label text-ink">Intelligence Live</span>
+        </div>
+        <p className="text-[13px] text-muted">
+          Publish a casting and the engine starts working here.
+        </p>
+      </section>
+    )
+  }
 
   return (
     <>
