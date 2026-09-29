@@ -56,7 +56,7 @@ export function IntelligenceLive({
   }, [castings])
 
   const castingId = focus?.casting.id
-  const live = useSignalStream(orgId)
+  const { signals: live, connected } = useSignalStream(orgId)
   const recent = useRecentSignals(orgId)
   const trace = useIntelligenceTrace(castingId)
   const feed = useIntelligenceFeed(castingId)
@@ -98,7 +98,7 @@ export function IntelligenceLive({
         className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-card p-4 sm:p-5"
       >
         <div className="flex min-w-0 items-center gap-2">
-          <LivePulse active={false} />
+          <LivePulse connected={false} beating={false} />
           <span className="tech-label text-ink">Intelligence Live</span>
         </div>
         <p className="text-[13px] text-muted">
@@ -131,7 +131,7 @@ export function IntelligenceLive({
 
         <header className="relative flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <div className="flex min-w-0 items-center gap-2">
-            <LivePulse active={live.length > 0} />
+            <LivePulse connected={connected} beating={live.length > 0} />
             <span className="tech-label text-ink">Intelligence Live</span>
             <span className="hidden truncate text-[12px] text-muted sm:inline">
               · {focus.casting.title}
@@ -166,7 +166,8 @@ export function IntelligenceLive({
         <div className={cn('relative mt-4 flex flex-col gap-2 sm:hidden', unavailable && 'hidden')}>
           <TraceBar steps={trace.data ?? []} loading={trace.isLoading} />
           <p className="truncate text-[12px] text-muted">
-            {latest ? latest.label : 'Nothing new yet'} · {feed.data?.length ?? 0} in the queue
+            {latest ? latest.label : connected ? 'Listening' : 'Not connected'} ·{' '}
+            {feed.data?.length ?? 0} in the queue
           </p>
         </div>
 
@@ -176,16 +177,29 @@ export function IntelligenceLive({
             unavailable && 'sm:hidden',
           )}
         >
+          {/*
+            Les trois colonnes suivent le même rythme : une valeur forte, une
+            légende en mono. Sans cette grille, l'œil sautait d'un libellé à une
+            barre puis à un grand chiffre, et la lecture d'un regard — la seule
+            chose qu'on demande à cette bande — ne fonctionnait pas.
+          */}
           <Column label="Signal" tone="bg-gold">
             {latest ? (
               <>
-                <p className="truncate text-[13px] font-semibold text-ink">{latest.label}</p>
-                <p className="font-mono text-[11px] text-muted">
+                <p className="truncate text-[15px] font-bold leading-tight text-ink">
+                  {latest.label}
+                </p>
+                <p className="truncate font-mono text-[11px] text-muted">
                   {relativeTime(latest.occurredAt)} · {TARGET_LABEL[latest.target]}
                 </p>
               </>
             ) : (
-              <p className="text-[13px] text-muted">Nothing new yet</p>
+              <>
+                <p className="text-[15px] font-bold leading-tight text-muted">Quiet</p>
+                <p className="font-mono text-[11px] text-muted">
+                  {connected ? 'listening' : 'not connected'}
+                </p>
+              </>
             )}
           </Column>
 
@@ -198,12 +212,12 @@ export function IntelligenceLive({
                 réellement devant elle. Les millisecondes sont de la télémétrie,
                 pas une accroche. */}
             <p className="flex items-baseline gap-1.5 text-[13px] text-muted">
-              <span className="font-display text-[22px] font-extrabold leading-none text-ink">
+              <span className="font-display text-[19px] font-extrabold leading-tight text-ink">
                 {feed.data?.length ?? 0}
               </span>
               in the queue
             </p>
-            <p className="font-mono text-[11px] text-muted">
+            <p className="truncate font-mono text-[11px] text-muted">
               {movements.length > 0
                 ? `${movements.length} position${movements.length > 1 ? 's' : ''} moved`
                 : 'steady since you arrived'}
@@ -263,28 +277,38 @@ function Column({
 }
 
 /**
- * La pulsation du direct.
+ * Le point de vie.
  *
- * Elle ne tourne pas en permanence : un point qui clignote sans arrêt est du
- * bruit, et le brief l'interdit explicitement. Il bat quand un signal arrive,
- * puis se calme. Un mouvement, une signification.
+ * Il dit deux choses différentes, et c'est ce qui le rend utile plutôt que
+ * décoratif. Sa **couleur** est l'état de la connexion : doré quand le direct
+ * est établi, gris quand il ne l'est pas — sans quoi un flux silencieux est
+ * indiscernable d'un flux cassé. Son **battement** est l'arrivée d'un signal.
+ *
+ * Il ne clignote jamais en continu : le brief l'interdit, et un point qui
+ * s'agite sans raison finit par ne plus rien vouloir dire.
  */
-function LivePulse({ active }: { active: boolean }) {
+function LivePulse({ connected, beating }: { connected: boolean; beating: boolean }) {
   const reduced = useReducedMotion()
   return (
-    <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
-      {active && !reduced && (
+    <span
+      className="relative flex h-2 w-2 shrink-0"
+      role="status"
+      aria-label={connected ? 'Live connection active' : 'Live connection inactive'}
+    >
+      {connected && beating && !reduced && (
         <motion.span
+          aria-hidden
           className="absolute inset-0 rounded-full bg-gold"
-          initial={{ opacity: 0.5, scale: 1 }}
-          animate={{ opacity: 0, scale: 2.6 }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
+          initial={{ opacity: 0.55, scale: 1 }}
+          animate={{ opacity: 0, scale: 2.8 }}
+          transition={{ duration: 1.9, repeat: Infinity, ease: 'easeOut' }}
         />
       )}
       <span
+        aria-hidden
         className={cn(
-          'relative h-2 w-2 rounded-full',
-          active ? 'bg-gold' : 'bg-muted/30',
+          'relative h-2 w-2 rounded-full transition-colors',
+          connected ? 'bg-gold' : 'bg-muted/30',
         )}
       />
     </span>
@@ -321,15 +345,31 @@ function TraceBar({
   if (loading || steps.length === 0) {
     return (
       <>
-        <div className="h-[9px] w-full rounded-full bg-ink/5" />
-        <p className="font-mono text-[11px] text-muted">{loading ? 'measuring…' : 'idle'}</p>
+        <p className="font-mono text-[13px] text-muted">{loading ? 'measuring…' : 'idle'}</p>
+        <div className="h-[7px] w-full rounded-full bg-ink/5" />
       </>
     )
   }
 
   return (
     <>
-      <div className="flex h-[9px] w-full gap-[3px] overflow-hidden rounded-full">
+      {/*
+         La valeur d'abord, la barre en légende.
+
+         Placée au-dessus, la barre décalait la ligne de base de cette colonne :
+         les trois valeurs fortes de la bande ne s'alignaient plus, et l'œil
+         accrochait sans savoir pourquoi. Même rythme partout — une valeur, puis
+         sa légende — et la barre devient ce qu'elle est : un détail de lecture,
+         pas un titre.
+      */}
+      <p className="flex items-baseline gap-1.5 text-[13px] text-muted">
+        <span className="font-display text-[19px] font-extrabold leading-tight text-ink">
+          {Math.round(total)} ms
+        </span>
+        {steps.length} steps
+      </p>
+
+      <div className="flex h-[7px] w-full gap-[3px] overflow-hidden rounded-full">
         {steps.map((step, index) => {
           const share = total > 0 ? Number(step.duration_ms) / total : 1 / steps.length
           return (
@@ -345,9 +385,7 @@ function TraceBar({
           )
         })}
       </div>
-      <p className="truncate font-mono text-[11px] text-muted">
-        {steps.map((step) => `${STEP_LABEL[step.step] ?? step.step} ${step.duration_ms}ms`).join(' · ')}
-      </p>
+
     </>
   )
 }

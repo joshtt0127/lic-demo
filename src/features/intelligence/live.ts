@@ -83,12 +83,26 @@ const STREAM_DEPTH = 8
  * chaque diffusion. Il n'y a donc pas de `filter` à écrire ici, et surtout
  * aucune fuite possible si quelqu'un s'abonne largement depuis la console.
  */
-export function useSignalStream(orgId: string | undefined): LiveSignal[] {
+export function useSignalStream(orgId: string | undefined): {
+  signals: LiveSignal[]
+  /**
+   * L'abonnement est-il réellement établi ?
+   *
+   * Exposé parce que le point de pulsation doit dire quelque chose même quand
+   * rien n'arrive. Gris, il signale que la fenêtre n'est pas branchée ; doré,
+   * que le direct fonctionne et qu'un silence est un vrai silence, pas une
+   * panne. Sans cette distinction, un flux vide est indiscernable d'un flux
+   * cassé — et c'est exactement la confusion qu'un capot vitré doit éviter.
+   */
+  connected: boolean
+} {
   const [signals, setSignals] = useState<LiveSignal[]>([])
+  const [connected, setConnected] = useState(false)
 
   useEffect(() => {
     if (!orgId) return
     setSignals([])
+    setConnected(false)
 
     const channel = supabase
       .channel(`intelligence-live-${orgId}`)
@@ -116,14 +130,15 @@ export function useSignalStream(orgId: string | undefined): LiveSignal[] {
           ].slice(0, STREAM_DEPTH),
         )
       })
-      .subscribe()
+      .subscribe((status) => setConnected(status === 'SUBSCRIBED'))
 
     return () => {
+      setConnected(false)
       void supabase.removeChannel(channel)
     }
   }, [orgId])
 
-  return signals
+  return { signals, connected }
 }
 
 /**
