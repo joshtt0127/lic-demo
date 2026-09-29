@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useCurrentOrganization } from '@/features/organizations/queries'
+import { IntelligenceLive } from '@/studio/IntelligenceLive'
 import {
   useStudioOverview,
   type AgendaItem,
@@ -107,6 +108,17 @@ export function StudioHome() {
             : '/studio/casting-calls'
         }
       />
+
+      {/*
+        Intelligence Live™ — le capot vitré.
+
+        Placé **après** la carte de session, jamais avant : le brief est
+        explicite, la fenêtre d'observation ne doit pas passer devant une
+        décision qui attend. Elle prend la largeur mais très peu de hauteur, ce
+        qui la fait lire comme une bande d'instruments plutôt que comme un
+        second tableau de bord.
+      */}
+      <IntelligenceLive orgId={organization.id} castings={data?.castings ?? []} />
 
       {/* ── Two columns ── */}
       <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
