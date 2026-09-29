@@ -351,8 +351,12 @@ montre la file. Détails : `docs/DATABASE.md`.
 
 ## Déploiement
 
-Production : **https://letitcast-demo.vercel.app** (compte Vercel `joshtt0127`,
-projet `lic-demo`). `vercel.json` fait le rewrite SPA — sans lui, ouvrir
+Production : **https://lic-demo-omega.vercel.app** (compte Vercel `joshtt0127`,
+projet `lic-demo`). ⚠️ `letitcast-demo.vercel.app` **n'est pas à nous** — c'est
+le déploiement du dépôt d'origine, et il a longtemps été documenté ici par
+erreur. Le déploiement est **manuel** (`vercel --prod`) : le workflow GitHub est
+verrouillé sur `danohayon-create/lic-demo`, donc un push sur le fork ne déploie
+rien. `vercel.json` fait le rewrite SPA — sans lui, ouvrir
 `/talent/auditions` ou un lien de casting partagé renverrait un 404.
 `.vercelignore` exclut `.env*`, `supabase/`, `scripts/`, `e2e/` : la clé
 `service_role` ne quitte jamais la machine. Seules `VITE_SUPABASE_URL` et

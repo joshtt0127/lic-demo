@@ -10,6 +10,16 @@ Ce qui existe aujourd'hui, ce qui manque, et comment faire — sans supposition.
 | **Préproduction** | ❌ **N'existe pas.** |
 | **Production** | Vercel (`lic-demo-omega.vercel.app`) contre le **même** projet Supabase. |
 
+⚠️ **Le domaine de production est `lic-demo-omega.vercel.app`.** Pendant
+longtemps, `CLAUDE.md`, `site_url` (Supabase Auth) et `app_base_url` (Vault)
+ont pointé sur `letitcast-demo.vercel.app` — qui appartient au dépôt d'origine,
+pas à nous. Deux conséquences, corrigées le 29/09/2026 : les liens des e-mails
+envoyaient les comédiens sur une autre application, et **les redirections
+d'authentification — dont la réinitialisation de mot de passe — partaient vers
+un domaine que nous ne contrôlons pas**. Au moindre changement de domaine,
+vérifier les trois endroits : Vercel, `site_url` + `uri_allow_list`, et le
+secret `app_base_url` du Vault.
+
 ⚠️ **Le développement et la production partagent la même base.** C'est le risque
 d'exploitation le plus élevé du projet : une migration part directement en
 production, sans répétition, et les tests E2E créent de vrais comptes dans la
