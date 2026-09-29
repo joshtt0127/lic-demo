@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BAND_DESCRIPTION, BAND_LABEL, explainReason } from './reasons'
+import { BAND_DESCRIPTION, BAND_LABEL, READINESS_LABEL, explainReason } from './reasons'
 
 /**
  * Les explications sont la seule chose qui sépare ce feed d'une boîte noire.
@@ -56,8 +56,42 @@ describe('explainReason', () => {
       explainReason({ code: 'tape_ready', quality: 60 }),
       explainReason({ code: 'complete_submission' }),
       explainReason({ code: 'never_opened', waiting_hours: 200 }),
+      explainReason({ code: 'cast_elsewhere', productions: 2 }),
+      explainReason({ code: 'called_back_elsewhere', productions: 3 }),
+      explainReason({ code: 'submission_ready', met: 6, applicable: 7 }),
+      explainReason({ code: 'submission_partial', met: 3, applicable: 7 }),
     ]
     for (const sample of samples) expect(sample).not.toMatch(forbidden)
+  })
+
+  it('rapporte ce que d’autres ont fait, sans dire quoi en penser', () => {
+    // La formulation compte autant que le calcul. « Cast by 2 other
+    // productions » énonce un fait et laisse l'équipe en tirer ce qu'elle veut ;
+    // « highly rated » dirait ce qu'il faut en penser, et serait un score
+    // déguisé en phrase.
+    expect(explainReason({ code: 'cast_elsewhere', productions: 2 })).toBe(
+      'Cast by 2 other productions',
+    )
+    expect(explainReason({ code: 'called_back_elsewhere', productions: 1 })).toBe(
+      'Called back by another production',
+    )
+    const judgemental = /\b(promising|proven|reliable|highly|sought|in.demand|recommended)\b/i
+    expect(explainReason({ code: 'cast_elsewhere', productions: 4 })).not.toMatch(judgemental)
+    expect(explainReason({ code: 'called_back_elsewhere', productions: 4 })).not.toMatch(
+      judgemental,
+    )
+  })
+
+  it('parle du dossier, jamais de la personne', () => {
+    // « Partial » collé sous un nom se lirait comme un jugement. Le mot
+    // « submission » est ce qui fait la différence entre un dossier à compléter
+    // et un verdict sur quelqu'un.
+    for (const label of Object.values(READINESS_LABEL)) {
+      expect(label.toLowerCase()).toMatch(/submission|nothing to watch/)
+    }
+    expect(explainReason({ code: 'submission_partial', met: 3, applicable: 7 })).toContain(
+      '3 of 7',
+    )
   })
 })
 

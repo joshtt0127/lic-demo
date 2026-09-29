@@ -384,3 +384,122 @@ test.describe('Talent Graph™ — la trajectoire inter-productions', () => {
     expect(data ?? []).toEqual([])
   })
 })
+
+test.describe('Intelligence Feed™ v2 — mémoire × contexte × découverte', () => {
+  test('un inconnu recommandé ailleurs remonte, avec le fait qui le dit', async () => {
+    const stamp = Date.now() + 20
+    const elsewhere = await organization(stamp, 'v2elsewhere')
+    const mine = await organization(stamp, 'v2mine')
+
+    const talentEmail = `e2e.v2.known.${stamp}@letitcast.dev`
+    const talentId = await createAccount(talentEmail, 'talent', 'Victor')
+
+    // Une autre maison l'a casté. La mienne ne l'a jamais vu.
+    const past = await castingFor(elsewhere.orgId, elsewhere.ownerId, stamp, 'Past')
+    const pastApp = await applicationWithTape(past.roleId, talentId)
+    await admin
+      .from('applications')
+      .update({ status: 'cast', decided_at: new Date().toISOString() })
+      .eq('id', pastApp)
+
+    const mineCasting = await castingFor(mine.orgId, mine.ownerId, stamp, 'Mine')
+    const freshApp = await applicationWithTape(mineCasting.roleId, talentId)
+
+    const owner = await signedIn(mine.email)
+    const { data: feed, error } = await owner.rpc('intelligence_feed', {
+      p_casting: mineCasting.castingId,
+    })
+    expect(error).toBeNull()
+
+    const row = feed!.find((r: { application_id: string }) => r.application_id === freshApp)
+    expect(row.band).toBe('discovery')
+    const codes = row.reasons.map((reason: { code: string }) => reason.code)
+    expect(codes).toContain('new_to_you')
+    expect(codes).toContain('cast_elsewhere')
+
+    // Un compte de productions, jamais leur identité.
+    const peer = row.reasons.find((r: { code: string }) => r.code === 'cast_elsewhere')
+    expect(peer.productions).toBe(1)
+    expect(JSON.stringify(row)).not.toContain(elsewhere.orgId)
+  })
+
+  test('dans Discovery, un dossier exploitable passe devant un dossier vide', async () => {
+    const stamp = Date.now() + 21
+    const house = await organization(stamp, 'v2order')
+    const casting = await castingFor(house.orgId, house.ownerId, stamp, 'Order')
+
+    // La candidature complète est la PLUS RÉCENTE : sans le Discovery Signal,
+    // l'ancienneté la ferait passer en second. C'est exactement ce que le §9
+    // corrige — « voici les inconnus qui méritent vos dix prochaines minutes »
+    // plutôt que « voici les inconnus, par ordre d'arrivée ».
+    const barelyId = await createAccount(`e2e.v2.bare.${stamp}@letitcast.dev`, 'talent', 'Bruno')
+    const { data: bare } = await admin
+      .from('applications')
+      .insert({
+        role_id: casting.roleId,
+        talent_id: barelyId,
+        status: 'submitted',
+        submitted_at: new Date(Date.now() - 3 * 3600_000).toISOString(),
+        note: 'Bonjour, je suis très intéressé par ce rôle et disponible.',
+      })
+      .select('id')
+      .single()
+    await admin.from('applications').update({ headshot_id: null }).eq('id', bare!.id)
+
+    const readyId = await createAccount(`e2e.v2.ready.${stamp}@letitcast.dev`, 'talent', 'Rita')
+    const readyApp = await applicationWithTape(casting.roleId, readyId)
+
+    const owner = await signedIn(house.email)
+    const { data: feed } = await owner.rpc('intelligence_feed', {
+      p_casting: casting.castingId,
+    })
+
+    const discovery = feed!
+      .filter((r: { band: string }) => r.band === 'discovery')
+      .sort((a: { queue_rank: number }, b: { queue_rank: number }) => a.queue_rank - b.queue_rank)
+
+    expect(discovery.length).toBeGreaterThan(0)
+    expect(discovery[0].application_id).toBe(readyApp)
+    expect(discovery[0].readiness).toBe('ready')
+
+    // Et le dossier est décrit par des vérifications nommées, pas par une note.
+    const checks = discovery[0].checks as { code: string; ok: boolean | null }[]
+    expect(checks.find((check) => check.code === 'self_tape')?.ok).toBe(true)
+    for (const check of checks) {
+      expect([true, false, null]).toContain(check.ok)
+    }
+  })
+
+  test('le dossier est jugé, jamais la personne', async () => {
+    const stamp = Date.now() + 22
+    const house = await organization(stamp, 'v2thin')
+    const casting = await castingFor(house.orgId, house.ownerId, stamp, 'Thin')
+    const talentId = await createAccount(`e2e.v2.thin.${stamp}@letitcast.dev`, 'talent', 'Théa')
+    const { data: empty } = await admin
+      .from('applications')
+      .insert({
+        role_id: casting.roleId,
+        talent_id: talentId,
+        status: 'submitted',
+        submitted_at: new Date().toISOString(),
+      })
+      .select('id')
+      .single()
+
+    const owner = await signedIn(house.email)
+    const { data: signal } = await owner.rpc('discovery_signal', {
+      p_casting: casting.castingId,
+    })
+    const row = signal!.find((r: { application_id: string }) => r.application_id === empty!.id)
+
+    // Rien envoyé : le dossier est vide. Ça ne dit rien du comédien, et le
+    // vocabulaire de sortie ne doit rien laisser croire d'autre.
+    expect(row.readiness).toBe('thin')
+    expect(['ready', 'partial', 'thin']).toContain(row.readiness)
+
+    // Une vérification non applicable ne pénalise jamais : elle reste `null` et
+    // sort du dénominateur — même règle que le contrôle technique des tapes.
+    expect(row.applicable).toBeLessThanOrEqual(8)
+    expect(row.met).toBeLessThanOrEqual(row.applicable)
+  })
+})

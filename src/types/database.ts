@@ -487,6 +487,30 @@ export type AttentionReason =
   | { code: 'tape_ready'; quality: number | null }
   | { code: 'complete_submission' }
   | { code: 'never_opened'; waiting_hours: number }
+  // Trajectoire inter-productions (Talent Graph™) : un nombre de productions
+  // **distinctes**, jamais lesquelles, et seulement là où l'équipe n'a pas de
+  // souvenir propre du comédien.
+  | { code: 'cast_elsewhere'; productions: number }
+  | { code: 'called_back_elsewhere'; productions: number }
+  // État du dossier (Discovery Signal) : « x sur y vérifications tenues ».
+  | { code: 'submission_ready'; met: number; applicable: number }
+  | { code: 'submission_partial'; met: number; applicable: number }
+
+/**
+ * L'état d'un **dossier**, jamais d'une personne.
+ *
+ * `ready` — il y a une tape exploitable et rien d'annoncé n'est contredit ·
+ * `partial` — il manque quelque chose · `thin` — pas de quoi se faire un avis.
+ * Un dossier `thin` ne dit rien d'un comédien : il dit qu'il manque une tape.
+ */
+export type SubmissionReadiness = 'ready' | 'partial' | 'thin'
+
+/** Une vérification du Discovery Signal. `ok: null` = non applicable, donc non comptée. */
+export type SubmissionCheck = {
+  code: string
+  ok: boolean | null
+  detail: unknown
+}
 
 /** Une ligne du feed d'attention : la candidature, sa bande, et ses raisons. */
 export type IntelligenceFeedRow = {
@@ -501,6 +525,8 @@ export type IntelligenceFeedRow = {
   band_rank: number
   queue_rank: number
   reasons: AttentionReason[]
+  readiness: SubmissionReadiness | null
+  checks: SubmissionCheck[]
   engine_version: string
   computed_at: string
 }
@@ -525,6 +551,29 @@ export type TalentMemoryViewRow = {
   tape_rewatches: number
   last_attention_at: string | null
   known_here: boolean
+}
+
+/**
+ * Talent Graph™ — la trajectoire d'un comédien à travers les castings.
+ *
+ * Des comptes de productions **distinctes**, jamais leur identité : savoir que
+ * trois équipes ont rappelé quelqu'un est une information de casting, savoir
+ * lesquelles est une information concurrentielle.
+ */
+export type TalentGraphRow = {
+  talent_id: string
+  productions_applied: number
+  productions_shortlisted: number
+  productions_callback: number
+  productions_cast: number
+  recent_applied: number
+  recent_shortlisted: number
+  recent_callback: number
+  recent_cast: number
+  auditions_total: number
+  first_audition_at: string | null
+  last_activity_at: string | null
+  by_year: { year: number; applied: number; shortlisted: number; callbacks: number; cast: number }[]
 }
 
 /** Production Graph : le comportement observé d'une organisation. */
@@ -854,6 +903,23 @@ export type Database = {
       intelligence_feed: {
         Args: { p_casting: string }
         Returns: IntelligenceFeedRow[]
+      }
+      discovery_signal: {
+        Args: { p_casting: string }
+        Returns: {
+          application_id: string
+          talent_id: string
+          role_id: string
+          readiness: SubmissionReadiness
+          checks: SubmissionCheck[]
+          met: number
+          applicable: number
+          engine_version: string
+        }[]
+      }
+      talent_graph: {
+        Args: { p_talents: string[] }
+        Returns: TalentGraphRow[]
       }
       record_review_engagement: {
         Args: { p_application: string; p_kind: string; p_progress: number | null }

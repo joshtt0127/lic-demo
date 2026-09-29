@@ -1,4 +1,4 @@
-import type { AttentionBand, AttentionReason } from '@/types/database'
+import type { AttentionBand, AttentionReason, SubmissionReadiness } from '@/types/database'
 
 /**
  * « Why this surfaced », en anglais comme tout le studio.
@@ -54,7 +54,58 @@ export function explainReason(reason: AttentionReason): string {
       return 'Complete submission: note and headshot'
     case 'never_opened':
       return `Nobody has opened this one yet — waiting ${duration(reason.waiting_hours)}`
+
+    /**
+     * Le Talent Graph, formulé comme un fait extérieur.
+     *
+     * « Cast by 2 other productions » dit ce qui s'est passé ailleurs et laisse
+     * l'équipe en tirer ce qu'elle veut. « Highly rated » dirait ce qu'il faut
+     * en penser — et ce serait un score déguisé en phrase. La formulation
+     * compte autant que le calcul : c'est elle que l'utilisateur lit.
+     *
+     * Jamais *quelles* productions : un compte est une information de casting,
+     * une liste est une information concurrentielle.
+     */
+    case 'cast_elsewhere':
+      return reason.productions === 1
+        ? 'Cast by another production'
+        : `Cast by ${reason.productions} other productions`
+    case 'called_back_elsewhere':
+      return reason.productions === 1
+        ? 'Called back by another production'
+        : `Called back by ${reason.productions} other productions`
+
+    case 'submission_ready':
+      return `Submission ready to watch — ${reason.met} of ${reason.applicable} checks met`
+    case 'submission_partial':
+      return `Submission incomplete — ${reason.met} of ${reason.applicable} checks met`
   }
+}
+
+/**
+ * L'état d'un dossier, en clair.
+ *
+ * Le libellé porte le mot « submission » à dessein : sans lui, « Partial »
+ * collé sous un nom se lit comme un jugement sur la personne. C'est le dossier
+ * qui est incomplet, et un dossier se complète.
+ */
+export const READINESS_LABEL: Record<SubmissionReadiness, string> = {
+  ready: 'Submission ready',
+  partial: 'Submission incomplete',
+  thin: 'Nothing to watch yet',
+}
+
+/** Les vérifications du Discovery Signal, nommées pour un humain. */
+export const CHECK_LABEL: Record<string, string> = {
+  self_tape: 'Self-tape sent',
+  tape_usable: 'Technically usable',
+  has_audio: 'Audio track present',
+  note: 'Note to the team',
+  headshot: 'Headshot attached',
+  age_fits: 'Playing age matches the role',
+  languages_fit: 'Speaks a required language',
+  skills_fit: 'Has a required skill',
+  brief_echoed: 'Answers the brief',
 }
 
 /**
