@@ -503,3 +503,69 @@ test.describe('Intelligence Feed™ v2 — mémoire × contexte × découverte',
     expect(row.met).toBeLessThanOrEqual(row.applicable)
   })
 })
+
+test.describe('Ce qui est vrai pour tout le monde ne classe personne', () => {
+  test('une échéance proche n’envoie pas tout le casting en Priority', async () => {
+    const stamp = Date.now() + 30
+    const house = await organization(stamp, 'dl')
+
+    const { data: project } = await admin
+      .from('projects')
+      .insert({ org_id: house.orgId, created_by: house.ownerId, title: `Deadline ${stamp}` })
+      .select('id')
+      .single()
+    // L'échéance est dans 12 heures : elle concerne donc **toutes** les
+    // candidatures, exactement de la même façon.
+    const { data: casting } = await admin
+      .from('casting_calls')
+      .insert({
+        project_id: project!.id,
+        created_by: house.ownerId,
+        title: `Deadline ${stamp} — open call`,
+        status: 'published',
+        published_at: new Date().toISOString(),
+        deadline_at: new Date(Date.now() + 12 * 3600_000).toISOString(),
+      })
+      .select('id')
+      .single()
+    const { data: role } = await admin
+      .from('roles')
+      .insert({ casting_call_id: casting!.id, name: `Lead ${stamp}` })
+      .select('id')
+      .single()
+
+    // Trois inconnus au dossier complet, arrivés à l'instant : rien ne les
+    // distingue les uns des autres, et rien ne demande encore de décision.
+    for (let i = 0; i < 3; i += 1) {
+      const talentId = await createAccount(
+        `e2e.dl.${i}.${stamp}@letitcast.dev`,
+        'talent',
+        `Dana${i}`,
+      )
+      await applicationWithTape(role!.id, talentId)
+    }
+
+    const owner = await signedIn(house.email)
+    const { data: feed } = await owner.rpc('intelligence_feed', { p_casting: casting!.id })
+
+    /**
+     * Le cœur de la règle : un signal identique pour toutes les lignes ne peut
+     * pas les départager. Une échéance appartient au casting, pas à la
+     * candidature — en faire un motif de bande promouvait tout le monde au
+     * moment précis où trier compte le plus, et le produit finissait par dire
+     * « tout est prioritaire », ce qui est une autre façon de dire « je ne sais
+     * pas ».
+     */
+    const priority = feed!.filter((row: { band: string }) => row.band === 'priority')
+    expect(priority.length).toBe(0)
+
+    const discovery = feed!.filter((row: { band: string }) => row.band === 'discovery')
+    expect(discovery.length).toBe(3)
+
+    // L'échéance reste dite — elle est vraie et l'équipe doit la lire — et elle
+    // garde tout son poids dans l'ordre à l'intérieur de la bande.
+    for (const row of discovery) {
+      expect(row.reasons.map((r: { code: string }) => r.code)).toContain('deadline_close')
+    }
+  })
+})
