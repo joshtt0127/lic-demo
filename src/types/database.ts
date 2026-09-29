@@ -554,6 +554,19 @@ export type TalentMemoryViewRow = {
 }
 
 /**
+ * Une étape du moteur, avec sa durée réellement mesurée en base.
+ *
+ * `context` — pour quel casting · `memory` — les trajectoires mobilisées ·
+ * `discovery` — l'état des dossiers · `feed` — la recomposition et ses bandes.
+ */
+export type IntelligenceTraceStep = {
+  seq: number
+  step: 'context' | 'memory' | 'discovery' | 'feed'
+  detail: Record<string, unknown>
+  duration_ms: number
+}
+
+/**
  * Talent Graph™ — la trajectoire d'un comédien à travers les castings.
  *
  * Des comptes de productions **distinctes**, jamais leur identité : savoir que
@@ -920,6 +933,10 @@ export type Database = {
       talent_graph: {
         Args: { p_talents: string[] }
         Returns: TalentGraphRow[]
+      }
+      intelligence_trace: {
+        Args: { p_casting: string }
+        Returns: IntelligenceTraceStep[]
       }
       record_review_engagement: {
         Args: { p_application: string; p_kind: string; p_progress: number | null }
