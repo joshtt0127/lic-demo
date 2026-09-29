@@ -296,11 +296,22 @@ qui existait — aucune table nouvelle pour la mémoire.
   l'**attention** (`record_review_engagement`, `record_profile_view` →
   `AUDITION_OPENED/VIEWED/COMPLETED/REWATCHED`, `PROFILE_VIEWED`). Les deux RPC
   vérifient l'appartenance : de l'attention fabriquée empoisonnerait la mémoire.
-- **Mémoire** : `v_talent_memory` (Talent Graph) et `v_production_memory`
-  (Production Graph), deux **vues**. Règle non négociable : **rien n'agrège
-  plusieurs productions sur un même comédien** — ce serait le score universel que
-  le produit refuse, et `security_invoker` fait que la base ne peut pas répondre
-  autrement.
+- **Mémoire propre** : `v_talent_memory` (ce que *cette* production se rappelle)
+  et `v_production_memory` (son rythme), deux vues `security_invoker` — donc
+  cloisonnées sans qu'aucun filtre n'ait à être écrit.
+- **Talent Graph™** (`talent_graph(uuid[])`) : la trajectoire **inter-productions**
+  — combien de productions distinctes ont shortlisté / rappelé / casté, par année.
+  Trois règles non négociables : **des entiers comptés jamais un score**, **jamais
+  l'identité des autres productions**, **jamais visible du talent**. Les trois
+  sont verrouillées par des tests.
+- **Production Graph™** (`v_production_graph`) : l'écart entre le critère écrit
+  et le critère appliqué (âge de jeu, langues). Ne mesure **pas** genre, origine
+  ni nationalité — une telle statistique devient une consigne.
+- **Discovery Signal** (`discovery_signal(casting)`) : huit vérifications sur le
+  **dossier**, jamais sur la personne. `ready` / `partial` / `thin` + les
+  vérifications nommées. Ce qui n'est pas vérifiable reste `null` et sort du
+  dénominateur. ⚠️ L'« écho au brief » est un recoupement **lexical**, pas
+  sémantique — nommé ainsi partout, remplaçable par pgvector.
 - **Feed** : `intelligence_feed(casting)` rend **trois bandes** — Priority review
   / Discovery / All applicants — et les **raisons** de chacune sous forme de
   `{ code, faits }`. Pas de score, pas de pourcentage de correspondance, pas de

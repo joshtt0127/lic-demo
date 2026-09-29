@@ -146,6 +146,99 @@ avec ses chiffres, elle n'a rien à faire dans le feed.
 ligne du feed embarque. Sans elle, une équipe ne peut pas dire de quoi elle
 conteste le résultat.
 
+## 4 bis. Talent Graph™ — la trajectoire inter-productions
+
+`20260929090000_talent_graph.sql`
+
+La pièce que le mémo fondateur décrit comme inestimable : un comédien auditionne
+pour quatre productions et décroche quatre callbacks indépendants. Ça ne prouve
+pas qu'il convient à *votre* rôle ; ça prouve que quatre équipes professionnelles
+distinctes ont jugé que cette présence méritait un second regard.
+
+Ce fichier revient sur la décision initiale de cloisonner totalement. La crainte
+— le score universel — était juste ; la conclusion était trop large. **Ce qu'il
+faut interdire, ce n'est pas la mémoire partagée, c'est de la réduire à un nombre
+comparable.** Trois règles, inscrites dans la forme des données :
+
+| Règle | Comment elle tient |
+| --- | --- |
+| Des faits comptés, jamais un score | La fonction ne renvoie que des entiers ; un test refuse tout nombre non entier |
+| Jamais l'identité des autres productions | Un compte, pas une liste — un test vérifie qu'aucun `org_id` ne traverse la réponse |
+| Jamais visible du talent | Garde explicite : il faut être membre actif d'une organisation |
+
+Le graphe est **temporel** : écarté cette année, shortlisté l'an prochain, casté
+ensuite, ce sont trois points d'une trajectoire et non trois vérités
+contradictoires. Fenêtre à 12 mois séparée du cumul, répartition par année rendue
+telle quelle.
+
+## 4 ter. Production Graph™ — le critère écrit contre le critère appliqué
+
+`20260929091000_production_graph.sql`
+
+Un rôle annonce 25–35 ans, l'équipe shortliste des comédiens qui jouent 30–42.
+Personne n'a menti : le brief est écrit avant d'avoir vu qui que ce soit, les
+décisions se prennent devant des visages. **L'écart est une information que
+l'équipe elle-même ne possède pas.**
+
+Trois mesures, chacune parce qu'elle est comparable sans interprétation : l'âge
+de jeu, les langues, puis l'expérience et le type de rôle en répartition.
+
+Ce qui n'est **pas** mesuré, volontairement : le genre, l'origine, la
+nationalité. Le calcul serait trivial, mais « votre équipe retient à 70 % des
+profils de tel type » est une statistique que personne ne lit sans qu'elle
+devienne une consigne. Auditer ses biais demande un cadre, un consentement et un
+juriste — pas un tableau de bord par défaut.
+
+## 4 quater. Discovery Signal — §9 du mémo
+
+`20260929092000_discovery_signal.sql`
+
+La question posée n'est **pas** « cette personne a-t-elle du talent ? ». C'est la
+dérive que le mémo nomme, et elle serait faisable, vendeuse et fausse. La
+question est : « ce dossier mérite-t-il une attention humaine maintenant ? »
+
+> **On évalue la candidature, jamais la personne.**
+
+Une candidature est un objet : elle peut être incomplète, illisible, hors sujet —
+faits vérifiables. Un dossier `thin` ne veut pas dire un acteur faible, il veut
+dire qu'il manque une tape. D'où une **bande** et des **vérifications nommées**
+plutôt qu'une note : `partial` se répare, `72/100` se compare.
+
+Huit vérifications, toutes issues de colonnes déclarées des deux côtés : tape,
+note, photo, technique (`tape_checks`, déjà là), âge de jeu, langues,
+compétences, écho au brief. Ce qui ne peut pas être vérifié reste `null` et sort
+du dénominateur.
+
+⚠️ **L'écho au brief est un recoupement lexical, pas une compréhension
+sémantique.** On compte les termes communs entre le brief et ce que le comédien a
+écrit. Ça attrape « cette candidature parle bien de ce rôle », ça rate une
+reformulation intelligente. Le mémo dit « cohérence sémantique » ; la version
+honnête aujourd'hui s'appelle un écho, et c'est ainsi qu'elle est nommée partout
+dans le code. Avec `pgvector`, cette seule vérification se remplace.
+
+## 4 quinquies. Feed v2 — le croisement
+
+`20260929093000_intelligence_feed_v2.sql` · `engine_version = attention-2.0`
+
+Le feed croise enfin les trois sources. Deux garde-fous dans le SQL :
+
+- **Le Talent Graph ne fabrique pas de priorité à lui seul.** « Trois productions
+  l'ont rappelé » remonte une candidature *dans Discovery*, là où l'équipe n'a
+  aucun souvenir. Ça ne la propulse pas devant une candidature que l'équipe a
+  elle-même shortlistée et laissée en plan — sinon on construit la boucle que le
+  mémo redoute : les déjà-vus partout, et un produit qui ne sait que confirmer.
+- **Le compte des pairs exclut l'organisation qui regarde.** Sans ça, on lui
+  présentait son propre callback comme un avis extérieur.
+
+Et l'ordre de Discovery change : un dossier exploitable passe devant un dossier
+incomplet, l'ancienneté ne tranchant qu'à égalité. C'est la différence entre
+« voici les inconnus » et « voici les inconnus qui méritent vos dix prochaines
+minutes ».
+
+**La formulation compte autant que le calcul**, et un test la verrouille :
+« Cast by 2 other productions » énonce un fait ; « highly rated » dirait quoi en
+penser, et serait un score déguisé en phrase.
+
 ## 5. Décision humaine
 
 Inchangée, et c'est le point. Les votes, les notes, les statuts, la

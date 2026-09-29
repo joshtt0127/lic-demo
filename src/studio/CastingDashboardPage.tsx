@@ -58,7 +58,13 @@ import type {
 } from '@/types/database'
 import type { AttentionBand, IntelligenceFeedRow } from '@/types/database'
 import { useIntelligenceFeed } from '@/features/intelligence/queries'
-import { BAND_DESCRIPTION, BAND_LABEL, explainReason } from '@/features/intelligence/reasons'
+import {
+  BAND_DESCRIPTION,
+  BAND_LABEL,
+  CHECK_LABEL,
+  READINESS_LABEL,
+  explainReason,
+} from '@/features/intelligence/reasons'
 import type { RoleInput } from '@/data/repositories/castings'
 import { RoleForm } from './NewCastingPage'
 import { EditCastingModal } from '@/studio/EditCastingModal'
@@ -1398,6 +1404,49 @@ function CandidateRow({
             </li>
           ))}
         </ul>
+      )}
+
+      {attention && attention.readiness !== 'ready' && attention.checks.length > 0 && (
+        /**
+         * Le détail des vérifications, seulement quand il manque quelque chose.
+         *
+         * Replié par défaut : sur un dossier complet, dérouler huit lignes de
+         * « oui » n'apprend rien et noie la décision. Sur un dossier incomplet,
+         * en revanche, la question suivante est immédiate — qu'est-ce qui
+         * manque ? — et la réponse doit être à un clic, pas dans un autre écran.
+         *
+         * `<details>` natif : ça s'ouvre au clavier, ça s'annonce correctement
+         * au lecteur d'écran, et ça ne coûte pas une ligne de JavaScript.
+         */
+        <details className="w-full sm:pl-[46px]">
+          <summary className="inline-flex cursor-pointer items-center gap-1 rounded-btn py-1 text-[12px] font-semibold text-muted hover:text-ink">
+            {READINESS_LABEL[attention.readiness ?? 'thin']} — see what's missing
+          </summary>
+          <ul className="flex flex-col gap-1 pt-1">
+            {attention.checks
+              // Une vérification non applicable n'est pas un manque : le rôle
+              // n'a rien demandé. L'afficher ferait croire à une lacune.
+              .filter((check) => check.ok !== null)
+              .map((check) => (
+                <li
+                  key={check.code}
+                  className="flex items-start gap-1.5 text-[12px] leading-snug text-muted"
+                >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full',
+                      check.ok ? 'bg-signal-good' : 'bg-signal-no',
+                    )}
+                  />
+                  <span className={cn(!check.ok && 'text-ink')}>
+                    {CHECK_LABEL[check.code] ?? check.code}
+                    <span className="sr-only">{check.ok ? ' : yes' : ' : no'}</span>
+                  </span>
+                </li>
+              ))}
+          </ul>
+        </details>
       )}
     </li>
   )
