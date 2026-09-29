@@ -96,7 +96,18 @@ export function IntelligenceLivePanel({
           className="flex max-h-[92vh] w-full max-w-[1100px] flex-col overflow-y-auto rounded-t-[28px] border border-line bg-card sm:max-h-[88vh] sm:rounded-[28px]"
         >
           {/* ── Context Lens ── */}
-          <header className="sticky top-0 z-10 flex w-full flex-wrap items-center justify-between gap-3 border-b border-line bg-card/95 px-4 py-4 backdrop-blur sm:px-6">
+          <header className="sticky top-0 z-10 flex w-full flex-wrap items-center justify-between gap-3 overflow-hidden border-b border-line bg-[#FBFAF7]/95 px-4 py-4 backdrop-blur sm:px-6">
+            {/* Le même souffle de couleurs que la bande compacte : c'est ce qui
+                fait reconnaître le panneau comme son prolongement, et non comme
+                un écran étranger qui s'ouvre par-dessus. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute right-0 top-0 hidden h-28 w-56 opacity-45 blur-3xl sm:block"
+            >
+              <div className="absolute right-[34%] top-0 h-20 w-20 rounded-full bg-[#F7D98A]" />
+              <div className="absolute right-[6%] top-[28%] h-16 w-16 rounded-full bg-[#AFC6F7]" />
+              <div className="absolute bottom-0 right-[52%] h-14 w-14 rounded-full bg-[#F7B3AE]" />
+            </div>
             {/*
               Sur téléphone, le titre prend sa ligne et les commandes la
               suivante. En une seule rangée, le sélecteur de casting écrasait la
@@ -160,18 +171,18 @@ export function IntelligenceLivePanel({
           <div className="grid grid-cols-1 gap-5 p-4 sm:p-6 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
             {/* ── Colonne gauche : ce qui entre, et comment c'est traité ── */}
             <div className="flex flex-col gap-5">
-              <Block title="Signal stream" hint="What the system is learning">
+              <Block title="Signal stream" hint="What the system is learning" tone="bg-gold">
                 <SignalList signals={signals} />
               </Block>
 
-              <Block title="Reasoning trace" hint="What it does with it">
+              <Block title="Reasoning trace" hint="What it does with it" tone="bg-link">
                 <TraceSteps steps={trace.data ?? []} loading={trace.isLoading} />
               </Block>
             </div>
 
             {/* ── Centre de gravité ── */}
             <div className="flex flex-col gap-5">
-              <Block title="Feed in motion" hint="What changed for you, and why" emphasis>
+              <Block title="Feed in motion" hint="What changed for you, and why" tone="bg-signal-no" emphasis>
                 <FeedMotionList
                   movements={movements}
                   queueSize={feed.data?.length ?? 0}
@@ -217,30 +228,43 @@ export function IntelligenceLivePanel({
 
 // ── Briques ────────────────────────────────────────────────────────────────
 
+/**
+ * Un bloc du panneau.
+ *
+ * `tone` reprend le repère carré de la bande compacte : jaune pour le signal,
+ * bleu pour le raisonnement, rouge pour le feed. La même couleur désigne
+ * toujours la même couche, de la carte compacte au panneau — c'est ce qui
+ * permet de passer de l'une à l'autre sans relire les titres.
+ */
 function Block({
   title,
   hint,
+  tone,
   emphasis,
   children,
 }: {
   title: string
   hint: string
+  tone?: string
   emphasis?: boolean
   children: React.ReactNode
 }) {
   return (
     <section
       className={cn(
-        'flex flex-col gap-3 rounded-card border p-4',
+        'flex flex-col gap-3 rounded-card border border-line bg-card p-4',
         // Le centre de gravité se tient par la surface, pas par une couleur
-      // criarde : un fond légèrement distinct, une bordure plus dense, et une
-      // hauteur minimale qui l'empêche de se replier à la taille d'une note
-      // quand rien n'a encore bougé.
-      emphasis ? 'min-h-[150px] border-ink/15 bg-paper p-5' : 'border-line bg-card',
+        // criarde : une bordure plus dense, un fond légèrement à part, et une
+        // hauteur minimale qui l'empêche de se replier à la taille d'une note
+        // quand rien n'a encore bougé.
+        emphasis && 'min-h-[160px] border-ink/15 bg-cream/25 p-5',
       )}
     >
       <div className="flex flex-wrap items-baseline gap-x-2">
-        <h3 className="tech-label text-ink">{title}</h3>
+        <h3 className="tech-label flex items-center gap-1.5 text-ink">
+          {tone && <span aria-hidden className={cn('h-[7px] w-[7px] rounded-[2px]', tone)} />}
+          {title}
+        </h3>
         <span className="text-[12px] text-muted">{hint}</span>
       </div>
       {children}

@@ -112,9 +112,24 @@ export function IntelligenceLive({
     <>
       <section
         aria-label="Intelligence Live"
-        className="flex flex-col gap-4 rounded-card border border-line bg-card p-4 sm:p-5"
+        className="relative overflow-hidden rounded-panel border border-white/70 bg-[#FBFAF7] p-5 shadow-panel sm:px-7 sm:py-6"
       >
-        <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        {/*
+          Le halo de la marque, en version instrument.
+
+          « Your session » porte les trois formes du logo en grand ; ici elles
+          sont réduites à un souffle en haut à droite. La bande appartient à la
+          même famille visuelle sans lui disputer la vedette — elle reste
+          secondaire, c'est la contrainte du brief, mais elle cesse d'être une
+          fiche administrative grise posée sous une carte vivante.
+        */}
+        <div aria-hidden className="pointer-events-none absolute right-0 top-0 hidden h-36 w-64 opacity-50 blur-3xl sm:block">
+          <div className="absolute right-[34%] top-0 h-24 w-24 rounded-full bg-[#F7D98A]" />
+          <div className="absolute right-[6%] top-[30%] h-20 w-20 rounded-full bg-[#AFC6F7]" />
+          <div className="absolute bottom-0 right-[52%] h-16 w-16 rounded-full bg-[#F7B3AE]" />
+        </div>
+
+        <header className="relative flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <div className="flex min-w-0 items-center gap-2">
             <LivePulse active={live.length > 0} />
             <span className="tech-label text-ink">Intelligence Live</span>
@@ -126,7 +141,7 @@ export function IntelligenceLive({
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="inline-flex min-h-[32px] items-center gap-1 rounded-btn px-2 text-[13px] font-semibold text-muted transition-colors hover:bg-paper hover:text-ink"
+            className="relative inline-flex min-h-[32px] items-center gap-1 rounded-full border border-line bg-card px-3 text-[13px] font-semibold text-ink transition-colors hover:border-ink/25 hover:bg-cream"
           >
             See the engine
             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -148,7 +163,7 @@ export function IntelligenceLive({
           </p>
         )}
 
-        <div className={cn('flex flex-col gap-2 sm:hidden', unavailable && 'hidden')}>
+        <div className={cn('relative mt-4 flex flex-col gap-2 sm:hidden', unavailable && 'hidden')}>
           <TraceBar steps={trace.data ?? []} loading={trace.isLoading} />
           <p className="truncate text-[12px] text-muted">
             {latest ? latest.label : 'Nothing new yet'} · {feed.data?.length ?? 0} in the queue
@@ -157,11 +172,11 @@ export function IntelligenceLive({
 
         <div
           className={cn(
-            'hidden gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)] sm:gap-5',
+            'relative mt-5 hidden gap-6 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)]',
             unavailable && 'sm:hidden',
           )}
         >
-          <Column label="Signal">
+          <Column label="Signal" tone="bg-gold">
             {latest ? (
               <>
                 <p className="truncate text-[13px] font-semibold text-ink">{latest.label}</p>
@@ -174,13 +189,19 @@ export function IntelligenceLive({
             )}
           </Column>
 
-          <Column label="Reasoning">
+          <Column label="Reasoning" tone="bg-link">
             <TraceBar steps={trace.data ?? []} loading={trace.isLoading} />
           </Column>
 
-          <Column label="Feed">
-            <p className="text-[13px] font-semibold text-ink">
-              {feed.data?.length ?? 0} in the queue
+          <Column label="Feed" tone="bg-signal-no">
+            {/* Le seul chiffre mis en avant de la bande : ce que l'équipe a
+                réellement devant elle. Les millisecondes sont de la télémétrie,
+                pas une accroche. */}
+            <p className="flex items-baseline gap-1.5 text-[13px] text-muted">
+              <span className="font-display text-[22px] font-extrabold leading-none text-ink">
+                {feed.data?.length ?? 0}
+              </span>
+              in the queue
             </p>
             <p className="font-mono text-[11px] text-muted">
               {movements.length > 0
@@ -209,10 +230,33 @@ const TARGET_LABEL: Record<LiveSignal['target'], string> = {
   both: 'both graphs',
 }
 
-function Column({ label, children }: { label: string; children: React.ReactNode }) {
+/**
+ * Une couche, et sa couleur.
+ *
+ * Le repère carré reprend les trois couleurs de la marque — jaune, bleu,
+ * rouge — et il y a exactement trois couches : signal, raisonnement, feed. La
+ * coïncidence est heureuse et la correspondance devient une aide à la lecture
+ * plutôt qu'une décoration : chaque couleur désigne toujours la même étape.
+ *
+ * Les traits de séparation ont disparu au profit de l'espace. Trois colonnes
+ * cloisonnées ressemblaient à un tableau ; trois colonnes respirées se lisent
+ * comme un instrument.
+ */
+function Column({
+  label,
+  tone,
+  children,
+}: {
+  label: string
+  tone: string
+  children: React.ReactNode
+}) {
   return (
-    <div className="flex min-w-0 flex-col gap-1 border-t border-line pt-3 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0 sm:first:border-l-0 sm:first:pl-0">
-      <span className="tech-label text-muted">{label}</span>
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <span className="flex items-center gap-1.5">
+        <span aria-hidden className={cn('h-[7px] w-[7px] rounded-[2px]', tone)} />
+        <span className="tech-label text-muted">{label}</span>
+      </span>
       {children}
     </div>
   )
@@ -231,7 +275,7 @@ function LivePulse({ active }: { active: boolean }) {
     <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
       {active && !reduced && (
         <motion.span
-          className="absolute inset-0 rounded-full bg-signal-good"
+          className="absolute inset-0 rounded-full bg-gold"
           initial={{ opacity: 0.5, scale: 1 }}
           animate={{ opacity: 0, scale: 2.6 }}
           transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
@@ -240,7 +284,7 @@ function LivePulse({ active }: { active: boolean }) {
       <span
         className={cn(
           'relative h-2 w-2 rounded-full',
-          active ? 'bg-signal-good' : 'bg-muted/40',
+          active ? 'bg-gold' : 'bg-muted/30',
         )}
       />
     </span>
@@ -277,7 +321,7 @@ function TraceBar({
   if (loading || steps.length === 0) {
     return (
       <>
-        <div className="h-[6px] w-full rounded-full bg-paper" />
+        <div className="h-[9px] w-full rounded-full bg-ink/5" />
         <p className="font-mono text-[11px] text-muted">{loading ? 'measuring…' : 'idle'}</p>
       </>
     )
@@ -285,7 +329,7 @@ function TraceBar({
 
   return (
     <>
-      <div className="flex h-[6px] w-full gap-[2px] overflow-hidden rounded-full">
+      <div className="flex h-[9px] w-full gap-[3px] overflow-hidden rounded-full">
         {steps.map((step, index) => {
           const share = total > 0 ? Number(step.duration_ms) / total : 1 / steps.length
           return (
@@ -309,4 +353,4 @@ function TraceBar({
 }
 
 /** Du plus clair au plus dense : la séquence se lit de gauche à droite. */
-const STEP_TONE = ['bg-cream', 'bg-gold/60', 'bg-gold', 'bg-ink']
+const STEP_TONE = ['bg-cream', 'bg-gold', 'bg-link/70', 'bg-ink']
