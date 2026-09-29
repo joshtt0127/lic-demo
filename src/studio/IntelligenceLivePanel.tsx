@@ -62,6 +62,15 @@ export function IntelligenceLivePanel({
 
   const focus = castings.find((item) => item.casting.id === castingId)
 
+  /**
+   * Rien à observer : ni candidature dans la file, ni fait enregistré.
+   *
+   * Volontairement basé sur le feed plutôt que sur un compteur du casting :
+   * c'est exactement ce que le panneau montre, donc c'est ce qui doit décider
+   * de ce qu'il montre.
+   */
+  const empty = !feed.isLoading && (feed.data?.length ?? 0) === 0
+
   // Échap ferme : une fenêtre d'observation dont on ne sort qu'à la souris
   // devient une fenêtre dont on n'ose plus s'approcher.
   useEffect(() => {
@@ -168,56 +177,107 @@ export function IntelligenceLivePanel({
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-5 p-4 sm:p-6 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
-            {/* ── Colonne gauche : ce qui entre, et comment c'est traité ── */}
-            <div className="flex flex-col gap-5">
-              <Block title="Signal stream" hint="What the system is learning" tone="bg-gold">
-                <SignalList signals={signals} />
-              </Block>
+          {/*
+            Un casting sans candidature n'a pas six blocs à remplir.
 
-              <Block title="Reasoning trace" hint="What it does with it" tone="bg-link">
+            La grille complète affichait alors six zéros alignés — « 0
+            trajectoires », « 0 en file », « 0 prêt », « 0 incomplet », « 0 rien
+            envoyé » — un cimetière de compteurs qui donne l'impression d'un
+            système en panne alors qu'il fonctionne parfaitement : il n'y a
+            simplement rien à observer.
+
+            On garde donc la seule chose qui reste vraie et intéressante — la
+            trace d'exécution, qui prouve que le moteur a bien tourné — et on
+            dit en une phrase ce qui se passera. Une absence expliquée vaut
+            mieux qu'une absence chiffrée.
+          */}
+          {empty ? (
+            <div className="flex flex-col gap-6 p-4 sm:p-8">
+              <div className="flex flex-col items-center gap-3 py-6 text-center">
+                <span aria-hidden className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-[3px] bg-gold" />
+                  <span className="h-2 w-2 rounded-[3px] bg-link" />
+                  <span className="h-2 w-2 rounded-[3px] bg-signal-no" />
+                </span>
+                <h3 className="font-display text-[22px] font-extrabold leading-tight text-ink sm:text-[26px]">
+                  Nothing to observe yet
+                </h3>
+                <p className="max-w-[46ch] text-[14px] leading-relaxed text-muted">
+                  The engine ran and found no audition — which is the honest answer when nobody
+                  has applied. The moment one arrives, its signal appears here, the memory starts
+                  building, and this screen shows you exactly what changed.
+                </p>
+              </div>
+
+              <Block title="Reasoning trace" hint="The engine did run — here is the proof" tone="bg-link">
                 <TraceSteps steps={trace.data ?? []} loading={trace.isLoading} />
               </Block>
             </div>
-
-            {/* ── Centre de gravité ── */}
-            <div className="flex flex-col gap-5">
-              <Block title="Feed in motion" hint="What changed for you, and why" tone="bg-signal-no" emphasis>
-                <FeedMotionList
-                  movements={movements}
-                  queueSize={feed.data?.length ?? 0}
-                  loading={feed.isLoading}
-                />
-              </Block>
-
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <Block title="Talent graph" hint="Trajectories in play">
-                  <GraphFigure
-                    value={Number(detail.get('memory')?.trajectories ?? 0)}
-                    unit="trajectories"
-                    note={`${Number(detail.get('memory')?.talents ?? 0)} talents in this casting`}
-                  />
+          ) : (
+            <div className="grid grid-cols-1 gap-5 p-4 sm:p-6 lg:grid-cols-[minmax(0,330px)_minmax(0,1fr)]">
+              {/* ── Colonne gauche : ce qui entre, et comment c'est traité ── */}
+              <div className="flex flex-col gap-5">
+                <Block title="Signal stream" hint="What the system is learning" tone="bg-gold">
+                  <SignalList signals={signals} />
                 </Block>
-                <Block title="Production graph" hint="Your own decisions">
-                  <GraphFigure
-                    value={Number(detail.get('feed')?.priority ?? 0)}
-                    unit="need a decision"
-                    note={`${Number(detail.get('feed')?.positions ?? 0)} positions in the queue`}
-                  />
+
+                <Block title="Reasoning trace" hint="What it does with it" tone="bg-link">
+                  <TraceSteps steps={trace.data ?? []} loading={trace.isLoading} />
                 </Block>
               </div>
 
-              <Block title="Discovery live" hint="Submissions the system has never seen">
-                <DiscoveryFigures detail={detail.get('discovery')} />
-              </Block>
+              {/* ── Centre de gravité ── */}
+              <div className="flex flex-col gap-5">
+                <Block
+                  title="Feed in motion"
+                  hint="What changed for you, and why"
+                  tone="bg-signal-no"
+                  emphasis
+                >
+                  <FeedMotionList
+                    movements={movements}
+                    queueSize={feed.data?.length ?? 0}
+                    loading={feed.isLoading}
+                  />
+                </Block>
+
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <Block title="Talent graph" hint="Trajectories in play">
+                    <GraphFigure
+                      value={Number(detail.get('memory')?.trajectories ?? 0)}
+                      unit="trajectories"
+                      note={`${Number(detail.get('memory')?.talents ?? 0)} talents in this casting`}
+                    />
+                  </Block>
+                  <Block title="Production graph" hint="Your own decisions">
+                    <GraphFigure
+                      value={Number(detail.get('feed')?.priority ?? 0)}
+                      unit="need a decision"
+                      note={`${Number(detail.get('feed')?.positions ?? 0)} positions in the queue`}
+                    />
+                  </Block>
+                </div>
+
+                <Block title="Discovery live" hint="Submissions the system has never seen">
+                  <DiscoveryFigures detail={detail.get('discovery')} />
+                </Block>
+              </div>
             </div>
-          </div>
+          )}
 
           <footer className="border-t border-line px-4 py-3 text-[11px] text-muted sm:px-6">
-            <span className="font-mono">
-              engine {String(detail.get('feed')?.engine_version ?? '—')}
-            </span>
-            {' · '}
+            {/* Sur un casting vide, le moteur ne renvoie pas de version — il n'a
+                rien calculé à versionner. Afficher « engine — » donnait un tiret
+                orphelin qui ressemblait à une valeur manquante ; on tait la
+                mention plutôt que d'exhiber son absence. */}
+            {detail.get('feed')?.engine_version ? (
+              <>
+                <span className="font-mono">
+                  engine {String(detail.get('feed')?.engine_version)}
+                </span>
+                {' · '}
+              </>
+            ) : null}
             Every number on this screen is measured, never simulated.
           </footer>
         </motion.div>
@@ -252,20 +312,22 @@ function Block({
   return (
     <section
       className={cn(
-        'flex flex-col gap-3 rounded-card border border-line bg-card p-4',
+        'flex flex-col gap-3.5 rounded-card border border-line bg-card p-5',
         // Le centre de gravité se tient par la surface, pas par une couleur
         // criarde : une bordure plus dense, un fond légèrement à part, et une
         // hauteur minimale qui l'empêche de se replier à la taille d'une note
         // quand rien n'a encore bougé.
-        emphasis && 'min-h-[160px] border-ink/15 bg-cream/25 p-5',
+        emphasis && 'min-h-[170px] border-ink/20 bg-cream/30 p-6',
       )}
     >
-      <div className="flex flex-wrap items-baseline gap-x-2">
+      <div className="flex flex-col gap-0.5">
         <h3 className="tech-label flex items-center gap-1.5 text-ink">
           {tone && <span aria-hidden className={cn('h-[7px] w-[7px] rounded-[2px]', tone)} />}
           {title}
         </h3>
-        <span className="text-[12px] text-muted">{hint}</span>
+        {/* L'intention sous le titre plutôt qu'à côté : accolée, elle se lisait
+            comme la suite du titre et les deux se brouillaient. */}
+        <span className="text-[12px] leading-snug text-muted">{hint}</span>
       </div>
       {children}
     </section>
@@ -353,7 +415,9 @@ function TraceSteps({ steps, loading }: { steps: IntelligenceTraceStep[]; loadin
               {summarise(step)}
             </span>
           </span>
-          <span className="shrink-0 font-mono text-[11px] text-ink">{step.duration_ms} ms</span>
+          <span className="shrink-0 font-mono text-[11px] tabular-nums text-ink">
+            {step.duration_ms} ms
+          </span>
         </motion.li>
       ))}
     </ol>
@@ -399,7 +463,9 @@ function FeedMotionList({
   if (movements.length === 0) {
     return (
       <div className="flex flex-col gap-1">
-        <p className="font-display text-[44px] font-extrabold leading-none text-ink">{queueSize}</p>
+        <p className="font-display text-[48px] font-extrabold leading-none tabular-nums text-ink">
+          {queueSize}
+        </p>
         <p className="text-[14px] text-muted">
           auditions in this queue · nothing has moved since you opened this screen
         </p>
@@ -456,8 +522,14 @@ function FeedMotionList({
 function GraphFigure({ value, unit, note }: { value: number; unit: string; note: string }) {
   return (
     <div className="flex flex-col gap-1">
-      <p className="font-display text-[26px] font-extrabold leading-none text-ink">{value}</p>
-      <p className="text-[13px] text-ink">{unit}</p>
+      {/* `tabular-nums` : sans lui, un 1 et un 4 n'ont pas la même largeur et
+          deux chiffres côte à côte cessent d'être alignés d'une carte à
+          l'autre. C'est invisible tant qu'on ne l'a pas vu, et impossible à
+          ignorer ensuite. */}
+      <p className="font-display text-[32px] font-extrabold leading-none tabular-nums text-ink">
+        {value}
+      </p>
+      <p className="text-[13px] font-semibold text-ink">{unit}</p>
       <p className="font-mono text-[11px] text-muted">{note}</p>
     </div>
   )
@@ -477,7 +549,7 @@ function DiscoveryFigures({ detail }: { detail: Record<string, unknown> | undefi
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-x-5 gap-y-2">
         <Figure value={ready} label="ready to watch" tone="bg-signal-good" />
         <Figure value={partial} label="incomplete" tone="bg-signal-maybe" />
         <Figure value={thin} label="nothing sent yet" tone="bg-muted/40" />
@@ -493,7 +565,7 @@ function Figure({ value, label, tone }: { value: number; label: string; tone: st
   return (
     <span className="flex items-center gap-2">
       <span aria-hidden className={cn('h-2 w-2 shrink-0 rounded-full', tone)} />
-      <span className="font-display text-[17px] font-extrabold text-ink">{value}</span>
+      <span className="font-display text-[19px] font-extrabold tabular-nums text-ink">{value}</span>
       <span className="text-[12px] text-muted">{label}</span>
     </span>
   )
