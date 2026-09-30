@@ -8,6 +8,8 @@
  *   node scripts/db.mjs orgs                 list the organizations of the token
  *   node scripts/db.mjs create-project [name]create the project + print the keys
  *   node scripts/db.mjs status               show which migrations are applied
+ *   node scripts/db.mjs check                rehearse pending migrations, keep nothing
+ *   node scripts/db.mjs residue              what tests and demos left behind (read-only)
  *   node scripts/db.mjs push                 apply every pending migration
  *   node scripts/db.mjs configure-auth       POC auth settings (no email confirmation)
  *   node scripts/db.mjs types                write src/types/database.generated.ts
@@ -171,6 +173,96 @@ async function push() {
   console.log('✓ Done.')
 }
 
+/**
+ * Répéter une migration sans la garder.
+ *
+ * Il n'y a qu'une seule base : le développement et la production partagent le
+ * même Postgres, et c'est une décision assumée. La conséquence l'est moins —
+ * une migration part directement en production, sans répétition, et une erreur
+ * de SQL se découvre sur les données réelles.
+ *
+ * `check` joue donc les migrations en attente **dans une transaction qu'on
+ * annule**. Postgres exécute tout pour de vrai — contraintes, triggers, index,
+ * vues, types — puis rend la base exactement dans l'état où on l'a trouvée.
+ * C'est la répétition qu'un second projet offrirait, sans second projet.
+ *
+ * Ce qu'elle ne couvre pas, et il faut le savoir : une migration qui réussit
+ * mais fait la mauvaise chose. Elle attrape la syntaxe, les types, les
+ * contraintes violées par les données existantes — pas une erreur de jugement.
+ */
+async function check() {
+  const applied = await appliedMigrations()
+  const pending = migrationFiles().filter((f) => !applied.has(f))
+  if (pending.length === 0) {
+    console.log('✓ Nothing pending — nothing to rehearse.')
+    return
+  }
+
+  console.log(`Rehearsing ${pending.length} migration(s) against ${projectRef()} (nothing is kept)…`)
+  // Toutes dans une seule transaction : c'est ainsi qu'elles s'appliqueront les
+  // unes après les autres, et une migration peut dépendre de la précédente.
+  const body = pending
+    .map((file) => readFileSync(path.join(MIGRATIONS_DIR, file), 'utf8'))
+    .join('\n')
+
+  try {
+    await sql(`begin;\n${body}\nrollback;`)
+    for (const file of pending) console.log(`  · ${file} … ok`)
+    console.log('✓ All pending migrations run cleanly. Nothing was kept — run `push` to apply.')
+  } catch (error) {
+    console.error('\n✖ A pending migration would fail. Nothing was applied.')
+    console.error(String(error.message ?? error))
+    process.exitCode = 1
+  }
+}
+
+/**
+ * Ce que les tests et les démonstrations laissent dans la base de production.
+ *
+ * Il n'y a qu'une base, par choix. La contrepartie est qu'une suite E2E, un
+ * script de démonstration ou un test qui échoue avant son nettoyage déposent
+ * leurs restes **là où vivent les vraies données**. Ces restes ne gênent
+ * personne tant qu'on les voit ; le jour où on ne les compte plus, on ne sait
+ * plus distinguer un compte de test d'un vrai client, et c'est à ce
+ * moment-là qu'on supprime la mauvaise ligne.
+ *
+ * Lecture seule, volontairement. Ce rapport ne nettoie rien : il dit ce qu'il y
+ * a, et laisse la suppression à des outils qui savent ce qu'ils suppriment
+ * (`storage-gc.mjs`, le teardown des tests, `seed-intelligence-demo --clean`).
+ */
+async function residue() {
+  const rows = await sql(`
+    select 'comptes E2E'            as quoi, count(*) as combien from auth.users where email like 'e2e.%@letitcast.dev'
+    union all
+    select 'comptes de démo',       count(*) from auth.users where email like 'demo.il.%'
+    union all
+    select 'organisations sans membre actif', count(*) from public.organizations o
+      where not exists (select 1 from public.organization_members m where m.org_id = o.id and m.status = 'active')
+    union all
+    select 'événements sans entité vivante', count(*) from public.events e
+      where e.entity_type = 'application'
+        and not exists (select 1 from public.applications a where a.id = e.entity_id)
+    union all
+    select 'fichiers sans ligne media_assets', count(*) from storage.objects o
+      where not exists (select 1 from public.media_assets m where m.bucket = o.bucket_id and m.path = o.name)
+    order by 1;
+  `)
+
+  console.log(`\nRésidus dans ${projectRef()} — lecture seule, rien n'est supprimé :\n`)
+  let total = 0
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const count = Number(row.combien)
+    total += count
+    console.log(`  ${String(count).padStart(5)}  ${row.quoi}`)
+  }
+  console.log(
+    total === 0
+      ? '\n✓ Rien à signaler.'
+      : "\nPour nettoyer : `node scripts/storage-gc.mjs --delete` (fichiers) · " +
+        '`node scripts/seed-intelligence-demo.mjs <org> --clean` (démo) · le teardown E2E (comptes).',
+  )
+}
+
 async function status() {
   const applied = await appliedMigrations()
   for (const file of migrationFiles()) {
@@ -278,6 +370,12 @@ switch (command) {
     break
   case 'status':
     await status()
+    break
+  case 'residue':
+    await residue()
+    break
+  case 'check':
+    await check()
     break
   case 'push':
     await push()

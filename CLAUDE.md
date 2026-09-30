@@ -22,7 +22,15 @@ et survivre à un refresh / une reconnexion.
 - **vitest** + @testing-library/react — tests unitaires et de rendu
 
 Commandes : `npm run dev` · `npm run build` · `npm run typecheck` · `npm test` ·
-`npm run db:push` (migrations) · `npm run db:types`.
+`npm run db:push` (migrations) · `npm run db:types` · `npm run smoke` (26 écrans
+de la production, erreurs réelles).
+
+⚠️ **Une seule base pour le dev et la prod** — décision assumée, pas d'oubli.
+D'où une règle de travail : **`node scripts/db.mjs check` avant `db:push`**. La
+répétition joue les migrations en attente dans une transaction annulée, donc
+sur le vrai schéma et sans rien garder. `node scripts/db.mjs residue` dit ce que
+les tests et les démos ont laissé. Le filet de dernier recours est la sauvegarde
+quotidienne Supabase (plan Pro, 7 jours).
 
 ## Auth & access control
 

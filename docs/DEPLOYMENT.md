@@ -35,10 +35,32 @@ un domaine que nous ne contrôlons pas**. Au moindre changement de domaine,
 vérifier les trois endroits : Vercel, `site_url` + `uri_allow_list`, et le
 secret `app_base_url` du Vault.
 
-⚠️ **Le développement et la production partagent la même base.** C'est le risque
-d'exploitation le plus élevé du projet : une migration part directement en
-production, sans répétition, et les tests E2E créent de vrais comptes dans la
-base qui sert les vrais utilisateurs.
+⚠️ **Le développement et la production partagent la même base**, et c'est une
+décision assumée (30/09/2026) : pas de second projet Supabase. Le risque est
+réel — une migration part directement en production, et les tests E2E créent de
+vrais comptes dans la base qui sert les vrais utilisateurs — donc il se traite,
+il ne s'ignore pas.
+
+**Ce qui le rend acceptable, et qu'il faut utiliser :**
+
+| Garde-fou | Commande | Ce qu'il couvre |
+| --- | --- | --- |
+| **Sauvegardes quotidiennes** | console Supabase → Database → Backups | Plan Pro : 7 jours de sauvegardes. Une erreur catastrophique se rattrape à la nuit précédente. C'est le vrai filet. |
+| **Répétition de migration** | `node scripts/db.mjs check` | Joue les migrations en attente dans une transaction **annulée**. Postgres exécute tout pour de vrai — contraintes, triggers, vues, types — puis rend la base intacte. Sort en code 1 si une migration casserait. |
+| **Rapport de résidus** | `node scripts/db.mjs residue` | Compte ce que les tests et les démos ont laissé. Lecture seule. |
+| **Balayage de production** | `npm run smoke` | Ouvre 26 écrans avec de vraies sessions et remonte toute erreur JavaScript, de console ou de requête. |
+
+**La règle de travail qui en découle :** `check` avant `push`, toujours. Une
+migration qui n'a pas été répétée ne part pas en production.
+
+Ce que `check` ne couvre pas, et il faut le savoir : une migration qui réussit
+mais fait la mauvaise chose. Elle attrape la syntaxe, les types et les
+contraintes violées par les données existantes — pas une erreur de jugement.
+Pour ça, il reste la sauvegarde.
+
+⚠️ **PITR n'est pas activé.** Les sauvegardes sont quotidiennes, donc la perte
+maximale est d'une journée. Si un jour la base contient des données de clients
+réels, c'est l'option à prendre.
 
 ⚠️ **La suite E2E ne s'enchaîne pas deux fois de suite.** Chaque test crée de
 vrais comptes, et Supabase Auth plafonne les créations par heure. Enchaîner un
@@ -47,15 +69,6 @@ avec des fichiers à quinze minutes — et ça ressemble trait pour trait à une
 régression qu'on vient d'introduire. Avant de partir en chasse : rejouer les
 tests en échec **isolément**. S'ils passent, c'est le plafond, pas le code.
 
-**Ce qu'il faut pour y remédier** (décision LIC, pas technique) : un second
-projet Supabase. Une fois créé :
-
-1. copier `.env.local` en `.env.staging` avec l'URL et les clés du nouveau projet ;
-2. `SUPABASE_ENV=staging node scripts/db.mjs push` pour y rejouer **toutes** les
-   migrations depuis l'origine — c'est la répétition qui manque aujourd'hui ;
-3. pointer la CI E2E dessus (le workflow est prêt, il ne lui manque que les
-   secrets) ;
-4. brancher un déploiement de préproduction Vercel sur la branche de travail.
 
 ## Migrations
 
@@ -104,7 +117,7 @@ demande un plan payant.
 
 ⚠️ **La restauration n'a jamais été testée sur ce projet.** Une sauvegarde qu'on
 n'a pas restaurée au moins une fois n'est pas une sauvegarde — c'est une
-intention. À faire dès qu'un projet de préproduction existe : y restaurer une
+intention. À faire quand l'occasion se présente : restaurer une
 sauvegarde de production et vérifier que l'app démarre dessus.
 
 ## Observabilité
@@ -115,4 +128,6 @@ sauvegarde de production et vérifier que l'app démarre dessus.
   **sans aucun contenu utilisateur** — message, route, navigateur.
 - Il n'y a **pas d'alerte** : quelqu'un doit regarder l'écran. Brancher une
   alerte (e-mail ou webhook) sur `v_ops_health` est le prochain pas, et il
-  demande le SMTP qui manque encore.
+  demande un SMTP — volontairement non configuré (décision du 30/09/2026) : les
+notifications sont enregistrées en `skipped` avec leur raison, et rien ne
+prétend avoir été envoyé.
