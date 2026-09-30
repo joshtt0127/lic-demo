@@ -21,7 +21,8 @@
     "audit:responsive": "node scripts/responsive-audit.mjs",
     "audit:radius": "node scripts/radius-audit.mjs",
     "email:status": "node scripts/email-status.mjs",
-    "email:setup": "node scripts/email-setup.mjs"
+    "email:setup": "node scripts/email-setup.mjs",
+    "smoke": "node scripts/prod-smoke.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.0.18",

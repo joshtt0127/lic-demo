@@ -44,6 +44,28 @@ async function persist(name: AnalyticsEvent, props: Props) {
   const { data } = await supabase.auth.getSession()
   const profileId = data.session?.user.id
   if (!profileId) return
+
+  const { error } = await supabase
+    .from('analytics_events')
+    .insert({ profile_id: profileId, name, props })
+  if (!error) return
+
+  /**
+   * Une seule reprise, et uniquement pour la course qu'on a observée.
+   *
+   * `signed_in` part à l'instant précis où la session vient d'être établie, et
+   * un balayage de la production l'a vu partir avec un jeton que le serveur a
+   * refusé — une fois sur trois exécutions. L'événement était perdu et la
+   * console affichait un 401 rouge sur une application qui marchait.
+   *
+   * On relit donc la session : si elle a changé entre-temps, c'est exactement
+   * cette course, et le second essai passe. Si elle est identique, le refus
+   * vient d'ailleurs et insister ne ferait qu'un deuxième 401 — on s'arrête.
+   * L'analytique reste au mieux-effort : elle ne doit jamais coûter plus que
+   * ce qu'elle rapporte.
+   */
+  const { data: after } = await supabase.auth.getSession()
+  if (!after.session || after.session.access_token === data.session?.access_token) return
   await supabase.from('analytics_events').insert({ profile_id: profileId, name, props })
 }
 
