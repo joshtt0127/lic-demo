@@ -10,6 +10,21 @@ Ce qui existe aujourd'hui, ce qui manque, et comment faire — sans supposition.
 | **Préproduction** | ❌ **N'existe pas.** |
 | **Production** | Vercel (`lic-demo-omega.vercel.app`) contre le **même** projet Supabase. |
 
+⚠️ **La réécriture SPA exclut `/assets/`, et ce n'est pas un détail.**
+`vercel.json` renvoie tout sur `index.html` — c'est ce qui fait qu'un lien
+partagé vers `/talent/auditions` ou `/casting/:id` s'ouvre au lieu de tomber sur
+un 404. Tout, **sauf** `/assets/`. Sans cette exception, un fichier de code
+absent — le cas normal après un déploiement, puisque les noms portent une
+empreinte de contenu — recevait `index.html` avec un statut 200, et le
+navigateur affichait « Expected a JavaScript module script but the server
+responded with a MIME type of text/html » sur une application qui marchait très
+bien. Avec un 404, l'échec est net et `src/lib/freshChunk.ts` recharge la page
+une fois pour récupérer l'index à jour.
+
+⚠️ **`vercel.json` n'accepte aucune clé hors schéma.** Une clé `_comment` dans
+une règle fait échouer le déploiement avec « Schema verification failed ». Les
+explications vont ici, pas dans le fichier.
+
 ⚠️ **Le domaine de production est `lic-demo-omega.vercel.app`.** Pendant
 longtemps, `CLAUDE.md`, `site_url` (Supabase Auth) et `app_base_url` (Vault)
 ont pointé sur `letitcast-demo.vercel.app` — qui appartient au dépôt d'origine,
