@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Launcher } from './pages/Launcher'
+import { freshChunk } from './lib/freshChunk'
 import { SignIn } from './pages/auth/SignIn'
 import { SignUp } from './pages/auth/SignUp'
 import { ForgotPassword } from './pages/auth/ForgotPassword'
@@ -31,11 +32,11 @@ export const router = createBrowserRouter([
   { path: '/', element: <Launcher /> },
   {
     path: '/pitch',
-    lazy: async () => ({ Component: (await import('./pages/Pitch')).Pitch }),
+    lazy: freshChunk(async () => ({ Component: (await import('./pages/Pitch')).Pitch })),
   },
   {
     path: '/app',
-    lazy: async () => ({ Component: (await import('./pages/PhonePreview')).PhonePreview }),
+    lazy: freshChunk(async () => ({ Component: (await import('./pages/PhonePreview')).PhonePreview })),
   },
 
   // Auth — signed-in users are bounced to their own space.
@@ -63,9 +64,9 @@ export const router = createBrowserRouter([
   // partage et la découverte. Les policies `anon` bornent ce qui est lisible.
   {
     path: '/casting/:castingId',
-    lazy: async () => ({
+    lazy: freshChunk(async () => ({
       Component: (await import('./pages/PublicCastingPage')).PublicCastingPage,
-    }),
+    })),
   },
 
   // Le lien d'invitation reçu par e-mail : il survit au détour par la connexion.
@@ -75,9 +76,9 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        lazy: async () => ({
+        lazy: freshChunk(async () => ({
           Component: (await import('./pages/InviteAcceptPage')).InviteAcceptPage,
-        }),
+        })),
       },
     ],
   },
@@ -89,7 +90,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        lazy: async () => ({ Component: (await import('./admin/AdminPage')).AdminPage }),
+        lazy: freshChunk(async () => ({ Component: (await import('./admin/AdminPage')).AdminPage })),
       },
     ],
   },
@@ -101,7 +102,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        lazy: async () => ({ Component: (await import('./pages/onboarding/Onboarding')).Onboarding }),
+        lazy: freshChunk(async () => ({ Component: (await import('./pages/onboarding/Onboarding')).Onboarding })),
       },
     ],
   },
@@ -112,82 +113,82 @@ export const router = createBrowserRouter([
     element: <RequireSurface surface="studio" />,
     children: [
       {
-        lazy: async () => ({ Component: (await import('./studio/StudioLayout')).StudioLayout }),
+        lazy: freshChunk(async () => ({ Component: (await import('./studio/StudioLayout')).StudioLayout })),
         children: [
           {
             index: true,
-            lazy: async () => ({ Component: (await import('./studio/StudioHome')).StudioHome }),
+            lazy: freshChunk(async () => ({ Component: (await import('./studio/StudioHome')).StudioHome })),
           },
           {
             path: 'casting-calls',
-            lazy: async () => ({
+            lazy: freshChunk(async () => ({
               Component: (await import('./studio/CastingCallsPage')).CastingCallsPage,
-            }),
+            })),
           },
           {
             path: 'casting-calls/new',
-            lazy: async () => ({
+            lazy: freshChunk(async () => ({
               Component: (await import('./studio/NewCastingPage')).NewCastingPage,
-            }),
+            })),
           },
           {
             path: 'casting/:castingId',
-            lazy: async () => ({
+            lazy: freshChunk(async () => ({
               Component: (await import('./studio/CastingDashboardPage')).CastingDashboardPage,
-            }),
+            })),
           },
           {
             path: 'casting/:castingId/console',
-            lazy: async () => ({
+            lazy: freshChunk(async () => ({
               Component: (await import('./studio/SelectionConsolePage')).SelectionConsolePage,
-            }),
+            })),
           },
           {
             path: 'projects',
-            lazy: async () => ({ Component: (await import('./studio/ProjectsPage')).ProjectsPage }),
+            lazy: freshChunk(async () => ({ Component: (await import('./studio/ProjectsPage')).ProjectsPage })),
           },
           {
             path: 'talent',
-            lazy: async () => ({
+            lazy: freshChunk(async () => ({
               Component: (await import('./studio/TalentRecruiterPage')).TalentRecruiterPage,
-            }),
+            })),
           },
           {
             path: 'talent/:profileId',
-            lazy: async () => ({
+            lazy: freshChunk(async () => ({
               Component: (await import('./studio/StudioTalentProfilePage')).StudioTalentProfilePage,
-            }),
+            })),
           },
           {
             path: 'reports',
-            lazy: async () => ({ Component: (await import('./studio/ReportsPage')).ReportsPage }),
+            lazy: freshChunk(async () => ({ Component: (await import('./studio/ReportsPage')).ReportsPage })),
           },
           {
             path: 'calendar',
-            lazy: async () => ({ Component: (await import('./studio/CalendarPage')).CalendarPage }),
+            lazy: freshChunk(async () => ({ Component: (await import('./studio/CalendarPage')).CalendarPage })),
           },
           {
             path: 'messages',
-            lazy: async () => ({
+            lazy: freshChunk(async () => ({
               Component: (await import('./features/messaging/MessagesScreen')).MessagesScreen,
-            }),
+            })),
           },
           {
             path: 'notifications',
-            lazy: async () => {
+            lazy: freshChunk(async () => {
               const { NotificationsScreen } = await import(
                 './features/notifications/NotificationsScreen'
               )
               return { Component: () => <NotificationsScreen base="/studio" /> }
-            },
+            }),
           },
           {
             path: 'team',
-            lazy: async () => ({ Component: (await import('./studio/TeamPage')).TeamPage }),
+            lazy: freshChunk(async () => ({ Component: (await import('./studio/TeamPage')).TeamPage })),
           },
           {
             path: 'settings',
-            lazy: async () => ({ Component: (await import('./studio/SettingsPage')).SettingsPage }),
+            lazy: freshChunk(async () => ({ Component: (await import('./studio/SettingsPage')).SettingsPage })),
           },
           // The old fixture dashboard lived here; the casting list is its real
           // equivalent, and a casting call has its own dashboard.
@@ -205,43 +206,43 @@ export const router = createBrowserRouter([
     element: <RequireSurface surface="talent" />,
     children: [
       {
-        lazy: async () => ({ Component: (await import('./talent/TalentLayout')).TalentLayout }),
+        lazy: freshChunk(async () => ({ Component: (await import('./talent/TalentLayout')).TalentLayout })),
         children: [
           {
             index: true,
-            lazy: async () => ({ Component: (await import('./talent/TalentHome')).TalentHome }),
+            lazy: freshChunk(async () => ({ Component: (await import('./talent/TalentHome')).TalentHome })),
           },
           {
             path: 'casting-calls',
-            lazy: async () => ({ Component: (await import('./talent/CastingCalls')).CastingCalls }),
+            lazy: freshChunk(async () => ({ Component: (await import('./talent/CastingCalls')).CastingCalls })),
           },
           {
             path: 'auditions',
-            lazy: async () => ({
+            lazy: freshChunk(async () => ({
               Component: (await import('./talent/TalentAuditions')).TalentAuditions,
-            }),
+            })),
           },
           {
             path: 'messages',
-            lazy: async () => ({ Component: (await import('./talent/Messages')).Messages }),
+            lazy: freshChunk(async () => ({ Component: (await import('./talent/Messages')).Messages })),
           },
           {
             path: 'notifications',
-            lazy: async () => ({
+            lazy: freshChunk(async () => ({
               Component: (await import('./talent/Notifications')).Notifications,
-            }),
+            })),
           },
           {
             path: 'profile',
-            lazy: async () => ({
+            lazy: freshChunk(async () => ({
               Component: (await import('./talent/TalentProfilePage')).TalentProfilePage,
-            }),
+            })),
           },
           {
             path: 'casting/:castingId',
-            lazy: async () => ({
+            lazy: freshChunk(async () => ({
               Component: (await import('./talent/TalentCastingDetail')).TalentCastingDetail,
-            }),
+            })),
           },
           { path: '*', element: <Navigate to="/talent" replace /> },
         ],

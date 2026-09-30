@@ -69,10 +69,51 @@ const { data: castings } = await admin
   .eq('projects.org_id', ORG)
   .limit(1)
 
-const casting = castings?.[0]
+/**
+ * Pas de casting ? On en crée un.
+ *
+ * Une organisation toute neuve n'a rien à peupler, et exiger qu'elle ait déjà
+ * publié un casting rendait le script inutile là où il sert le plus : montrer
+ * le produit à quelqu'un qui vient d'ouvrir son compte.
+ */
+let casting = castings?.[0]
 if (!casting) {
-  console.error('aucun casting dans cette organisation')
-  process.exit(1)
+  const { data: owner } = await admin
+    .from('organization_members')
+    .select('profile_id')
+    .eq('org_id', ORG)
+    .eq('status', 'active')
+    .limit(1)
+    .single()
+
+  const { data: project } = await admin
+    .from('projects')
+    .insert({
+      org_id: ORG,
+      created_by: owner?.profile_id ?? null,
+      title: 'La Ligne de fuite',
+      production_type: 'film',
+      synopsis:
+        "Un huis clos de deux heures dans un train de nuit. Trois personnages, une frontière, et tout ce qu'ils ne se disent pas.",
+    })
+    .select('id, created_by')
+    .single()
+
+  const { data: made } = await admin
+    .from('casting_calls')
+    .insert({
+      project_id: project.id,
+      created_by: project.created_by,
+      title: 'La Ligne de fuite — rôle principal',
+      status: 'published',
+      location: 'Paris',
+    })
+    .select('id, title')
+    .single()
+
+  await admin.from('roles').insert({ casting_call_id: made.id, name: 'Sacha', role_type: 'lead' })
+  casting = made
+  console.log(`casting créé : « ${made.title} »`)
 }
 
 // Publié et avec une échéance proche : sans deadline, le moteur ne peut pas
@@ -155,17 +196,37 @@ let created = 0
 for (const [index, person] of CAST.entries()) {
   const email = `${PREFIX}${index}.${person.first.toLowerCase().replace(/[^a-z]/g, '')}${DOMAIN}`
 
+  /**
+   * Un comédien déjà créé est **réutilisé**, pas sauté.
+   *
+   * Le script les ignorait, et peupler un second casting ne produisait alors
+   * aucune candidature. C'est aussi plus juste : les mêmes comédiens qui
+   * postulent chez plusieurs productions, c'est précisément ce qui donne au
+   * Talent Graph une trajectoire à raconter — « rappelé par deux autres
+   * équipes » n'existe pas autrement.
+   */
   const { data: made, error } = await admin.auth.admin.createUser({
     email,
     password: PASSWORD,
     email_confirm: true,
     user_metadata: { first_name: person.first, last_name: person.last },
   })
-  if (error) {
-    console.log(`  ↷ ${person.first} existe déjà`)
-    continue
+
+  let talentId = made?.user?.id
+  if (error || !talentId) {
+    const { data: existing } = await admin
+      .from('profiles')
+      .select('id')
+      .eq('first_name', person.first)
+      .eq('last_name', person.last)
+      .limit(1)
+      .maybeSingle()
+    if (!existing) {
+      console.log(`  ✖ ${person.first} : ${error?.message ?? 'introuvable'}`)
+      continue
+    }
+    talentId = existing.id
   }
-  const talentId = made.user.id
 
   await admin
     .from('profiles')
@@ -201,18 +262,25 @@ for (const [index, person] of CAST.entries()) {
 
   // La candidature, datée pour que l'attente veuille dire quelque chose.
   const submittedAt = hours(person.waited)
-  const { data: application } = await admin
+  const { data: application, error: applied } = await admin
     .from('applications')
-    .insert({
-      role_id: role.id,
-      talent_id: talentId,
-      status: person.status,
-      note: person.note,
-      submitted_at: submittedAt,
-      created_at: submittedAt,
-    })
+    .upsert(
+      {
+        role_id: role.id,
+        talent_id: talentId,
+        status: person.status,
+        note: person.note,
+        submitted_at: submittedAt,
+        created_at: submittedAt,
+      },
+      { onConflict: 'role_id,talent_id' },
+    )
     .select('id')
     .single()
+  if (applied || !application) {
+    console.log(`  ✖ ${person.first} : ${applied?.message ?? 'candidature refusée'}`)
+    continue
+  }
 
   if (person.tape) {
     /**
@@ -226,14 +294,26 @@ for (const [index, person] of CAST.entries()) {
      * assumé, et ça ne change rien à ce que le moteur calcule : il regarde
      * l'existence de la tape et son contrôle technique, pas son contenu.
      */
-    const { data: selfTape } = await admin
+    const { data: already } = await admin
       .from('self_tapes')
-      .insert({ application_id: application.id, media_asset_id: tape.id, submitted_at: submittedAt })
       .select('id')
-      .single()
+      .eq('application_id', application.id)
+      .limit(1)
+      .maybeSingle()
+    const { data: selfTape } = already
+      ? { data: already }
+      : await admin
+          .from('self_tapes')
+          .insert({
+            application_id: application.id,
+            media_asset_id: tape.id,
+            submitted_at: submittedAt,
+          })
+          .select('id')
+          .single()
     // Un contrôle technique réel : c'est lui que lit « techniquement
     // exploitable » dans le Discovery Signal.
-    await admin.from('tape_checks').insert({
+    await admin.from('tape_checks').upsert({
       self_tape_id: selfTape.id,
       duration_s: 62,
       width: 1080,

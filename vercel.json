@@ -3,7 +3,13 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "rewrites": [
+    {
+      "_comment": "Tout retombe sur index.html — c'est ce qui fait qu'un lien partagé vers /talent/auditions ou /casting/:id s'ouvre au lieu de renvoyer un 404. Tout, SAUF /assets/ : un fichier de code absent doit répondre 404, pas une page HTML. Sans cette exception, le navigateur qui réclame un morceau de JavaScript disparu après un déploiement recevait index.html avec un statut 200, et affichait « Expected a JavaScript module script but the server responded with a MIME type of text/html » — un message que personne ne peut interpréter, sur une application qui marche. Avec un 404, l'échec est net, le client le reconnaît et recharge une fois (voir src/lib/freshChunk.ts).",
+      "source": "/((?!assets/).*)",
+      "destination": "/index.html"
+    }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",
