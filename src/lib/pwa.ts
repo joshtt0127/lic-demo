@@ -23,9 +23,36 @@ const OFFLINE_SHELL_READY = false
 
 /** Enregistré **uniquement en production** : en dev il masquerait le HMR. */
 export function registerServiceWorker() {
-  if (!OFFLINE_SHELL_READY) return
-  if (!import.meta.env.PROD) return
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return
+
+  /**
+   * Tant que la coquille hors ligne est coupée, on **désinscrit** activement.
+   *
+   * Ne pas enregistrer ne suffit pas : quelqu'un qui a ouvert le site pendant
+   * une fenêtre où le service worker était actif en garde un exemplaire
+   * installé dans son navigateur — indéfiniment, et rien dans l'application ne
+   * le lui dira. Ce fantôme peut continuer à servir une vieille coquille et
+   * d'anciens fichiers, ce qui produit exactement le symptôme le plus pénible
+   * à diagnostiquer : « chez moi ça marche », et un seul utilisateur bloqué
+   * plusieurs versions en arrière.
+   *
+   * On retire donc l'enregistrement et ses caches. C'est sans effet pour
+   * l'immense majorité — il n'y a rien à retirer — et ça débloque ceux qui le
+   * traînent sans le savoir.
+   */
+  if (!OFFLINE_SHELL_READY) {
+    void navigator.serviceWorker
+      .getRegistrations()
+      .then((registrations) => Promise.all(registrations.map((one) => one.unregister())))
+      .then(() => (typeof caches !== 'undefined' ? caches.keys() : []))
+      .then((keys) => Promise.all([...keys].map((key) => caches.delete(key))))
+      .catch(() => {
+        // Navigation privée, réglage d'entreprise : rien à nettoyer, rien à dire.
+      })
+    return
+  }
+
+  if (!import.meta.env.PROD) return
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {
       // Pas de service worker (navigation privée, réglage d'entreprise) : l'app
