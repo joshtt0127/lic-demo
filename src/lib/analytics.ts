@@ -34,6 +34,7 @@ export type AnalyticsEvent =
   | 'candidate_status_changed'
   | 'message_sent'
   | 'search_saved'
+  | 'brief_recorded'
 
 type Props = Record<string, string | number | boolean | null | undefined>
 

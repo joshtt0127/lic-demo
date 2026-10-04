@@ -28,6 +28,8 @@ import {
 } from '@/features/castings/lifecycle'
 import { ReportOrBlock } from '@/components/ReportOrBlock'
 import { useT } from '@/lib/i18n'
+import { useProjectBriefs } from '@/features/briefs/queries'
+import { RoleBrief } from '@/features/briefs/RoleBrief'
 import { useLanguagesCatalog } from '@/features/talent/queries'
 import {
   APPLICATION_STATUS_TONE,
@@ -57,6 +59,12 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
   const applications = useMyApplications(profileId)
   const saved = useSavedCastings(profileId)
   const saveCasting = useSaveCasting(profileId)
+  // Video Casting Breakdown™ : seulement les briefs que ce compte a le droit
+  // de voir (la règle est en base — un visiteur ne reçoit que les publics).
+  const briefs = useProjectBriefs(casting.data?.project?.id)
+  const projectBrief = (briefs.data ?? []).find((brief) => brief.role_id === null) ?? null
+  const roleBriefUrl = (roleId: string) =>
+    (briefs.data ?? []).find((brief) => brief.role_id === roleId)?.url ?? null
 
   const [applyTo, setApplyTo] = useState<RoleRow | null>(null)
 
@@ -195,6 +203,20 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
           </div>
         </div>
 
+        {projectBrief && (
+          <div className="border-t border-line px-5 py-4">
+            <span className="tech-label">{t('brief.project.title')}</span>
+            <p className="mt-1 text-[13px] text-muted">{t('brief.project.hint')}</p>
+            <video
+              src={projectBrief.url}
+              controls
+              playsInline
+              preload="metadata"
+              className="mt-3 aspect-video w-full rounded-field bg-ink object-contain"
+            />
+          </div>
+        )}
+
         {data.project?.director_brief && (
           <div className="border-t border-line bg-paper px-5 py-4">
             <span className="tech-label">Director’s brief</span>
@@ -250,6 +272,7 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
                             {role.description}
                           </p>
                         )}
+                        {roleBriefUrl(role.id) && <RoleBrief url={roleBriefUrl(role.id) as string} />}
                       </div>
 
                       {!isTalent ? null : application ? (

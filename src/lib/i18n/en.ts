@@ -433,6 +433,10 @@ export const en: Record<string, string> = {
   'selftape.finishing': 'Finishing…',
   'selftape.rules': 'MP4, MOV or WebM up to 500 MB',
   // Recorder
+  'brief.project.title': "The production's brief",
+  'brief.project.hint': 'Watch it before you prepare — it is what they are looking for.',
+  'brief.role.watch': 'Watch the role brief',
+  'brief.role.hide': 'Hide the brief',
   'recorder.starting': 'Starting your camera…',
   'recorder.start': 'Start recording',
   'recorder.stop': 'Stop recording',

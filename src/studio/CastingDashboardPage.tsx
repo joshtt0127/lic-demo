@@ -70,6 +70,8 @@ import type { RoleInput } from '@/data/repositories/castings'
 import { RoleForm } from './NewCastingPage'
 import { EditCastingModal } from '@/studio/EditCastingModal'
 import { CandidateReviewModal } from './CandidateReviewModal'
+import { VideoCastingBreakdown } from '@/features/briefs/VideoCastingBreakdown'
+import { toCastingDraft, toRoleDraft } from '@/features/briefs/mapping'
 
 /**
  * Casting call dashboard — the production-side cockpit for one casting.
@@ -403,6 +405,59 @@ export function CastingDashboardPage() {
       {/* ── Overview ── */}
       {tab === 'overview' && (
         <>
+          {data.project && (
+            <VideoCastingBreakdown
+              projectId={data.project.id}
+              orgId={organization?.id}
+              profileId={profile?.id}
+              roles={stats.roles}
+              editable={mayManageRoles}
+              onApplyProject={(accepted) => {
+                const draft = toCastingDraft(accepted)
+                void run(
+                  () =>
+                    mutations.updateCasting.mutateAsync({
+                      id: data.id,
+                      input: {
+                        ...(draft.title ? { title: draft.title } : {}),
+                        ...(draft.description ? { description: draft.description } : {}),
+                        ...(draft.location ? { location: draft.location } : {}),
+                        ...(draft.compensation ? { compensation: draft.compensation } : {}),
+                        ...(draft.deadlineAt
+                          ? { deadlineAt: new Date(draft.deadlineAt).toISOString() }
+                          : {}),
+                      },
+                    }),
+                  'Could not apply the brief',
+                  'Casting updated from the brief',
+                )
+              }}
+              onApplyRole={(role, accepted) => {
+                // On ouvre le rôle prérempli : la production relit et enregistre.
+                const draft = toRoleDraft(
+                  accepted,
+                  (languages.data ?? []).map((language) => language.code),
+                )
+                setEditingRole({
+                  ...role,
+                  ...(draft.name ? { name: draft.name } : {}),
+                  ...(draft.description ? { description: draft.description } : {}),
+                  ...(draft.roleType ? { role_type: draft.roleType } : {}),
+                  ...(draft.genderPref ? { gender_pref: draft.genderPref } : {}),
+                  ...(draft.playingAgeMin != null ? { playing_age_min: draft.playingAgeMin } : {}),
+                  ...(draft.playingAgeMax != null ? { playing_age_max: draft.playingAgeMax } : {}),
+                  ...(draft.location ? { location: draft.location } : {}),
+                  ...(draft.languages ? { languages: draft.languages } : {}),
+                  ...(draft.skills ? { skills: draft.skills } : {}),
+                  ...(draft.selftapeInstructions
+                    ? { selftape_instructions: draft.selftapeInstructions }
+                    : {}),
+                })
+                setTab('roles')
+              }}
+            />
+          )}
+
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
             <Kpi
               icon={<Users className="h-4 w-4" />}

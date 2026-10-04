@@ -22,6 +22,7 @@ export const BUCKET_BY_KIND: Record<MediaKind, string> = {
   showreel: 'media',
   poster: 'media',
   selftape: 'selftapes',
+  brief: 'media',
 }
 
 const IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif']
@@ -49,6 +50,7 @@ export const RULES: Record<MediaKind, { mimes: string[]; maxBytes: number; label
   poster: { mimes: IMAGE_MIMES, maxBytes: 20 * MB, label: 'JPG, PNG, WebP or AVIF up to 20 MB' },
   showreel: { mimes: VIDEO_MIMES, maxBytes: 200 * MB, label: 'MP4, MOV or WebM up to 200 MB' },
   selftape: { mimes: VIDEO_MIMES, maxBytes: 500 * MB, label: 'MP4, MOV or WebM up to 500 MB' },
+  brief: { mimes: VIDEO_MIMES, maxBytes: 200 * MB, label: 'MP4, MOV or WebM up to 200 MB' },
 }
 
 export function formatBytes(bytes: number): string {

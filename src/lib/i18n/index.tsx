@@ -121,3 +121,17 @@ const fallbackTranslate: Translate = (key, vars) => interpolate(en[key] ?? key, 
 export function useT(): Translate {
   return useContext(I18nContext)?.t ?? fallbackTranslate
 }
+
+/**
+ * Force l'anglais pour un sous-arbre : le studio reste en anglais (voir
+ * CLAUDE.md), même quand il réutilise un composant du parcours talent — par
+ * exemple l'enregistreur vidéo pour le brief de la production.
+ */
+export function EnglishOnly({ children }: { children: ReactNode }) {
+  const parent = useContext(I18nContext)
+  const value = useMemo<I18nValue>(
+    () => ({ lang: 'en', setLang: parent?.setLang ?? (() => {}), t: fallbackTranslate }),
+    [parent?.setLang],
+  )
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
+}

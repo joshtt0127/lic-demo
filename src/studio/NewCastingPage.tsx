@@ -18,6 +18,15 @@ import { EmptyState } from '@/components/EmptyState'
 import { SegmentedControl } from '@/components/form/SegmentedControl'
 import { MultiSelect } from '@/components/form/MultiSelect'
 import { PosterField } from '@/components/upload/PosterField'
+import { BriefStudio, type BriefVideoValue } from '@/features/briefs/BriefStudio'
+import { useBriefMutations, useProjectBriefs } from '@/features/briefs/queries'
+import {
+  toCastingDraft,
+  toProjectDraft,
+  toRoleDraft,
+  type Accepted,
+} from '@/features/briefs/mapping'
+import type { BriefVisibility } from '@/types/database'
 import { useToast } from '@/components/Toast'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useCurrentOrganization } from '@/features/organizations/queries'
@@ -109,7 +118,44 @@ export function NewCastingPage() {
   const [roles, setRoles] = useState<RoleInput[]>([])
   const [roleDraft, setRoleDraft] = useState<RoleInput>({ name: '', roleType: 'lead' })
 
+  // Brief Once — les vidéos pas encore rattachées (le projet ou le rôle
+  // n'existe pas encore au moment où l'on se filme).
+  type PendingBrief = BriefVideoValue & { mediaAssetId: string; durationS: number | null }
+  const [projectBrief, setProjectBrief] = useState<PendingBrief | null>(null)
+  const [roleBrief, setRoleBrief] = useState<PendingBrief | null>(null)
+  const [roleBriefKey, setRoleBriefKey] = useState(0)
+  const briefs = useBriefMutations()
+  const languagesCatalog = useLanguagesCatalog()
+
   const selectedProject = (projects.data ?? []).find((item) => item.id === projectId) ?? null
+  const existingBriefs = useProjectBriefs(mode === 'existing' ? projectId : null)
+  const existingProjectBrief =
+    (existingBriefs.data ?? []).find((brief) => brief.role_id === null) ?? null
+
+  /** Les champs validés du brief projet remplissent le projet ET l'annonce. */
+  function applyProjectBrief(accepted: Accepted) {
+    const projectDraft = toProjectDraft(accepted)
+    const castingDraft = toCastingDraft(accepted)
+    if (mode === 'new') setProject((current) => ({ ...current, ...projectDraft }))
+    setCasting((current) => ({ ...current, ...castingDraft }))
+    toast('Brief applied — review the fields')
+  }
+
+  async function saveExistingBrief(
+    roleId: string | null,
+    input: { url: string; mediaAssetId: string; durationS: number | null },
+    visibility: BriefVisibility = 'applicants',
+  ) {
+    if (!projectId) return
+    await briefs.save.mutateAsync({
+      projectId,
+      roleId,
+      url: input.url,
+      mediaAssetId: input.mediaAssetId,
+      durationS: input.durationS,
+      visibility,
+    })
+  }
 
   if (orgLoading) {
     return <Card className="h-40" />
@@ -178,6 +224,17 @@ export function NewCastingPage() {
         })
         track('project_created', { project_id: created.id })
         setProjectId(created.id)
+        if (projectBrief) {
+          await briefs.save.mutateAsync({
+            projectId: created.id,
+            roleId: null,
+            url: projectBrief.url,
+            mediaAssetId: projectBrief.mediaAssetId,
+            durationS: projectBrief.durationS,
+            visibility: projectBrief.visibility,
+          })
+          track('brief_recorded', { target: 'project', project_id: created.id })
+        }
       }
       setStep(2)
     } catch (submitError) {
@@ -229,12 +286,25 @@ export function NewCastingPage() {
       return
     }
     try {
-      await mutations.createRole.mutateAsync({
+      const created = await mutations.createRole.mutateAsync({
         castingId,
         input: { ...roleDraft, sortOrder: roles.length },
       })
+      if (roleBrief && projectId) {
+        await briefs.save.mutateAsync({
+          projectId,
+          roleId: created.id,
+          url: roleBrief.url,
+          mediaAssetId: roleBrief.mediaAssetId,
+          durationS: roleBrief.durationS,
+          visibility: roleBrief.visibility,
+        })
+        track('brief_recorded', { target: 'role', role_id: created.id })
+      }
       setRoles((current) => [...current, roleDraft])
       setRoleDraft({ name: '', roleType: 'supporting' })
+      setRoleBrief(null)
+      setRoleBriefKey((key) => key + 1)
       toast('Role added')
     } catch (submitError) {
       setError(errorMessage(submitError, 'Could not add the role'))
@@ -363,6 +433,30 @@ export function NewCastingPage() {
           ) : null}
 
           {mode === 'existing' && selectedProject && (
+            <BriefStudio
+              target="project"
+              orgId={organization.id}
+              profileId={profile?.id}
+              video={
+                existingProjectBrief
+                  ? { url: existingProjectBrief.url, visibility: existingProjectBrief.visibility }
+                  : null
+              }
+              onVideo={(input) =>
+                saveExistingBrief(null, input, existingProjectBrief?.visibility ?? 'applicants')
+              }
+              onVisibility={(visibility) =>
+                existingProjectBrief &&
+                briefs.visibility.mutate({ id: existingProjectBrief.id, visibility })
+              }
+              onRemove={
+                existingProjectBrief ? () => briefs.remove.mutate(existingProjectBrief.id) : undefined
+              }
+              onApply={applyProjectBrief}
+            />
+          )}
+
+          {mode === 'existing' && selectedProject && (
             <FormField label="Poster" plainLabel optional>
               <PosterField
                 profileId={profile?.id}
@@ -378,6 +472,19 @@ export function NewCastingPage() {
 
           {mode === 'new' && (
             <div className="flex flex-col gap-4">
+              <BriefStudio
+                target="project"
+                orgId={organization.id}
+                profileId={profile?.id}
+                video={projectBrief}
+                onVideo={(input) => setProjectBrief({ ...input, visibility: 'applicants' })}
+                onVisibility={(visibility) =>
+                  setProjectBrief((current) => (current ? { ...current, visibility } : current))
+                }
+                onRemove={() => setProjectBrief(null)}
+                onApply={applyProjectBrief}
+              />
+
               <FormField label="Poster" plainLabel optional>
                 <PosterField
                   profileId={profile?.id}
@@ -668,11 +775,33 @@ export function NewCastingPage() {
               </ul>
             )}
 
+            <BriefStudio
+              key={roleBriefKey}
+              target="role"
+              compact
+              orgId={organization.id}
+              profileId={profile?.id}
+              video={roleBrief}
+              onVideo={(input) => setRoleBrief({ ...input, visibility: 'applicants' })}
+              onVisibility={(visibility) =>
+                setRoleBrief((current) => (current ? { ...current, visibility } : current))
+              }
+              onRemove={() => setRoleBrief(null)}
+              onApply={(accepted) => {
+                const draft = toRoleDraft(
+                  accepted,
+                  (languagesCatalog.data ?? []).map((language) => language.code),
+                )
+                setRoleDraft((current) => ({ ...current, ...draft }))
+                toast('Role brief applied — review the criteria')
+              }}
+            />
+
             <RoleForm
               draft={roleDraft}
               onChange={setRoleDraft}
               onAdd={addRole}
-              busy={mutations.createRole.isPending}
+              busy={mutations.createRole.isPending || briefs.save.isPending}
             />
           </Card>
 

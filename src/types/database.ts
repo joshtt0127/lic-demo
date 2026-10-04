@@ -51,12 +51,61 @@ export type MediaKind =
   | 'selftape'
   | 'poster'
   | 'logo'
+  | 'brief'
 export type NoteVisibility = 'team' | 'private'
 export type ConversationContext = 'application' | 'project' | 'casting_call' | 'role' | 'direct'
 export type AvailabilityStatus = 'available' | 'on_project' | 'unavailable'
 export type Locale = 'en' | 'fr'
 
 // ── Rows ─────────────────────────────────────────────────────────────────────
+
+/** Video Casting Breakdown™ — qui voit un brief vidéo (règle en base). */
+export type BriefVisibility = 'internal' | 'applicants' | 'public'
+
+export type BriefVideoRow = {
+  id: string
+  project_id: string
+  /** null = Project Brief Video™ ; sinon Role Brief Video™. */
+  role_id: string | null
+  media_asset_id: string | null
+  url: string
+  duration_s: number | null
+  visibility: BriefVisibility
+  recorded_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type BriefFieldStatus = 'detected' | 'suggested' | 'missing'
+
+export type BriefExtractedField = {
+  field: string
+  status: BriefFieldStatus
+  value: string | null
+  values: string[]
+  /** Seconde de la vidéo où l'information est dite. */
+  start: number | null
+  quote: string | null
+}
+
+export type BriefTranscriptSegment = { start: number; end?: number; text: string }
+
+export type BriefExtractionRow = {
+  id: string
+  org_id: string
+  target: 'project' | 'role'
+  video_url: string
+  brief_video_id: string | null
+  status: 'pending' | 'ready' | 'failed'
+  transcript: BriefTranscriptSegment[] | null
+  fields: BriefExtractedField[] | null
+  language: string | null
+  model: string | null
+  error: string | null
+  created_by: string | null
+  created_at: string
+  completed_at: string | null
+}
 
 export type ProfileRow = {
   id: string
@@ -865,6 +914,8 @@ export type Database = {
       post_likes: Writable<PostLikeRow, 'post_id' | 'profile_id'>
       follows: Writable<FollowRow, 'follower_id' | 'following_id'>
       organization_follows: Writable<OrganizationFollowRow, 'profile_id' | 'org_id'>
+      brief_videos: Writable<BriefVideoRow, 'project_id' | 'url'>
+      brief_extractions: Writable<BriefExtractionRow, 'org_id' | 'target' | 'video_url'>
     }
     Views: {
       v_candidates: ReadOnly<CandidateViewRow>
