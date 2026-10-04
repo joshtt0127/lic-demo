@@ -3,7 +3,8 @@ import { Check, Plus, Search, X } from 'lucide-react'
 import { Input, type FieldSize } from '@/components/ui'
 import { cn } from '@/lib/cn'
 
-export type Option = { value: string; label: string }
+/** `icon` : un repère visuel avant le libellé (le drapeau d'une langue). */
+export type Option = { value: string; label: string; icon?: string }
 
 /**
  * Searchable multi-select rendered as chips — languages, accents, ethnicities,
@@ -40,13 +41,22 @@ export function MultiSelect({
     const map = new Map(options.map((option) => [option.value, option.label]))
     return (value: string) => map.get(value) ?? value
   }, [options])
+  const iconOf = useMemo(() => {
+    const map = new Map(options.map((option) => [option.value, option.icon]))
+    return (value: string) => map.get(value)
+  }, [options])
 
   const matches = useMemo(() => {
     const needle = query.trim().toLowerCase()
     return options
       .filter((option) => !values.includes(option.value))
       .filter((option) => (needle ? option.label.toLowerCase().includes(needle) : true))
-      .sort((a, b) => a.label.localeCompare(b.label))
+      // Ce qui commence par la saisie d'abord (« fr » → French avant Afrikaans).
+      .sort((a, b) => {
+        const aStarts = needle && a.label.toLowerCase().startsWith(needle) ? 0 : 1
+        const bStarts = needle && b.label.toLowerCase().startsWith(needle) ? 0 : 1
+        return aStarts - bStarts || a.label.localeCompare(b.label)
+      })
   }, [options, query, values])
 
   const canCreate =
@@ -97,7 +107,14 @@ export function MultiSelect({
                 onClick={() => add(option.value)}
                 className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-ink transition-colors hover:bg-paper"
               >
-                {option.label}
+                <span className="inline-flex items-center gap-2">
+                  {option.icon && (
+                    <span aria-hidden className="text-base leading-none">
+                      {option.icon}
+                    </span>
+                  )}
+                  {option.label}
+                </span>
                 <Check className="h-3.5 w-3.5 text-muted opacity-0" />
               </button>
             ))}
@@ -123,6 +140,11 @@ export function MultiSelect({
               key={value}
               className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper py-1 pl-2.5 pr-1.5 text-xs font-medium text-ink"
             >
+              {iconOf(value) && (
+                <span aria-hidden className="text-sm leading-none">
+                  {iconOf(value)}
+                </span>
+              )}
               {labelOf(value)}
               <button
                 type="button"

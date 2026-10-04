@@ -1,3 +1,4 @@
+import { languageFlag } from '@/lib/languageFlags'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -620,6 +621,7 @@ function ProfileView({ data }: { data: TalentProfileFull }) {
         options={(languagesCatalogue.data ?? []).map((language) => ({
           value: language.code,
           label: language.name,
+          icon: languageFlag(language.code),
         }))}
         onClose={() => setOpenSection(null)}
         onSave={async (codes) => {
@@ -1216,7 +1218,7 @@ function LanguagesModal({
 }: {
   open: boolean
   selected: string[]
-  options: { value: string; label: string }[]
+  options: { value: string; label: string; icon?: string }[]
   onClose: () => void
   onSave: (codes: string[]) => void
 }) {

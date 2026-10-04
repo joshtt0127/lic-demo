@@ -1,3 +1,4 @@
+import { withFlag } from '@/lib/languageFlags'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
@@ -84,7 +85,7 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
   const data = casting.data
   // Roles store language codes; show the names productions and talents read.
   const languageName = (code: string) =>
-    (languages.data ?? []).find((language) => language.code === code)?.name ?? code
+    withFlag(code, (languages.data ?? []).find((language) => language.code === code)?.name ?? code)
   const isSaved = (saved.data ?? []).includes(data.id)
   const myApplications = applications.data ?? []
   // One rule for both surfaces — see features/castings/lifecycle.ts.

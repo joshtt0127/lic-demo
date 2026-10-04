@@ -1,3 +1,4 @@
+import { languageFlag } from '@/lib/languageFlags'
 import { useState } from 'react'
 import {
   ArrowLeft,
@@ -172,6 +173,7 @@ function CastingProfileForm({ data }: { data: TalentProfileFull }) {
   const languageOptions = (languagesCatalogue.data ?? []).map((language) => ({
     value: language.code,
     label: language.name,
+    icon: languageFlag(language.code),
   }))
 
   function validate(): boolean {

@@ -1,3 +1,4 @@
+import { withFlag } from '@/lib/languageFlags'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
@@ -212,7 +213,7 @@ export function CastingDashboardPage() {
   })
   const publicLink = `${window.location.origin}${import.meta.env.BASE_URL}casting/${data.id}`
   const languageName = (code: string) =>
-    (languages.data ?? []).find((language) => language.code === code)?.name ?? code
+    withFlag(code, (languages.data ?? []).find((language) => language.code === code)?.name ?? code)
 
   async function run(action: () => Promise<unknown>, message: string, success?: string) {
     setError(null)
@@ -817,6 +818,8 @@ export function CastingDashboardPage() {
           orgId={organization?.id}
           profileId={profile?.id}
           applicantCount={rows.length}
+          roleCount={stats.roles.length}
+          mayDelete={can(organization?.role, 'casting:delete')}
           onClose={() => setEditing(false)}
         />
       )}

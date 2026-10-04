@@ -1,3 +1,4 @@
+import { withFlag } from '@/lib/languageFlags'
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -574,7 +575,7 @@ export function TalentRecruiterPage() {
                   <option value="">Any</option>
                   {(languages.data ?? []).map((language) => (
                     <option key={language.code} value={language.name}>
-                      {language.name}
+                      {withFlag(language.code, language.name)}
                     </option>
                   ))}
                 </SelectInput>

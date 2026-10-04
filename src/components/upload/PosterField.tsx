@@ -23,6 +23,7 @@ export function PosterField({
   onChange,
   disabled,
   saving,
+  stacked,
 }: {
   profileId: string | undefined
   value: string | null
@@ -31,6 +32,8 @@ export function PosterField({
   disabled?: boolean
   /** L'appelant enregistre l'affiche sur le projet. */
   saving?: boolean
+  /** Colonne étroite : l'aperçu en grand, la zone de dépôt dessous. */
+  stacked?: boolean
 }) {
   const media = useMediaMutations(profileId)
   const [percent, setPercent] = useState<number | null>(null)
@@ -52,10 +55,11 @@ export function PosterField({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-stretch gap-4">
+      <div className={cn('flex gap-4', stacked ? 'flex-col' : 'items-stretch')}>
         <span
           className={cn(
-            'relative flex aspect-[2/3] w-[112px] shrink-0 items-center justify-center overflow-hidden rounded-btn bg-line',
+            'relative flex aspect-[2/3] shrink-0 items-center justify-center overflow-hidden rounded-btn bg-line',
+            stacked ? 'w-full' : 'w-[112px]',
             busy && 'opacity-70',
           )}
         >
@@ -77,7 +81,16 @@ export function PosterField({
             onFile={upload}
             onError={setError}
             disabled={disabled || busy}
-            label={value ? 'Drop a new poster to replace it' : 'Drop your poster here, or click to browse'}
+            compact={stacked}
+            label={
+              stacked
+                ? value
+                  ? 'Drop to replace'
+                  : 'Drop a poster'
+                : value
+                  ? 'Drop a new poster to replace it'
+                  : 'Drop your poster here, or click to browse'
+            }
             className="flex-1 [&>button]:h-full"
           />
           {value && !busy && (

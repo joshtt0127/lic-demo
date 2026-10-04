@@ -255,12 +255,25 @@ export async function updateCasting(
       ...(input.deadlineAt !== undefined ? { deadline_at: input.deadlineAt || null } : {}),
       ...(input.compensation !== undefined ? { compensation: input.compensation } : {}),
       ...(input.format !== undefined ? { format: input.format } : {}),
+      ...(input.visibility !== undefined ? { visibility: input.visibility } : {}),
     })
     .eq('id', id)
     .select('*')
     .single()
   if (error) throw error
   return data
+}
+
+/**
+ * Supprime l'annonce. La base fait le reste en cascade : rôles, invitations,
+ * candidatures et leurs self-tapes (policy `casting_calls_delete` :
+ * `can_manage_org`). On vérifie qu'une ligne a bien disparu — une policy qui
+ * refuse ne renvoie pas d'erreur, juste zéro ligne.
+ */
+export async function deleteCasting(id: string): Promise<void> {
+  const { data, error } = await supabase.from('casting_calls').delete().eq('id', id).select('id')
+  if (error) throw error
+  if (!data?.length) throw new Error('You are not allowed to delete this casting')
 }
 
 /** Publishing is what makes the roles visible to talents (see the RLS policies). */

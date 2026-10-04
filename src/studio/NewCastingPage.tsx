@@ -27,6 +27,7 @@ import { useLanguagesCatalog, useSkillsCatalog } from '@/features/talent/queries
 import { track } from '@/lib/analytics'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
+import { languageFlag } from '@/lib/languageFlags'
 import type { RoleInput } from '@/data/repositories/castings'
 
 /**
@@ -43,7 +44,7 @@ import type { RoleInput } from '@/data/repositories/castings'
  */
 
 /** Les trois portées d'une annonce, dites avec les mots de la production. */
-const VISIBILITIES: {
+export const VISIBILITIES: {
   value: 'public' | 'private_link' | 'invite_only'
   label: string
   hint: string
@@ -814,6 +815,7 @@ export function RoleForm({
             options={(languages.data ?? []).map((language) => ({
               value: language.code,
               label: language.name,
+              icon: languageFlag(language.code),
             }))}
             values={draft.languages ?? []}
             onChange={(values) => set('languages', values)}

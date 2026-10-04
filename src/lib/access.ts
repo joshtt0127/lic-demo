@@ -62,6 +62,7 @@ export type Capability =
   | 'project:delete'
   | 'casting:create'
   | 'casting:publish'
+  | 'casting:delete'
   | 'role:manage'
   | 'candidate:review'
   | 'candidate:decide'
@@ -81,6 +82,7 @@ const OWNER: Capability[] = [
   'project:delete',
   'casting:create',
   'casting:publish',
+  'casting:delete',
   'role:manage',
   'candidate:review',
   'candidate:decide',
