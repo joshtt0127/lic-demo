@@ -813,6 +813,7 @@ export function CastingDashboardPage() {
       {editing && (
         <EditCastingModal
           casting={data}
+          project={data.project}
           orgId={organization?.id}
           profileId={profile?.id}
           applicantCount={rows.length}

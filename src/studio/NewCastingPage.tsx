@@ -17,6 +17,7 @@ import { TextArea } from '@/components/EditModal'
 import { EmptyState } from '@/components/EmptyState'
 import { SegmentedControl } from '@/components/form/SegmentedControl'
 import { MultiSelect } from '@/components/form/MultiSelect'
+import { PosterField } from '@/components/upload/PosterField'
 import { useToast } from '@/components/Toast'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useCurrentOrganization } from '@/features/organizations/queries'
@@ -90,6 +91,7 @@ export function NewCastingPage() {
     shootingEnd: '',
     synopsis: '',
     directorBrief: '',
+    posterUrl: null as string | null,
   })
 
   // Step 2 — casting call
@@ -105,6 +107,8 @@ export function NewCastingPage() {
   // Step 3 — roles
   const [roles, setRoles] = useState<RoleInput[]>([])
   const [roleDraft, setRoleDraft] = useState<RoleInput>({ name: '', roleType: 'lead' })
+
+  const selectedProject = (projects.data ?? []).find((item) => item.id === projectId) ?? null
 
   if (orgLoading) {
     return <Card className="h-40" />
@@ -168,6 +172,7 @@ export function NewCastingPage() {
           shootingEnd: project.shootingEnd || null,
           synopsis: project.synopsis || null,
           directorBrief: project.directorBrief || null,
+          posterUrl: project.posterUrl,
           status: 'casting',
         })
         track('project_created', { project_id: created.id })
@@ -354,8 +359,32 @@ export function NewCastingPage() {
                 ))}
               </ul>
             )
-          ) : (
+          ) : null}
+
+          {mode === 'existing' && selectedProject && (
+            <FormField label="Poster" plainLabel optional>
+              <PosterField
+                profileId={profile?.id}
+                value={selectedProject.poster_url}
+                saving={mutations.setProjectPoster.isPending}
+                onChange={async (url) => {
+                  await mutations.setProjectPoster.mutateAsync({ id: selectedProject.id, posterUrl: url })
+                  toast(url ? 'Poster saved' : 'Poster removed')
+                }}
+              />
+            </FormField>
+          )}
+
+          {mode === 'new' && (
             <div className="flex flex-col gap-4">
+              <FormField label="Poster" plainLabel optional>
+                <PosterField
+                  profileId={profile?.id}
+                  value={project.posterUrl}
+                  onChange={(url) => setProject((current) => ({ ...current, posterUrl: url }))}
+                />
+              </FormField>
+
               <TextField
                 label="Project title"
                 plainLabel

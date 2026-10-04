@@ -8,6 +8,7 @@ import {
   listOrgCastings,
   listProjects,
   setCastingStatus,
+  setProjectPoster,
   setProjectStatus,
   setRoleStatus,
   updateCasting,
@@ -139,6 +140,12 @@ export function useStudioMutations(orgId: string | undefined, profileId: string 
     onSuccess: invalidate,
   })
 
+  const projectPosterMutation = useMutation({
+    mutationFn: ({ id, posterUrl }: { id: string; posterUrl: string | null }) =>
+      setProjectPoster(id, posterUrl),
+    onSuccess: invalidate,
+  })
+
   const projectStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: ProjectStatus }) =>
       setProjectStatus(id, status),
@@ -220,6 +227,7 @@ export function useStudioMutations(orgId: string | undefined, profileId: string 
   return {
     createProject: createProjectMutation,
     updateProject: updateProjectMutation,
+    setProjectPoster: projectPosterMutation,
     setProjectStatus: projectStatusMutation,
     createCasting: createCastingMutation,
     updateCasting: updateCastingMutation,

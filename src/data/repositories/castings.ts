@@ -88,6 +88,12 @@ export async function updateProject(id: string, input: ProjectInput): Promise<Pr
   return data
 }
 
+/** Change only the poster — `updateProject` rewrites every field of the form. */
+export async function setProjectPoster(id: string, posterUrl: string | null): Promise<void> {
+  const { error } = await supabase.from('projects').update({ poster_url: posterUrl }).eq('id', id)
+  if (error) throw error
+}
+
 export async function setProjectStatus(id: string, status: ProjectStatus): Promise<void> {
   const { error } = await supabase.from('projects').update({ status }).eq('id', id)
   if (error) throw error

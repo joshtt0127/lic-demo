@@ -4,6 +4,7 @@ import { FormError, Input } from '@/components/ui'
 import { EditModal, Field, TextArea } from '@/components/EditModal'
 import { useToast } from '@/components/Toast'
 import { useStudioMutations } from '@/features/studio/queries'
+import { PosterField } from '@/components/upload/PosterField'
 import { errorMessage } from '@/lib/supabase'
 import type { CastingCallRow } from '@/types/database'
 
@@ -21,12 +22,15 @@ import type { CastingCallRow } from '@/types/database'
  */
 export function EditCastingModal({
   casting,
+  project,
   orgId,
   profileId,
   applicantCount,
   onClose,
 }: {
   casting: CastingCallRow
+  /** Le projet porte l'affiche : elle s'enregistre dès qu'elle est déposée. */
+  project: { id: string; poster_url: string | null } | null
   orgId: string | undefined
   profileId: string | undefined
   applicantCount: number
@@ -43,6 +47,7 @@ export function EditCastingModal({
     deadlineAt: casting.deadline_at ? casting.deadline_at.slice(0, 10) : '',
   })
   const [error, setError] = useState<string | null>(null)
+  const [poster, setPoster] = useState(project?.poster_url ?? null)
 
   const published = casting.status === 'published'
   const deadlineChanged =
@@ -96,6 +101,21 @@ export function EditCastingModal({
           {applicantCount} {applicantCount === 1 ? 'person has' : 'people have'} applied. Changing the
           deadline or the location tells them — the rest is saved quietly.
         </p>
+      )}
+
+      {project && (
+        <Field label="Poster">
+          <PosterField
+            profileId={profileId}
+            value={poster}
+            saving={mutations.setProjectPoster.isPending}
+            onChange={async (url) => {
+              await mutations.setProjectPoster.mutateAsync({ id: project.id, posterUrl: url })
+              setPoster(url)
+              toast(url ? 'Poster saved' : 'Poster removed')
+            }}
+          />
+        </Field>
       )}
 
       <Field label="Title">
