@@ -26,7 +26,7 @@ import { Skeleton } from '@/components/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
 import { useToast } from '@/components/Toast'
 import { useAuth } from '@/features/auth/AuthProvider'
-import { useCurrentOrganization, useOrgMembers } from '@/features/organizations/queries'
+import { useCurrentOrganization, useOrgMayPublish, useOrgMembers } from '@/features/organizations/queries'
 import { MessageTalentModal } from '@/features/messaging/MessageTalentModal'
 import { ROLE_STATUS_LABEL, ROLE_STATUSES } from '@/features/castings/lifecycle'
 import { can } from '@/lib/access'
@@ -124,7 +124,9 @@ export function CastingDashboardPage() {
   // la seule barrière entre un comédien et un faux casting. On le dit ici plutôt
   // que de laisser la base refuser sans explication.
   const [editing, setEditing] = useState(false)
-  const orgVerified = organization?.verification_status === 'verified'
+  // La base dit si la vérification est exigée (réglage `require_verified_org`) :
+  // tant que la réponse n'est pas arrivée, on ne bloque pas le bouton.
+  const orgMayPublish = useOrgMayPublish(organization?.id).data ?? true
   const orgSuspended = organization?.verification_status === 'suspended'
   const mayManageRoles = can(organization?.role, 'role:manage')
   const mayDecide = can(organization?.role, 'candidate:decide')
@@ -325,7 +327,7 @@ export function CastingDashboardPage() {
             <Layers className="h-3.5 w-3.5" />
             Casting console
           </Link>
-          {!mayPublish ? null : !published && !orgVerified ? (
+          {!mayPublish ? null : !published && (orgSuspended || !orgMayPublish) ? (
             <span className="inline-flex max-w-[320px] items-center rounded-field bg-cream px-3 py-2 text-[12.5px] leading-snug text-ink">
               {orgSuspended
                 ? 'This organization is suspended and cannot publish.'

@@ -119,7 +119,7 @@ export function EditCastingModal({
         <Input
           value={form.location}
           onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))}
-          placeholder="Marseille"
+          placeholder="Los Angeles"
         />
       </Field>
 

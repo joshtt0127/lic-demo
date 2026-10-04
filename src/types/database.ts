@@ -881,6 +881,10 @@ export type Database = {
         Args: { p_token: string }
         Returns: string
       }
+      org_may_publish: {
+        Args: { p_org: string }
+        Returns: boolean
+      }
       transfer_organization_ownership: {
         Args: { p_org: string; p_to: string }
         Returns: void

@@ -46,7 +46,7 @@ export function MultiSelect({
     return options
       .filter((option) => !values.includes(option.value))
       .filter((option) => (needle ? option.label.toLowerCase().includes(needle) : true))
-      .slice(0, 8)
+      .sort((a, b) => a.label.localeCompare(b.label))
   }, [options, query, values])
 
   const canCreate =
@@ -88,7 +88,7 @@ export function MultiSelect({
         />
 
         {open && (matches.length > 0 || canCreate) && (
-          <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-btn border border-line bg-card shadow-card-hover">
+          <div className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto overscroll-contain rounded-btn border border-line bg-card shadow-card-hover">
             {matches.map((option) => (
               <button
                 key={option.value}

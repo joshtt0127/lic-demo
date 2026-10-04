@@ -360,7 +360,6 @@ export function NewCastingPage() {
                 label="Project title"
                 plainLabel
                 fieldSize="lg"
-                placeholder="Les Ombres de Midi"
                 value={project.title}
                 onChange={(event) =>
                   setProject((current) => ({ ...current, title: event.target.value }))
@@ -426,7 +425,7 @@ export function NewCastingPage() {
                   plainLabel
                   optional
                   fieldSize="lg"
-                  placeholder="Marseille"
+                  placeholder="Los Angeles"
                   value={project.shootingLocation}
                   onChange={(event) =>
                     setProject((current) => ({ ...current, shootingLocation: event.target.value }))
@@ -505,7 +504,6 @@ export function NewCastingPage() {
             label="Casting title"
             plainLabel
             fieldSize="lg"
-            placeholder="Les Ombres de Midi — main cast"
             value={casting.title}
             onChange={(event) =>
               setCasting((current) => ({ ...current, title: event.target.value }))
@@ -518,7 +516,7 @@ export function NewCastingPage() {
               plainLabel
               optional
               fieldSize="lg"
-              placeholder="Marseille"
+              placeholder="Los Angeles"
               value={casting.location}
               onChange={(event) =>
                 setCasting((current) => ({ ...current, location: event.target.value }))

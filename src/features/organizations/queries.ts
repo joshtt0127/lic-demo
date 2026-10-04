@@ -10,6 +10,7 @@ import {
   listMyOrganizations,
   listOrgInvites,
   listOrgMembers,
+  orgMayPublish,
   removeMember,
   revokeInvite,
   updateMemberRole,
@@ -34,6 +35,15 @@ export function useMyOrganizations(profileId: string | undefined) {
 export function useCurrentOrganization(profileId: string | undefined) {
   const query = useMyOrganizations(profileId)
   return { ...query, organization: query.data?.[0] ?? null }
+}
+
+/** Droit de publier un casting public — la règle vit dans la base. */
+export function useOrgMayPublish(orgId: string | undefined) {
+  return useQuery({
+    queryKey: ['org-may-publish', orgId],
+    queryFn: () => orgMayPublish(orgId as string),
+    enabled: Boolean(orgId),
+  })
 }
 
 export function useMyInvites(enabled = true) {

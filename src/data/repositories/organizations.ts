@@ -276,3 +276,15 @@ export async function removeMember(orgId: string, profileId: string): Promise<vo
     .eq('profile_id', profileId)
   if (error) throw error
 }
+
+/**
+ * L'organisation peut-elle mettre un casting public en ligne ? Même règle que
+ * le garde-fou de la base (`org_may_publish`) : vérification exigée ou non
+ * selon le réglage de plateforme `require_verified_org`, suspension toujours
+ * bloquante. On demande à la base plutôt que de recopier la règle ici.
+ */
+export async function orgMayPublish(orgId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('org_may_publish', { p_org: orgId })
+  if (error) throw error
+  return Boolean(data)
+}
