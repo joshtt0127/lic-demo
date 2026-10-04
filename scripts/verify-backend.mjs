@@ -23,6 +23,56 @@ const PASSWORD = 'LetItCast2026!'
 
 const client = () => createClient(URL, ANON, { auth: { persistSession: false } })
 
+/*
+ * Comptes et organisation de test : `talent.<stamp>@letitcast.dev` et
+ * `production.<stamp>@letitcast.dev`. Un run qui plante en route ne passe pas
+ * par le nettoyage final — c'est arrivé, et ses comptes restaient en base.
+ * On balaie donc AUSSI au démarrage et sur plantage, et on balaie tout ce qui
+ * porte ce motif, pas seulement le run en cours.
+ */
+const TEST_ACCOUNT = /^(talent|production)\.\d+@letitcast\.dev$/
+const admin = env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+  : null
+
+async function sweepTestAccounts() {
+  if (!admin) return 0
+  let removed = 0
+  for (let page = 1; page < 50; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 })
+    if (error || !data?.users?.length) break
+    for (const user of data.users) {
+      if (!TEST_ACCOUNT.test(user.email ?? '')) continue
+      // Ses organisations d'abord (projets, castings… partent en cascade).
+      const { data: owned } = await admin
+        .from('organization_members')
+        .select('org_id')
+        .eq('profile_id', user.id)
+        .eq('role', 'owner')
+      for (const { org_id } of owned ?? []) await admin.from('organizations').delete().eq('id', org_id)
+      await admin.auth.admin.deleteUser(user.id)
+      removed += 1
+    }
+    if (data.users.length < 200) break
+  }
+  return removed
+}
+
+// Un plantage ne doit pas laisser de comptes derrière lui.
+process.on('uncaughtException', async (error) => {
+  console.error(`\n✗ crashed: ${error?.message ?? error}`)
+  await sweepTestAccounts().catch(() => {})
+  process.exit(1)
+})
+process.on('unhandledRejection', async (error) => {
+  console.error(`\n✗ crashed: ${error?.message ?? error}`)
+  await sweepTestAccounts().catch(() => {})
+  process.exit(1)
+})
+
+const leftovers = await sweepTestAccounts()
+if (leftovers) console.log(`\n· removed ${leftovers} test account(s) left by an earlier run`)
+
 let failures = 0
 function check(label, ok, detail = '') {
   console.log(`${ok ? '  ✓' : '  ✗'} ${label}${detail ? ` — ${detail}` : ''}`)
@@ -150,6 +200,31 @@ const { data: visibleRole } = await talent.supabase
 check('once published, the talent sees the role', Boolean(visibleRole), visibleRole?.name)
 
 console.log('\n6 · Application — the single source of truth')
+// Règle « adultes uniquement » (migration 20260924104000) : pas de candidature
+// sans confirmation de majorité — c'est ce que fait l'onboarding talent.
+const { error: minorError } = await talent.supabase
+  .from('applications')
+  .insert({ role_id: role.id, talent_id: talent.id, status: 'submitted', submitted_at: new Date().toISOString() })
+check('applying before confirming adulthood is refused', Boolean(minorError), minorError?.message)
+const { error: adultError } = await talent.supabase
+  .from('profiles')
+  .update({ adult_confirmed_at: new Date().toISOString() })
+  .eq('id', talent.id)
+check('talent confirms being an adult', !adultError, adultError?.message)
+
+// Éligibilité (migration 20260924112000) : nom, photo, âge de jeu et ville
+// avant de candidater — ce que l'onboarding fait remplir.
+const { error: eligibleError } = await talent.supabase
+  .from('profiles')
+  .update({ city: 'Paris', avatar_url: 'https://example.com/avatar.jpg' })
+  .eq('id', talent.id)
+const { data: missing } = await talent.supabase.rpc('missing_for_application', { p_talent: talent.id })
+check(
+  'talent profile complete enough to apply',
+  !eligibleError && Array.isArray(missing) && missing.length === 0,
+  eligibleError?.message ?? JSON.stringify(missing),
+)
+
 const { data: application, error: applyError } = await talent.supabase
   .from('applications')
   .insert({ role_id: role.id, talent_id: talent.id, status: 'submitted', submitted_at: new Date().toISOString() })
@@ -181,13 +256,6 @@ const { error: illegalStatus } = await talent.supabase
   .update({ status: 'shortlisted' })
   .eq('id', application.id)
 check('talent cannot shortlist themselves', Boolean(illegalStatus), illegalStatus?.message?.slice(0, 60))
-
-const { error: withdrawError } = await talent.supabase
-  .from('applications')
-  .update({ status: 'withdrawn' })
-  .eq('id', application.id)
-check('talent can withdraw', !withdrawError, withdrawError?.message)
-await talent.supabase.from('applications').update({ status: 'submitted' }).eq('id', application.id)
 
 const { error: promoteError } = await production.supabase
   .from('applications')
@@ -293,16 +361,73 @@ check(
   JSON.stringify(stats),
 )
 
-console.log('\n11 · Cleanup')
+// Le retrait vient en dernier : il est définitif (une candidature retirée ne
+// revient pas), donc le tester plus tôt cassait la suite du scénario.
+console.log('\n10b · Withdrawal is the talent\'s, and final')
+const { error: withdrawError } = await talent.supabase
+  .from('applications')
+  .update({ status: 'withdrawn' })
+  .eq('id', application.id)
+check('talent can withdraw', !withdrawError, withdrawError?.message)
+const { error: resubmitError } = await talent.supabase
+  .from('applications')
+  .update({ status: 'submitted' })
+  .eq('id', application.id)
+check('a withdrawn application cannot be revived', Boolean(resubmitError), resubmitError?.message?.slice(0, 70))
+
+console.log('\n11 · Video Casting Breakdown™ — who sees a brief')
+const anon = client()
+const brief = (roleId, visibility) => ({
+  project_id: project.id,
+  role_id: roleId,
+  url: `https://example.com/brief-${stamp}-${roleId ? 'role' : 'project'}.mp4`,
+  visibility,
+})
+const { data: projectBrief, error: projectBriefError } = await production.supabase
+  .from('brief_videos')
+  .insert(brief(null, 'applicants'))
+  .select('id')
+  .single()
+check('production records a project brief', Boolean(projectBrief), projectBriefError?.message)
+const { error: roleBriefError } = await production.supabase.from('brief_videos').insert(brief(role.id, 'internal'))
+check('production records an internal role brief', !roleBriefError, roleBriefError?.message)
+
+const { data: talentBriefs } = await talent.supabase.from('brief_videos').select('role_id').eq('project_id', project.id)
+check(
+  'a talent sees the applicant brief, not the internal one',
+  talentBriefs?.length === 1 && talentBriefs[0].role_id === null,
+  JSON.stringify(talentBriefs),
+)
+const { data: anonBefore } = await anon.from('brief_videos').select('id').eq('project_id', project.id)
+check('a visitor sees no brief that is not public', (anonBefore ?? []).length === 0)
+
+await production.supabase.from('brief_videos').update({ visibility: 'public' }).eq('id', projectBrief?.id)
+const { data: anonAfter } = await anon.from('brief_videos').select('id').eq('project_id', project.id)
+check('a visitor sees the brief once it is public', (anonAfter ?? []).length === 1)
+
+const { error: talentWrite } = await talent.supabase.from('brief_videos').insert(brief(null, 'public'))
+check('a talent cannot record a brief', Boolean(talentWrite), talentWrite?.message)
+
+const { data: extraction, error: extractionError } = await production.supabase
+  .from('brief_extractions')
+  .insert({ org_id: org.id, target: 'project', video_url: brief(null, 'public').url })
+  .select('id')
+  .single()
+check('production opens a pending extraction', Boolean(extraction), extractionError?.message)
+const { error: forged } = await production.supabase
+  .from('brief_extractions')
+  .update({ status: 'ready', fields: [{ field: 'title', status: 'detected', value: 'forged' }] })
+  .eq('id', extraction?.id)
+check('the browser cannot write an extraction result', Boolean(forged), forged?.message)
+const { data: talentExtractions } = await talent.supabase.from('brief_extractions').select('id').eq('org_id', org.id)
+check('a talent cannot read the production extractions', (talentExtractions ?? []).length === 0)
+
+console.log('\n12 · Cleanup')
 // The run created real accounts and a real org; remove them so the project only
 // ever holds the seeded demo data (needs the local service-role key).
-if (env.SUPABASE_SERVICE_ROLE_KEY) {
-  const admin = createClient(URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
-  await admin.from('organizations').delete().eq('id', org.id)
-  for (const account of [talent, production]) {
-    await admin.auth.admin.deleteUser(account.id)
-  }
-  check('test accounts and org removed', true)
+if (admin) {
+  const removed = await sweepTestAccounts()
+  check('test accounts and org removed', removed >= 2, `${removed} account(s)`)
 } else {
   console.log('  · no service-role key — left the test rows in place')
 }
