@@ -71,7 +71,7 @@ import { RoleForm } from './NewCastingPage'
 import { EditCastingModal } from '@/studio/EditCastingModal'
 import { CandidateReviewModal } from './CandidateReviewModal'
 import { VideoCastingBreakdown } from '@/features/briefs/VideoCastingBreakdown'
-import { toCastingDraft, toRoleDraft } from '@/features/briefs/mapping'
+import { toCastingDraft, toRoleDraft, type Accepted } from '@/features/briefs/mapping'
 import { PosterImage } from '@/components/PosterImage'
 
 /**
@@ -144,6 +144,29 @@ export function CastingDashboardPage() {
   const [roleQuery, setRoleQuery] = useState('')
   const [roleScope, setRoleScope] = useState<'all' | 'lead' | 'supporting' | 'booked'>('all')
   const [error, setError] = useState<string | null>(null)
+
+  // Un brief de rôle validé — depuis le tableau de bord ou l'éditeur du
+  // casting — ouvre le rôle prérempli : la production relit et enregistre.
+  const applyRoleBrief = (role: RoleRow, accepted: Accepted) => {
+    const draft = toRoleDraft(
+      accepted,
+      (languages.data ?? []).map((language) => language.code),
+    )
+    setEditingRole({
+      ...role,
+      ...(draft.name ? { name: draft.name } : {}),
+      ...(draft.description ? { description: draft.description } : {}),
+      ...(draft.roleType ? { role_type: draft.roleType } : {}),
+      ...(draft.genderPref ? { gender_pref: draft.genderPref } : {}),
+      ...(draft.playingAgeMin != null ? { playing_age_min: draft.playingAgeMin } : {}),
+      ...(draft.playingAgeMax != null ? { playing_age_max: draft.playingAgeMax } : {}),
+      ...(draft.location ? { location: draft.location } : {}),
+      ...(draft.languages ? { languages: draft.languages } : {}),
+      ...(draft.skills ? { skills: draft.skills } : {}),
+      ...(draft.selftapeInstructions ? { selftape_instructions: draft.selftapeInstructions } : {}),
+    })
+    setTab('roles')
+  }
 
   const rows = candidates.data ?? []
 
@@ -431,29 +454,7 @@ export function CastingDashboardPage() {
                   'Casting updated from the brief',
                 )
               }}
-              onApplyRole={(role, accepted) => {
-                // On ouvre le rôle prérempli : la production relit et enregistre.
-                const draft = toRoleDraft(
-                  accepted,
-                  (languages.data ?? []).map((language) => language.code),
-                )
-                setEditingRole({
-                  ...role,
-                  ...(draft.name ? { name: draft.name } : {}),
-                  ...(draft.description ? { description: draft.description } : {}),
-                  ...(draft.roleType ? { role_type: draft.roleType } : {}),
-                  ...(draft.genderPref ? { gender_pref: draft.genderPref } : {}),
-                  ...(draft.playingAgeMin != null ? { playing_age_min: draft.playingAgeMin } : {}),
-                  ...(draft.playingAgeMax != null ? { playing_age_max: draft.playingAgeMax } : {}),
-                  ...(draft.location ? { location: draft.location } : {}),
-                  ...(draft.languages ? { languages: draft.languages } : {}),
-                  ...(draft.skills ? { skills: draft.skills } : {}),
-                  ...(draft.selftapeInstructions
-                    ? { selftape_instructions: draft.selftapeInstructions }
-                    : {}),
-                })
-                setTab('roles')
-              }}
+              onApplyRole={applyRoleBrief}
             />
           )}
 
@@ -874,6 +875,12 @@ export function CastingDashboardPage() {
           applicantCount={rows.length}
           roleCount={stats.roles.length}
           mayDelete={can(organization?.role, 'casting:delete')}
+          roles={stats.roles}
+          mayManageBriefs={mayManageRoles}
+          onApplyRole={(role, accepted) => {
+            setEditing(false)
+            applyRoleBrief(role, accepted)
+          }}
           onClose={() => setEditing(false)}
         />
       )}

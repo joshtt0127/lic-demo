@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { AlertTriangle, Clapperboard, Lock, Megaphone, Trash2, Users, X } from 'lucide-react'
+import { AlertTriangle, Clapperboard, Lock, Megaphone, Trash2, Users, Video, X } from 'lucide-react'
 import { Button, FormError, FormField, SelectInput, TextField } from '@/components/ui'
 import { TextArea } from '@/components/EditModal'
 import { useToast } from '@/components/Toast'
@@ -11,7 +11,9 @@ import { useOrgProjects, useStudioMutations } from '@/features/studio/queries'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 import { PRODUCTION_TYPES, VISIBILITIES } from '@/studio/NewCastingPage'
-import type { CastingCallRow, ProjectRow } from '@/types/database'
+import { VideoCastingBreakdown } from '@/features/briefs/VideoCastingBreakdown'
+import { toCastingDraft, type Accepted } from '@/features/briefs/mapping'
+import type { CastingCallRow, ProjectRow, RoleRow } from '@/types/database'
 
 /**
  * Modifier une annonce, y compris après sa publication — et la supprimer.
@@ -77,6 +79,9 @@ export function EditCastingModal({
   applicantCount,
   roleCount,
   mayDelete,
+  roles,
+  mayManageBriefs,
+  onApplyRole,
   onClose,
 }: {
   casting: CastingCallRow
@@ -87,6 +92,11 @@ export function EditCastingModal({
   applicantCount: number
   roleCount: number
   mayDelete: boolean
+  /** Les vidéos de brief (projet et rôles) se gèrent aussi d'ici. */
+  roles: RoleRow[]
+  mayManageBriefs: boolean
+  /** Un brief de rôle validé ouvre le rôle prérempli, sur le tableau de bord. */
+  onApplyRole: (role: RoleRow, accepted: Accepted) => void
   onClose: () => void
 }) {
   const toast = useToast()
@@ -476,6 +486,39 @@ export function EditCastingModal({
                       </FormField>
                     </>
                   )}
+                </section>
+              )}
+
+              {/* Les vidéos de brief */}
+              {project && mayManageBriefs && (
+                <section className="flex flex-col gap-4">
+                  <SectionTitle icon={Video} title="Brief videos" />
+                  <p className="-mt-1 text-[13px] leading-relaxed text-muted">
+                    The project brief sets the context, each role brief gives its direction.
+                    A video is saved as soon as it is recorded or dropped.
+                  </p>
+                  <VideoCastingBreakdown
+                    bare
+                    projectId={project.id}
+                    orgId={orgId}
+                    profileId={profileId}
+                    roles={roles}
+                    editable
+                    onApplyProject={(accepted) => {
+                      // Ici, le brief remplit le formulaire : on relit, puis on enregistre.
+                      const draft = toCastingDraft(accepted)
+                      setForm((current) => ({
+                        ...current,
+                        ...(draft.title ? { title: draft.title } : {}),
+                        ...(draft.description ? { description: draft.description } : {}),
+                        ...(draft.location ? { location: draft.location } : {}),
+                        ...(draft.compensation ? { compensation: draft.compensation } : {}),
+                        ...(draft.deadlineAt ? { deadlineAt: draft.deadlineAt.slice(0, 10) } : {}),
+                      }))
+                      toast('Fields filled from the brief — review and save')
+                    }}
+                    onApplyRole={onApplyRole}
+                  />
                 </section>
               )}
 

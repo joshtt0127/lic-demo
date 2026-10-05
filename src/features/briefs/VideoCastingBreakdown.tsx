@@ -22,6 +22,7 @@ export function VideoCastingBreakdown({
   editable,
   onApplyProject,
   onApplyRole,
+  bare,
 }: {
   projectId: string
   orgId: string | undefined
@@ -30,6 +31,8 @@ export function VideoCastingBreakdown({
   editable: boolean
   onApplyProject: (accepted: Accepted) => void
   onApplyRole: (role: RoleRow, accepted: Accepted) => void
+  /** Dans l'éditeur du casting : sans carte ni titre, la section les porte déjà. */
+  bare?: boolean
 }) {
   const toast = useToast()
   const briefs = useProjectBriefs(projectId)
@@ -64,7 +67,8 @@ export function VideoCastingBreakdown({
   const setVisibility = (brief: BriefVideoRow | null, visibility: BriefVisibility) =>
     brief && mutations.visibility.mutate({ id: brief.id, visibility })
 
-  if (briefs.isLoading) return <Card className="h-40" />
+  const Shell = bare ? 'div' : Card
+  if (briefs.isLoading) return bare ? <p className="text-[13px] text-muted">Loading the briefs…</p> : <Card className="h-40" />
 
   // Un membre sans droit d'édition voit les vidéos, sans les outils.
   if (!editable) {
@@ -80,8 +84,8 @@ export function VideoCastingBreakdown({
   }
 
   return (
-    <Card className="flex flex-col gap-5">
-      <Header />
+    <Shell className="flex flex-col gap-5">
+      {!bare && <Header />}
 
       <BriefStudio
         target="project"
@@ -146,7 +150,7 @@ export function VideoCastingBreakdown({
           </ul>
         </div>
       )}
-    </Card>
+    </Shell>
   )
 }
 
