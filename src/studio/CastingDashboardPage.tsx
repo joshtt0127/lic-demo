@@ -258,11 +258,12 @@ export function CastingDashboardPage() {
       {error && <FormError>{error}</FormError>}
 
       {/* ── Header ── */}
-      <Card className="flex flex-col gap-5 lg:flex-row lg:items-center">
-        <span className="h-44 w-[118px] shrink-0 overflow-hidden rounded-[14px] bg-line lg:h-28 lg:w-20">
-          {data.project?.poster_url && (
-            <PosterImage src={data.project.poster_url} />
-          )}
+      {/* Les actions passent sous le titre : à côté, elles l'écrasaient en
+          colonne d'une lettre dès que l'écran se resserrait. */}
+      <Card className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+        <span className="h-44 w-[118px] shrink-0 overflow-hidden rounded-[14px] bg-line sm:h-28 sm:w-20">
+          <PosterImage src={data.project?.poster_url ?? undefined} placeholder />
         </span>
 
         <div className="min-w-0 flex-1">
@@ -287,8 +288,9 @@ export function CastingDashboardPage() {
             {data.location && <span>· {data.location}</span>}
           </p>
         </div>
+        </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
           {/* La règle de modification existait en base sans son geste : une
               annonce publiée n'était éditable nulle part. */}
           {mayPublish && (
