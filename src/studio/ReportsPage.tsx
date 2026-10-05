@@ -294,7 +294,7 @@ export function ReportsPage() {
                 ].map(([label, value]) => (
                   <div key={label} className="flex items-baseline justify-between gap-2">
                     <dt className="text-muted">{label}</dt>
-                    <dd className="font-mono font-semibold text-ink">{value}</dd>
+                    <dd className="whitespace-nowrap font-mono font-semibold text-ink">{value}</dd>
                   </div>
                 ))}
               </dl>

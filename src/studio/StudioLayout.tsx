@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import {
@@ -36,6 +36,12 @@ import { cn } from '@/lib/cn'
  */
 export function StudioLayout() {
   const location = useLocation()
+  // Sur téléphone, la barre défile : l'onglet actif doit rester visible.
+  const mobileNav = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const active = mobileNav.current?.querySelector<HTMLElement>('a[aria-current="page"]')
+    active?.scrollIntoView({ block: 'nearest', inline: 'center' })
+  }, [location.pathname])
   const navigate = useNavigate()
   const { profile } = useAuth()
   const { organization } = useCurrentOrganization(profile?.id)
@@ -180,7 +186,9 @@ export function StudioLayout() {
           </div>
 
           {/* Mobile navigation — the sidebar is desktop-only. */}
-          <nav className="no-scrollbar flex items-center gap-1.5 overflow-x-auto border-t border-line px-4 py-2.5 lg:hidden">
+          <nav
+            ref={mobileNav}
+            className="no-scrollbar flex items-center gap-1.5 overflow-x-auto border-t border-line px-4 py-2.5 lg:hidden">
             {nav.map(({ to, label, icon: Icon, end, badge }) => (
               <NavLink
                 key={to}

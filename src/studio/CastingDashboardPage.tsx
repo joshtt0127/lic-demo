@@ -259,7 +259,7 @@ export function CastingDashboardPage() {
 
       {/* ── Header ── */}
       <Card className="flex flex-col gap-5 lg:flex-row lg:items-center">
-        <span className="h-28 w-20 shrink-0 overflow-hidden rounded-card bg-line">
+        <span className="h-44 w-[118px] shrink-0 overflow-hidden rounded-[14px] bg-line lg:h-28 lg:w-20">
           {data.project?.poster_url && (
             <PosterImage src={data.project.poster_url} />
           )}

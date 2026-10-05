@@ -153,11 +153,9 @@ export function CastingCalls() {
                     <Link
                       to={`/talent/casting/${casting.id}`}
                       aria-label={casting.project?.title ?? casting.title}
-                      className="h-44 w-full shrink-0 overflow-hidden rounded-btn bg-line sm:h-28 sm:w-20"
+                      className={cn('h-44 w-full shrink-0 overflow-hidden rounded-btn bg-line sm:block sm:h-28 sm:w-20', !casting.project?.poster_url && 'hidden')}
                     >
-                      {casting.project?.poster_url && (
-                        <PosterImage src={casting.project.poster_url} />
-                      )}
+                      <PosterImage src={casting.project?.poster_url ?? undefined} placeholder />
                     </Link>
 
                     <div className="min-w-0 flex-1">

@@ -156,7 +156,7 @@ export function StudioHome() {
 
         <Card className="flex min-w-0 flex-col gap-4">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 font-display text-[19px] font-bold text-ink">
+            <h2 className="flex items-center gap-2 whitespace-nowrap font-display text-[17px] font-bold text-ink sm:text-[19px]">
               Needs your attention
               {(data?.attention.length ?? 0) > 0 && (
                 <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-signal-no px-1.5 font-mono text-[11px] font-bold text-white">
@@ -209,9 +209,9 @@ export function StudioHome() {
               <li key={item.id}>
                 <Link
                   to={item.href}
-                  className="inline-flex h-9 items-center gap-2 rounded-full bg-paper px-3.5 text-[13px] text-ink transition-colors hover:bg-line/60"
+                  className="inline-flex min-h-9 items-center gap-2 rounded-[14px] bg-paper px-3.5 py-1.5 text-[13px] leading-snug text-ink transition-colors hover:bg-line/60"
                 >
-                  <span className="font-mono text-[11px] text-muted">
+                  <span className="shrink-0 whitespace-nowrap font-mono text-[11px] text-muted">
                     {formatDateShort(item.date)}
                   </span>
                   {item.label} · {item.detail}

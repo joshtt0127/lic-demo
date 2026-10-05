@@ -1,3 +1,4 @@
+import { Clapperboard } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
 /**
@@ -14,22 +15,34 @@ export function PosterImage({
   alt = '',
   className,
   loading,
+  placeholder,
 }: {
   src: string | undefined
   alt?: string
   className?: string
   loading?: 'lazy' | 'eager'
+  /** Sans affiche : un cadre neutre avec une icône, plutôt qu'un trou gris. */
+  placeholder?: boolean
 }) {
-  if (!src) return null
+  if (!src) {
+    if (!placeholder) return null
+    return (
+      <span className={cn('flex h-full w-full items-center justify-center bg-ink/5 text-muted/60', className)}>
+        <Clapperboard className="h-6 w-6" aria-hidden="true" />
+      </span>
+    )
+  }
   return (
     <span className={cn('relative block h-full w-full overflow-hidden bg-ink/5', className)}>
-      <img
-        src={src}
-        alt=""
-        aria-hidden="true"
-        loading={loading}
-        className="absolute inset-0 h-full w-full scale-110 object-cover opacity-70 blur-xl"
-      />
+      {/* Le fond flou déborde de son propre cadre, jamais de celui de l'affiche. */}
+      <span aria-hidden="true" className="absolute inset-0 overflow-hidden">
+        <img
+          src={src}
+          alt=""
+          loading={loading}
+          className="h-full w-full scale-110 object-cover opacity-70 blur-xl"
+        />
+      </span>
       <img src={src} alt={alt} loading={loading} className="relative h-full w-full object-contain" />
     </span>
   )
