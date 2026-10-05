@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, Trash2, X } from 'lucide-react'
-import { Button, FormError, FormField, TextField } from '@/components/ui'
+import { AnimatePresence, motion } from 'framer-motion'
+import { AlertTriangle, Clapperboard, Lock, Megaphone, Trash2, Users, X } from 'lucide-react'
+import { Button, FormError, FormField, SelectInput, TextField } from '@/components/ui'
 import { TextArea } from '@/components/EditModal'
 import { useToast } from '@/components/Toast'
 import { PosterField } from '@/components/upload/PosterField'
-import { useStudioMutations } from '@/features/studio/queries'
+import { useOrgProjects, useStudioMutations } from '@/features/studio/queries'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
-import { VISIBILITIES } from '@/studio/NewCastingPage'
-import type { CastingCallRow } from '@/types/database'
+import { PRODUCTION_TYPES, VISIBILITIES } from '@/studio/NewCastingPage'
+import type { CastingCallRow, ProjectRow } from '@/types/database'
 
 /**
  * Modifier une annonce, y compris après sa publication — et la supprimer.
@@ -21,16 +22,53 @@ import type { CastingCallRow } from '@/types/database'
  * candidaté : prévenir d'un envoi quand il n'y a personne à notifier serait
  * une inquiétude gratuite.
  *
- * Retour de test : la petite fenêtre (un champ par ligne, rien d'autre) ne
- * suffisait pas. C'est maintenant un vrai éditeur : l'affiche à gauche, les
- * informations regroupées comme à la création, la visibilité, et la
- * suppression en bas, séparée du reste.
+ * Retour de test : tout doit pouvoir se modifier ici, y compris ce qui vit sur
+ * le projet (synopsis, note du réalisateur, équipe, tournage). L'éditeur a donc
+ * deux parties, « The casting » et « The project », comme à la création. Le
+ * projet n'est réécrit que s'il a changé, et toujours en entier : `updateProject`
+ * remet à null tout champ absent.
  *
  * Supprimer est irréversible et emporte, en base (cascade), les rôles, les
  * candidatures et leurs self-tapes. Si des comédiens ont candidaté, on le dit
  * en chiffres et on fait retaper le titre ; sinon une confirmation suffit.
  * Fermer l'annonce reste l'alternative proposée.
  */
+
+type ProjectForm = {
+  title: string
+  productionType: string
+  genre: string
+  companyName: string
+  directorName: string
+  castingDirectorName: string
+  shootingLocation: string
+  shootingStart: string
+  shootingEnd: string
+  synopsis: string
+  directorBrief: string
+}
+
+function toProjectForm(row: ProjectRow): ProjectForm {
+  return {
+    title: row.title,
+    productionType: row.production_type ?? '',
+    genre: row.genre ?? '',
+    companyName: row.company_name ?? '',
+    directorName: row.director_name ?? '',
+    castingDirectorName: row.casting_director_name ?? '',
+    shootingLocation: row.shooting_location ?? '',
+    shootingStart: row.shooting_start ? row.shooting_start.slice(0, 10) : '',
+    shootingEnd: row.shooting_end ? row.shooting_end.slice(0, 10) : '',
+    synopsis: row.synopsis ?? '',
+    directorBrief: row.director_brief ?? '',
+  }
+}
+
+const FORMATS = [
+  { value: 'scripted', label: 'Scripted', hint: 'Roles with characters and sides.' },
+  { value: 'non_scripted', label: 'Non scripted', hint: 'Reality, game shows, documentary.' },
+] as const
+
 export function EditCastingModal({
   casting,
   project,
@@ -54,6 +92,8 @@ export function EditCastingModal({
   const toast = useToast()
   const navigate = useNavigate()
   const mutations = useStudioMutations(orgId, profileId)
+  const projects = useOrgProjects(orgId)
+  const projectRow = project ? projects.data?.find((row) => row.id === project.id) : undefined
 
   const [form, setForm] = useState({
     title: casting.title,
@@ -61,8 +101,20 @@ export function EditCastingModal({
     location: casting.location ?? '',
     compensation: casting.compensation ?? '',
     deadlineAt: casting.deadline_at ? casting.deadline_at.slice(0, 10) : '',
+    format: casting.format,
     visibility: casting.visibility,
   })
+  // Le projet complet arrive par sa propre requête : le formulaire se remplit
+  // une fois, à son arrivée, puis ne bouge plus.
+  const [projectForm, setProjectForm] = useState<ProjectForm | null>(null)
+  const [projectInitial, setProjectInitial] = useState<ProjectForm | null>(null)
+  useEffect(() => {
+    if (projectRow && !projectForm) {
+      setProjectForm(toProjectForm(projectRow))
+      setProjectInitial(toProjectForm(projectRow))
+    }
+  }, [projectRow, projectForm])
+
   const [error, setError] = useState<string | null>(null)
   const [poster, setPoster] = useState(project?.poster_url ?? null)
   const [confirming, setConfirming] = useState(false)
@@ -81,6 +133,7 @@ export function EditCastingModal({
   const willNotify = hasApplicants && (deadlineChanged || locationChanged)
   const mustType = applicantCount > 0
   const deleteReady = !mustType || typed.trim() === casting.title.trim()
+  const saving = mutations.updateCasting.isPending || mutations.updateProject.isPending
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
@@ -94,6 +147,10 @@ export function EditCastingModal({
       setError('A casting needs a title')
       return
     }
+    if (projectForm && !projectForm.title.trim()) {
+      setError('The project needs a title')
+      return
+    }
     try {
       await mutations.updateCasting.mutateAsync({
         id: casting.id,
@@ -103,12 +160,39 @@ export function EditCastingModal({
           location: form.location || null,
           compensation: form.compensation || null,
           deadlineAt: form.deadlineAt ? new Date(form.deadlineAt).toISOString() : null,
+          format: form.format,
           // Une ancienne valeur (`private`) n'est réécrite que si l'on en choisit une autre.
           ...(form.visibility !== casting.visibility && form.visibility !== 'private'
             ? { visibility: form.visibility }
             : {}),
         },
       })
+      if (
+        project &&
+        projectRow &&
+        projectForm &&
+        JSON.stringify(projectForm) !== JSON.stringify(projectInitial)
+      ) {
+        await mutations.updateProject.mutateAsync({
+          id: project.id,
+          input: {
+            title: projectForm.title,
+            productionType: projectForm.productionType || null,
+            genre: projectForm.genre || null,
+            companyName: projectForm.companyName || null,
+            directorName: projectForm.directorName || null,
+            castingDirectorName: projectForm.castingDirectorName || null,
+            shootingLocation: projectForm.shootingLocation || null,
+            shootingStart: projectForm.shootingStart || null,
+            shootingEnd: projectForm.shootingEnd || null,
+            synopsis: projectForm.synopsis || null,
+            directorBrief: projectForm.directorBrief || null,
+            // Champs que l'éditeur ne montre pas : on les renvoie tels quels.
+            posterUrl: poster,
+            status: projectRow.status,
+          },
+        })
+      }
       toast(willNotify ? 'Saved — applicants have been told' : 'Casting updated')
       onClose()
     } catch (saveError) {
@@ -129,10 +213,12 @@ export function EditCastingModal({
 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
     setForm((current) => ({ ...current, [key]: value }))
+  const setProject = <K extends keyof ProjectForm>(key: K, value: ProjectForm[K]) =>
+    setProjectForm((current) => (current ? { ...current, [key]: value } : current))
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-ink/40 p-3 sm:p-6"
+      className="fixed inset-0 z-[200] flex items-end justify-center bg-ink/40 sm:items-center sm:p-6"
       onClick={onClose}
     >
       <div
@@ -140,10 +226,10 @@ export function EditCastingModal({
         aria-modal="true"
         aria-labelledby="edit-casting-title"
         onClick={(event) => event.stopPropagation()}
-        className="flex max-h-[92vh] w-full max-w-[880px] flex-col overflow-hidden rounded-[28px] border border-line bg-card shadow-card-hover"
+        className="flex max-h-[94dvh] w-full max-w-[920px] flex-col overflow-hidden rounded-t-[28px] border border-line bg-card shadow-card-hover sm:max-h-[92vh] sm:rounded-[28px]"
       >
         {/* En-tête */}
-        <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-5">
+        <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6 sm:py-5">
           <div className="min-w-0">
             <span className="tech-label">
               {published ? 'Published' : casting.status === 'draft' ? 'Draft' : 'Closed'} ·{' '}
@@ -168,7 +254,7 @@ export function EditCastingModal({
         </div>
 
         {/* Corps */}
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
           {error && (
             <div className="mb-5">
               <FormError>{error}</FormError>
@@ -183,165 +269,383 @@ export function EditCastingModal({
             </p>
           )}
 
-          <div className="grid gap-6 md:grid-cols-[220px_1fr]">
+          <div className="grid gap-6 md:grid-cols-[220px_minmax(0,1fr)]">
             {project && (
-              <FormField label="Poster" plainLabel optional>
-                <PosterField
-                  stacked
-                  profileId={profileId}
-                  value={poster}
-                  saving={mutations.setProjectPoster.isPending}
-                  onChange={async (url) => {
-                    await mutations.setProjectPoster.mutateAsync({ id: project.id, posterUrl: url })
-                    setPoster(url)
-                    toast(url ? 'Poster saved' : 'Poster removed')
-                  }}
-                />
-              </FormField>
+              <div className="mx-auto w-full max-w-[220px] md:mx-0">
+                <FormField label="Poster" plainLabel optional>
+                  <PosterField
+                    stacked
+                    profileId={profileId}
+                    value={poster}
+                    saving={mutations.setProjectPoster.isPending}
+                    onChange={async (url) => {
+                      await mutations.setProjectPoster.mutateAsync({
+                        id: project.id,
+                        posterUrl: url,
+                      })
+                      setPoster(url)
+                      toast(url ? 'Poster saved' : 'Poster removed')
+                    }}
+                  />
+                </FormField>
+              </div>
             )}
 
-            <div className="flex flex-col gap-5">
-              <TextField
-                label="Casting title"
-                plainLabel
-                fieldSize="lg"
-                value={form.title}
-                onChange={(event) => set('title', event.target.value)}
-              />
-
-              <div className="grid gap-4 sm:grid-cols-3">
+            <div className="flex min-w-0 flex-col gap-8">
+              {/* L'annonce */}
+              <section className="flex flex-col gap-5">
+                <SectionTitle icon={Megaphone} title="The casting" />
                 <TextField
-                  label="Location"
+                  label="Casting title"
                   plainLabel
-                  placeholder="Los Angeles"
-                  value={form.location}
-                  onChange={(event) => set('location', event.target.value)}
+                  fieldSize="lg"
+                  value={form.title}
+                  onChange={(event) => set('title', event.target.value)}
                 />
-                <TextField
-                  label="Deadline"
-                  plainLabel
-                  type="date"
-                  value={form.deadlineAt}
-                  onChange={(event) => set('deadlineAt', event.target.value)}
-                />
-                <TextField
-                  label="Compensation"
-                  plainLabel
-                  placeholder="SAG scale"
-                  value={form.compensation}
-                  onChange={(event) => set('compensation', event.target.value)}
-                />
-              </div>
 
-              <FormField label="Description" htmlFor="edit-casting-description" plainLabel optional>
-                <TextArea
-                  id="edit-casting-description"
-                  rows={6}
-                  placeholder="What talents should know before applying."
-                  value={form.description}
-                  onChange={(event) => set('description', event.target.value)}
-                />
-              </FormField>
-            </div>
-          </div>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <TextField
+                    label="Location"
+                    plainLabel
+                    placeholder="Los Angeles"
+                    value={form.location}
+                    onChange={(event) => set('location', event.target.value)}
+                  />
+                  <TextField
+                    label="Deadline"
+                    plainLabel
+                    type="date"
+                    value={form.deadlineAt}
+                    onChange={(event) => set('deadlineAt', event.target.value)}
+                  />
+                  <TextField
+                    label="Compensation"
+                    plainLabel
+                    placeholder="SAG scale"
+                    value={form.compensation}
+                    onChange={(event) => set('compensation', event.target.value)}
+                  />
+                </div>
 
-          <div className="mt-6">
-          <FormField label="Who can see it" plainLabel>
-            <div className="grid gap-2 sm:grid-cols-3">
-              {VISIBILITIES.map(({ value, label, hint }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => set('visibility', value)}
-                  className={cn(
-                    'rounded-field border p-3 text-left transition-colors',
-                    form.visibility === value
-                      ? 'border-ink/30 bg-paper'
-                      : 'border-line hover:border-ink/20',
-                  )}
+                <FormField label="Format" plainLabel>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {FORMATS.map(({ value, label, hint }) => (
+                      <ChoiceCard
+                        key={value}
+                        active={form.format === value}
+                        label={label}
+                        hint={hint}
+                        onClick={() => set('format', value)}
+                      />
+                    ))}
+                  </div>
+                </FormField>
+
+                <FormField
+                  label="Description"
+                  htmlFor="edit-casting-description"
+                  plainLabel
+                  optional
                 >
-                  <span className="block text-[13.5px] font-bold text-ink">{label}</span>
-                  <span className="mt-0.5 block text-[12px] leading-snug text-muted">{hint}</span>
-                </button>
-              ))}
+                  <TextArea
+                    id="edit-casting-description"
+                    rows={5}
+                    placeholder="What talents should know before applying."
+                    value={form.description}
+                    onChange={(event) => set('description', event.target.value)}
+                  />
+                </FormField>
+              </section>
+
+              {/* Le projet */}
+              {project && (
+                <section className="flex flex-col gap-5">
+                  <SectionTitle icon={Clapperboard} title="The project" />
+                  {!projectForm ? (
+                    <p className="text-[13px] text-muted">
+                      {projects.isError ? 'The project could not be loaded.' : 'Loading the project…'}
+                    </p>
+                  ) : (
+                    <>
+                      <TextField
+                        label="Project title"
+                        plainLabel
+                        value={projectForm.title}
+                        onChange={(event) => setProject('title', event.target.value)}
+                      />
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <FormField label="Production type" htmlFor="edit-production-type" plainLabel>
+                          <SelectInput
+                            id="edit-production-type"
+                            value={projectForm.productionType}
+                            onChange={(event) => setProject('productionType', event.target.value)}
+                          >
+                            {!PRODUCTION_TYPES.includes(projectForm.productionType) && (
+                              <option value={projectForm.productionType}>
+                                {projectForm.productionType || 'Not set'}
+                              </option>
+                            )}
+                            {PRODUCTION_TYPES.map((type) => (
+                              <option key={type} value={type}>
+                                {type}
+                              </option>
+                            ))}
+                          </SelectInput>
+                        </FormField>
+                        <TextField
+                          label="Genre"
+                          plainLabel
+                          optional
+                          placeholder="Psychological thriller"
+                          value={projectForm.genre}
+                          onChange={(event) => setProject('genre', event.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-4 sm:grid-cols-3">
+                        <TextField
+                          label="Production company"
+                          plainLabel
+                          optional
+                          value={projectForm.companyName}
+                          onChange={(event) => setProject('companyName', event.target.value)}
+                        />
+                        <TextField
+                          label="Director"
+                          plainLabel
+                          optional
+                          value={projectForm.directorName}
+                          onChange={(event) => setProject('directorName', event.target.value)}
+                        />
+                        <TextField
+                          label="Casting director"
+                          plainLabel
+                          optional
+                          value={projectForm.castingDirectorName}
+                          onChange={(event) =>
+                            setProject('castingDirectorName', event.target.value)
+                          }
+                        />
+                      </div>
+                      <div className="grid gap-4 sm:grid-cols-3">
+                        <TextField
+                          label="Shooting location"
+                          plainLabel
+                          optional
+                          placeholder="Los Angeles"
+                          value={projectForm.shootingLocation}
+                          onChange={(event) => setProject('shootingLocation', event.target.value)}
+                        />
+                        <TextField
+                          label="Shoot starts"
+                          plainLabel
+                          optional
+                          type="date"
+                          value={projectForm.shootingStart}
+                          onChange={(event) => setProject('shootingStart', event.target.value)}
+                        />
+                        <TextField
+                          label="Shoot ends"
+                          plainLabel
+                          optional
+                          type="date"
+                          value={projectForm.shootingEnd}
+                          onChange={(event) => setProject('shootingEnd', event.target.value)}
+                        />
+                      </div>
+                      <FormField label="Synopsis" htmlFor="edit-synopsis" plainLabel optional>
+                        <TextArea
+                          id="edit-synopsis"
+                          rows={4}
+                          value={projectForm.synopsis}
+                          onChange={(event) => setProject('synopsis', event.target.value)}
+                        />
+                      </FormField>
+                      <FormField
+                        label="Director brief"
+                        htmlFor="edit-director-brief"
+                        plainLabel
+                        optional
+                      >
+                        <TextArea
+                          id="edit-director-brief"
+                          rows={5}
+                          placeholder="Tone, references, what the director is looking for."
+                          value={projectForm.directorBrief}
+                          onChange={(event) => setProject('directorBrief', event.target.value)}
+                        />
+                      </FormField>
+                    </>
+                  )}
+                </section>
+              )}
+
+              {/* Visibilité */}
+              <section className="flex flex-col gap-4">
+                <SectionTitle icon={Lock} title="Who can see it" />
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {VISIBILITIES.map(({ value, label, hint }) => (
+                    <ChoiceCard
+                      key={value}
+                      active={form.visibility === value}
+                      label={label}
+                      hint={hint}
+                      onClick={() => set('visibility', value)}
+                    />
+                  ))}
+                </div>
+              </section>
             </div>
-          </FormField>
           </div>
 
           {/* Suppression, séparée du reste */}
           {mayDelete && (
-            <div className="mt-8 rounded-card border border-signal-no/25 bg-signal-no/[0.04] p-4">
-              {!confirming ? (
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[14px] font-bold text-ink">Delete this casting</p>
-                    <p className="mt-0.5 text-[12.5px] text-muted">
-                      Removes the casting, its roles and every application. This cannot be undone.
-                    </p>
+            <div className="mt-10 border-t border-dashed border-line pt-6">
+              <div className="overflow-hidden rounded-[22px] border border-signal-no/20 bg-gradient-to-br from-signal-no/[0.07] via-signal-no/[0.03] to-transparent">
+                <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-3.5">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-signal-no/10 text-signal-no">
+                      <Trash2 className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-display text-[16px] font-extrabold tracking-[-0.01em] text-ink">
+                        Delete this casting
+                      </p>
+                      <p className="mt-0.5 text-[13px] leading-snug text-muted">
+                        Gone for good, with everything attached to it.
+                      </p>
+                      <div className="mt-2.5 flex flex-wrap gap-1.5">
+                        <Chip icon={Megaphone}>
+                          {roleCount} {roleCount === 1 ? 'role' : 'roles'}
+                        </Chip>
+                        <Chip icon={Users}>
+                          {applicantCount} {applicantCount === 1 ? 'application' : 'applications'}
+                        </Chip>
+                      </div>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setConfirming(true)}
-                    className="inline-flex h-10 items-center gap-2 rounded-btn border border-signal-no/40 px-4 text-[13.5px] font-bold text-signal-no transition-colors hover:bg-signal-no/10"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete casting
-                  </button>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  <p className="text-[14px] font-bold text-ink">Delete “{casting.title}”?</p>
-                  <p className="text-[13px] leading-relaxed text-ink/80">
-                    {applicantCount > 0
-                      ? `${applicantCount} ${applicantCount === 1 ? 'talent has' : 'talents have'} applied. Their applications and self-tapes for this casting will be deleted too. If you only want to stop new submissions, close the casting instead.`
-                      : `The casting and its ${roleCount} ${roleCount === 1 ? 'role' : 'roles'} will be deleted.`}
-                  </p>
-                  {mustType && (
-                    <TextField
-                      label="Type the casting title to confirm"
-                      plainLabel
-                      value={typed}
-                      onChange={(event) => setTyped(event.target.value)}
-                      placeholder={casting.title}
-                    />
-                  )}
-                  <div className="flex flex-wrap gap-2">
+                  {!confirming && (
                     <button
                       type="button"
-                      disabled={!deleteReady || mutations.deleteCasting.isPending}
-                      onClick={() => void remove()}
-                      className="inline-flex h-10 items-center gap-2 rounded-btn bg-signal-no px-4 text-[13.5px] font-bold text-white transition-opacity disabled:opacity-40"
+                      onClick={() => setConfirming(true)}
+                      className="inline-flex h-10 shrink-0 items-center justify-center gap-2 self-start rounded-btn bg-card px-4 text-[13.5px] font-bold text-signal-no shadow-sm ring-1 ring-signal-no/30 transition-colors hover:bg-signal-no hover:text-white sm:self-center"
                     >
-                      <Trash2 className="h-4 w-4" />
-                      {mutations.deleteCasting.isPending ? 'Deleting…' : 'Delete for good'}
+                      Delete casting
                     </button>
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        setConfirming(false)
-                        setTyped('')
-                      }}
-                    >
-                      Keep it
-                    </Button>
-                  </div>
+                  )}
                 </div>
-              )}
+
+                <AnimatePresence initial={false}>
+                  {confirming && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.22, ease: 'easeOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="flex flex-col gap-4 border-t border-signal-no/15 bg-card/70 p-5">
+                        <p className="text-[13.5px] leading-relaxed text-ink/85">
+                          {applicantCount > 0
+                            ? `${applicantCount} ${applicantCount === 1 ? 'talent has' : 'talents have'} applied. Their applications and self-tapes for this casting will be deleted too. To only stop new submissions, close the casting instead.`
+                            : `“${casting.title}” and its ${roleCount} ${roleCount === 1 ? 'role' : 'roles'} will be deleted.`}
+                        </p>
+                        {mustType && (
+                          <TextField
+                            label={`Type “${casting.title}” to confirm`}
+                            plainLabel
+                            value={typed}
+                            onChange={(event) => setTyped(event.target.value)}
+                            placeholder={casting.title}
+                            autoFocus
+                          />
+                        )}
+                        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                          <Button
+                            variant="ghost"
+                            onClick={() => {
+                              setConfirming(false)
+                              setTyped('')
+                            }}
+                          >
+                            Keep it
+                          </Button>
+                          <button
+                            type="button"
+                            disabled={!deleteReady || mutations.deleteCasting.isPending}
+                            onClick={() => void remove()}
+                            className="inline-flex h-10 items-center justify-center gap-2 rounded-btn bg-signal-no px-5 text-[13.5px] font-bold text-white shadow-sm transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            {mutations.deleteCasting.isPending ? 'Deleting…' : 'Delete for good'}
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           )}
         </div>
 
         {/* Pied */}
-        <div className="flex items-center justify-end gap-2 border-t border-line px-6 py-4">
+        <div className="flex items-center justify-end gap-2 border-t border-line px-5 py-3.5 sm:px-6 sm:py-4">
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={() => void save()} disabled={mutations.updateCasting.isPending}>
-            {mutations.updateCasting.isPending ? 'Saving…' : 'Save changes'}
+          <Button onClick={() => void save()} disabled={saving}>
+            {saving ? 'Saving…' : 'Save changes'}
           </Button>
         </div>
       </div>
     </div>,
     document.body,
+  )
+}
+
+function SectionTitle({ icon: Icon, title }: { icon: typeof Megaphone; title: string }) {
+  return (
+    <div className="flex items-center gap-2 border-b border-line pb-2">
+      <Icon className="h-4 w-4 text-muted" />
+      <h3 className="font-display text-[15px] font-extrabold tracking-[-0.01em] text-ink">
+        {title}
+      </h3>
+    </div>
+  )
+}
+
+function ChoiceCard({
+  active,
+  label,
+  hint,
+  onClick,
+}: {
+  active: boolean
+  label: string
+  hint: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'rounded-field border p-3 text-left transition-colors',
+        active ? 'border-ink/30 bg-paper' : 'border-line hover:border-ink/20',
+      )}
+    >
+      <span className="block text-[13.5px] font-bold text-ink">{label}</span>
+      <span className="mt-0.5 block text-[12px] leading-snug text-muted">{hint}</span>
+    </button>
+  )
+}
+
+function Chip({ icon: Icon, children }: { icon: typeof Megaphone; children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-2.5 py-1 text-[12px] font-semibold text-ink/75 ring-1 ring-line">
+      <Icon className="h-3.5 w-3.5" />
+      {children}
+    </span>
   )
 }

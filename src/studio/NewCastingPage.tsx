@@ -38,6 +38,7 @@ import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 import { languageFlag } from '@/lib/languageFlags'
 import type { RoleInput } from '@/data/repositories/castings'
+import { PosterImage } from '@/components/PosterImage'
 
 /**
  * Create a casting call — the production-side equivalent of the talent
@@ -63,7 +64,7 @@ export const VISIBILITIES: {
   { value: 'invite_only', label: 'Invited talents only', hint: 'You choose who sees it.' },
 ]
 
-const PRODUCTION_TYPES = [
+export const PRODUCTION_TYPES = [
   'Film',
   'TV series',
   'Short film',
@@ -412,7 +413,7 @@ export function NewCastingPage() {
                     >
                       <span className="h-12 w-10 shrink-0 overflow-hidden rounded-btn bg-line">
                         {item.poster_url && (
-                          <img src={item.poster_url} alt="" className="h-full w-full object-cover" />
+                          <PosterImage src={item.poster_url} />
                         )}
                       </span>
                       <span className="min-w-0 flex-1">
