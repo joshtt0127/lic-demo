@@ -12,6 +12,7 @@ import { deadlineLabel } from '@/lib/format'
 import { errorMessage } from '@/lib/supabase'
 import type { CastingStatus } from '@/types/database'
 import { NewCastingButton } from './StudioLayout'
+import { PosterImage } from '@/components/PosterImage'
 
 /** Every casting call of the organization — drafts included. */
 
@@ -114,13 +115,9 @@ export function CastingCallsPage() {
                   to={`/studio/casting/${casting.id}`}
                   className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:p-5"
                 >
-                  <span className="h-24 w-full shrink-0 overflow-hidden rounded-btn bg-line sm:h-20 sm:w-16">
+                  <span className="h-40 w-full shrink-0 overflow-hidden rounded-btn bg-line sm:h-20 sm:w-16">
                     {casting.project?.poster_url && (
-                      <img
-                        src={casting.project.poster_url}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
+                      <PosterImage src={casting.project.poster_url} />
                     )}
                   </span>
 

@@ -18,6 +18,7 @@ import { formatDateShort, greeting } from '@/lib/format'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 import { NewCastingButton } from './StudioLayout'
+import { PosterImage } from '@/components/PosterImage'
 
 /**
  * Studio home, from the design: the greeting, the session card, "Your castings"
@@ -441,11 +442,7 @@ function CastingRow({ item }: { item: CastingOverview }) {
       >
         <span className="h-11 w-11 shrink-0 overflow-hidden rounded-btn bg-line">
           {casting.project?.poster_url && (
-            <img
-              src={casting.project.poster_url}
-              alt=""
-              className="h-full w-full object-cover object-top"
-            />
+            <PosterImage src={casting.project.poster_url} />
           )}
         </span>
         <span className={cn('h-2 w-2 shrink-0 rounded-full', DOT_TONE[tone])} />
@@ -484,7 +481,7 @@ function AttentionRow({ item }: { item: AttentionItem }) {
       <Link to={item.href} className="group flex items-center gap-4 py-3 first:pt-0">
         <span className="h-11 w-11 shrink-0 overflow-hidden rounded-btn bg-line">
           {item.posterUrl && (
-            <img src={item.posterUrl} alt="" className="h-full w-full object-cover object-top" />
+            <PosterImage src={item.posterUrl} />
           )}
         </span>
         <span className={cn('h-2 w-2 shrink-0 rounded-full', DOT_TONE[item.tone])} />

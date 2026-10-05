@@ -1,4 +1,5 @@
 import { withFlag } from '@/lib/languageFlags'
+import { PosterImage } from '@/components/PosterImage'
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -695,11 +696,7 @@ export function TalentRecruiterPage() {
                   >
                     <span className="h-12 w-9 shrink-0 overflow-hidden rounded-btn bg-line">
                       {casting.project?.poster_url && (
-                        <img
-                          src={casting.project.poster_url}
-                          alt=""
-                          className="h-full w-full object-cover object-top"
-                        />
+                        <PosterImage src={casting.project.poster_url} />
                       )}
                     </span>
                     <span className="min-w-0 flex-1">

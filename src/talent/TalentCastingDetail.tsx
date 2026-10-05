@@ -40,6 +40,7 @@ import {
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 import type { RoleRow } from '@/types/database'
+import { PosterImage } from '@/components/PosterImage'
 
 /**
  * A published casting call and its roles — and the place where a talent really
@@ -120,9 +121,9 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
       {/* ── Project header ── */}
       <Card flush className="overflow-hidden">
         <div className="flex flex-col gap-5 p-5 sm:flex-row sm:gap-6">
-          <div className="h-56 w-full shrink-0 overflow-hidden rounded-card bg-line sm:h-64 sm:w-44">
+          <div className="h-72 w-full shrink-0 overflow-hidden rounded-card bg-line sm:h-64 sm:w-44">
             {data.project?.poster_url && (
-              <img src={data.project.poster_url} alt="" className="h-full w-full object-cover" />
+              <PosterImage src={data.project.poster_url} />
             )}
           </div>
 

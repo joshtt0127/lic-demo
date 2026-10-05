@@ -24,6 +24,7 @@ import { formatDate } from '@/lib/format'
 import { errorMessage } from '@/lib/supabase'
 import type { ProjectRow, ProjectStatus } from '@/types/database'
 import type { ProjectInput } from '@/data/repositories/castings'
+import { PosterImage } from '@/components/PosterImage'
 
 /** The organization's projects — real rows, with their castings and artwork. */
 
@@ -102,11 +103,7 @@ export function ProjectsPage() {
                   <div className="flex gap-4 p-4">
                     <span className="h-24 w-[68px] shrink-0 overflow-hidden rounded-btn bg-line">
                       {project.poster_url && (
-                        <img
-                          src={project.poster_url}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
+                        <PosterImage src={project.poster_url} />
                       )}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -286,7 +283,7 @@ function ProjectModal({
         <div className="flex items-center gap-4">
           <span className="h-24 w-[68px] shrink-0 overflow-hidden rounded-btn bg-line">
             {form.posterUrl && (
-              <img src={form.posterUrl} alt="" className="h-full w-full object-cover" />
+              <PosterImage src={form.posterUrl} />
             )}
           </span>
           <FileDropzone kind="poster" onFile={uploadPoster} onError={setError} bare className="flex-1">

@@ -12,6 +12,7 @@ import { deadlineLabel, isClosingSoon } from '@/lib/format'
 import { useT } from '@/lib/i18n'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
+import { PosterImage } from '@/components/PosterImage'
 
 /**
  * Casting calls, talent side — the real published castings.
@@ -152,14 +153,10 @@ export function CastingCalls() {
                     <Link
                       to={`/talent/casting/${casting.id}`}
                       aria-label={casting.project?.title ?? casting.title}
-                      className="h-24 w-full shrink-0 overflow-hidden rounded-btn bg-line sm:h-28 sm:w-20"
+                      className="h-44 w-full shrink-0 overflow-hidden rounded-btn bg-line sm:h-28 sm:w-20"
                     >
                       {casting.project?.poster_url && (
-                        <img
-                          src={casting.project.poster_url}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
+                        <PosterImage src={casting.project.poster_url} />
                       )}
                     </Link>
 

@@ -23,6 +23,7 @@ import { asset } from '@/lib/asset'
 import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/cn'
 import type { RoleRow } from '@/types/database'
+import { PosterImage } from '@/components/PosterImage'
 
 /**
  * One casting call as a feed post — the production is the author, the roles are
@@ -197,18 +198,13 @@ export function CastingPost({
         </div>
       </div>
 
-      {/* ── Media: a fixed crop keeps the feed's rhythm whatever the poster's ratio ── */}
+      {/* ── Media: a fixed frame keeps the feed's rhythm; the poster itself is never cropped ── */}
       {project?.poster_url && (
         <Link
           to={detailHref}
           className="block h-56 overflow-hidden border-y border-line bg-paper sm:h-72"
         >
-          <img
-            src={asset(project.poster_url)}
-            alt={project.title ?? casting.title}
-            loading="lazy"
-            className="h-full w-full object-cover"
-          />
+          <PosterImage src={asset(project.poster_url)} alt={project.title ?? casting.title} loading="lazy" />
         </Link>
       )}
 

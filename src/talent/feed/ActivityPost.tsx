@@ -5,6 +5,7 @@ import type { MyApplication } from '@/features/applications/queries'
 import { APPLICATION_STATUS_TONE, relativeTime } from '@/lib/format'
 import { asset } from '@/lib/asset'
 import { useT } from '@/lib/i18n'
+import { PosterImage } from '@/components/PosterImage'
 
 /**
  * Your own activity in the feed: an application you sent, or a decision a
@@ -53,11 +54,7 @@ export function ActivityPost({
       <Link to="/talent/auditions" className="flex items-center gap-4 px-4 py-4 sm:px-5">
         <span className="h-16 w-12 shrink-0 overflow-hidden rounded-btn bg-line">
           {application.project?.poster_url && (
-            <img
-              src={asset(application.project.poster_url)}
-              alt=""
-              className="h-full w-full object-cover"
-            />
+            <PosterImage src={asset(application.project.poster_url)} />
           )}
         </span>
         <span className="min-w-0 flex-1">

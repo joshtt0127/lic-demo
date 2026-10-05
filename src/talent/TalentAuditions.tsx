@@ -28,6 +28,7 @@ import {
 import { useT } from '@/lib/i18n'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
+import { PosterImage } from '@/components/PosterImage'
 
 /**
  * Auditions = your applications. The very rows the production reads in its
@@ -132,11 +133,7 @@ function AuditionCard({
         <div className="flex min-w-0 items-start gap-3">
           <span className="h-16 w-12 shrink-0 overflow-hidden rounded-btn bg-line">
             {application.project?.poster_url && (
-              <img
-                src={application.project.poster_url}
-                alt=""
-                className="h-full w-full object-cover"
-              />
+              <PosterImage src={application.project.poster_url} />
             )}
           </span>
           <div className="min-w-0">

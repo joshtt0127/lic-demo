@@ -72,6 +72,7 @@ import { EditCastingModal } from '@/studio/EditCastingModal'
 import { CandidateReviewModal } from './CandidateReviewModal'
 import { VideoCastingBreakdown } from '@/features/briefs/VideoCastingBreakdown'
 import { toCastingDraft, toRoleDraft } from '@/features/briefs/mapping'
+import { PosterImage } from '@/components/PosterImage'
 
 /**
  * Casting call dashboard — the production-side cockpit for one casting.
@@ -260,11 +261,7 @@ export function CastingDashboardPage() {
       <Card className="flex flex-col gap-5 lg:flex-row lg:items-center">
         <span className="h-28 w-20 shrink-0 overflow-hidden rounded-card bg-line">
           {data.project?.poster_url && (
-            <img
-              src={data.project.poster_url}
-              alt=""
-              className="h-full w-full object-cover object-top"
-            />
+            <PosterImage src={data.project.poster_url} />
           )}
         </span>
 

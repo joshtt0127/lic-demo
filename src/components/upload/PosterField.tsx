@@ -5,6 +5,7 @@ import { FileDropzone, UploadProgress } from '@/components/upload/FileDropzone'
 import { useMediaMutations } from '@/features/talent/queries'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
+import { PosterImage } from '@/components/PosterImage'
 
 /**
  * L'affiche d'un projet : glisser-déposer (ou parcourir), aperçu au format
@@ -64,7 +65,7 @@ export function PosterField({
           )}
         >
           {value ? (
-            <img src={value} alt="Poster" className="h-full w-full object-cover" />
+            <PosterImage src={value} alt="Poster" />
           ) : (
             <ImageIcon className="h-6 w-6 text-muted" />
           )}
