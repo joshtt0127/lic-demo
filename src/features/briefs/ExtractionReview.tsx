@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ChevronDown, Play, X } from 'lucide-react'
+import { AlertTriangle, ChevronDown, Play, X } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { useLanguagesCatalog } from '@/features/talent/queries'
 import { FIELD_LABELS, LIST_FIELDS, timecode, type Accepted } from '@/features/briefs/mapping'
@@ -94,6 +94,13 @@ export function ExtractionReview({
 
   return (
     <div className="flex flex-col gap-4 rounded-field border border-line bg-paper p-4">
+      {/* L'analyse a abouti mais n'a pas tout entendu (son coupé, fin manquante). */}
+      {extraction.error && (
+        <p className="flex items-start gap-2 rounded-field bg-signal-no/10 p-3 text-[13px] leading-snug text-ink">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-signal-no" />
+          {extraction.error}
+        </p>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-[15px] font-bold text-ink">Here is what we understood</p>

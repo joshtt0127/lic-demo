@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Camera, CircleStop, RotateCcw, Upload, Video } from 'lucide-react'
+import { AlertTriangle, Camera, CircleStop, RotateCcw, Upload, Video } from 'lucide-react'
 import { Button, FormError, Spinner } from '@/components/ui'
 import { formatBytes } from '@/lib/storage'
 import { useT } from '@/lib/i18n'
@@ -19,14 +19,37 @@ import { cn } from '@/lib/cn'
 
 const MAX_SECONDS = 180
 
-/** The bucket accepts mp4 / quicktime / webm — pick what the browser can make. */
+/**
+ * How long the sound of a take really lasts. `null` when the browser cannot
+ * tell — then we say nothing rather than raise a false alarm.
+ */
+async function soundSeconds(blob: Blob): Promise<number | null> {
+  const Context = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+  if (!Context) return null
+  const context = new Context()
+  try {
+    const audio = await context.decodeAudioData(await blob.arrayBuffer())
+    return audio.duration
+  } catch {
+    return null
+  } finally {
+    void context.close().catch(() => {})
+  }
+}
+
+/**
+ * The bucket accepts mp4 / quicktime / webm — pick what the browser can make.
+ * WebM first: a brief recorded in MP4 (H.264 + AAC) came back with its sound
+ * stopping at 0:10 of a 0:26 take, so the transcript stopped there too. MP4
+ * stays the fallback for browsers that cannot record WebM.
+ */
 function pickMimeType(): { mimeType: string; extension: string } | null {
   if (typeof MediaRecorder === 'undefined') return null
   const candidates = [
-    { mimeType: 'video/mp4', extension: 'mp4' },
     { mimeType: 'video/webm;codecs=vp9,opus', extension: 'webm' },
     { mimeType: 'video/webm;codecs=vp8,opus', extension: 'webm' },
     { mimeType: 'video/webm', extension: 'webm' },
+    { mimeType: 'video/mp4', extension: 'mp4' },
   ]
   return candidates.find((candidate) => MediaRecorder.isTypeSupported(candidate.mimeType)) ?? null
 }
@@ -60,6 +83,10 @@ export function SelfTapeRecorder({
   const [elapsed, setElapsed] = useState(0)
   const [take, setTake] = useState<{ file: File; url: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // The sound of the take stops before the picture (microphone lost on the way).
+  const [soundCut, setSoundCut] = useState<{ at: number; total: number } | null>(null)
+  const startedAtRef = useRef(0)
+  const micLostRef = useRef(false)
 
   const support = pickMimeType()
 
@@ -163,11 +190,29 @@ export function SelfTapeRecorder({
       const file = new File([blob], `self-tape-${stamp}.${support.extension}`, { type })
       setTake({ file, url: URL.createObjectURL(blob) })
       setPhase('review')
+
+      // A take whose sound stops early cannot be transcribed past that point:
+      // say it now, while recording again costs a few seconds.
+      const total = (performance.now() - startedAtRef.current) / 1000
+      void soundSeconds(blob).then((sound) => {
+        const at = sound ?? (micLostRef.current ? 0 : null)
+        if (at !== null && at < total - 2) setSoundCut({ at, total })
+      })
     }
     recorder.onerror = () => setError(t('recorder.failed'))
 
+    micLostRef.current = stream.getAudioTracks().length === 0
+    stream.getAudioTracks().forEach((track) => {
+      track.onended = () => {
+        micLostRef.current = true
+      }
+    })
+
     recorderRef.current = recorder
-    recorder.start()
+    setSoundCut(null)
+    startedAtRef.current = performance.now()
+    // Hand data over every second: a long take is never held in one buffer.
+    recorder.start(1000)
     setElapsed(0)
     setPhase('recording')
   }
@@ -175,6 +220,7 @@ export function SelfTapeRecorder({
   function retake() {
     if (take) URL.revokeObjectURL(take.url)
     setTake(null)
+    setSoundCut(null)
     setElapsed(0)
     setCountdown(3)
     setPhase('ready')
@@ -241,6 +287,12 @@ export function SelfTapeRecorder({
 
       {phase === 'review' && take ? (
         <>
+          {soundCut && (
+            <p className="flex items-start gap-2 rounded-field bg-signal-no/10 p-3 text-[13px] leading-snug text-ink">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-signal-no" />
+              {t('recorder.soundCut', { at: clock(Math.floor(soundCut.at)), total: clock(Math.round(soundCut.total)) })}
+            </p>
+          )}
           <p className="text-[12.5px] text-muted">
             {t('recorder.take', {
               duration: clock(elapsed),

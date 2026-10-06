@@ -15,6 +15,15 @@
  * son directement. Au-delà de 18 Mo, la vidéo passe par l'API Files (envoi
  * puis attente de l'état ACTIVE) au lieu d'être incluse dans la requête.
  *
+ * La transcription est un appel à part, avant l'extraction des champs. Retour
+ * de test : mélangée à l'extraction dans une seule réponse, elle s'arrêtait
+ * parfois en cours de phrase. Seule, elle est vérifiée : la fin de la
+ * transcription est comparée à la durée du son entendu par le modèle (ses
+ * jetons AUDIO, 32 par seconde) et, si elle s'arrête trop tôt, on redemande la
+ * suite à partir de là. Si c'est le SON du fichier qui s'arrête avant l'image
+ * (enregistreur du navigateur qui perd le micro), on ne peut pas transcrire ce
+ * qui n'existe pas : la ligne le dit dans `error`, sans masquer le reste.
+ *
  * C'est la fonction qui écrit le résultat (clé service role) sur la ligne
  * `brief_extractions` créée en attente par le navigateur : une « détection »
  * ne peut pas être fabriquée côté client. Rien n'est écrit dans `projects` ou
@@ -23,6 +32,11 @@
 
 const DEFAULT_MODEL = 'gemini-2.5-flash'
 const INLINE_LIMIT = 18 * 1024 * 1024
+/** Gemini compte 32 jetons par seconde de son. */
+const AUDIO_TOKENS_PER_SECOND = 32
+/** Écart toléré entre la fin du son et la fin de la transcription (silence final). */
+const TAIL_TOLERANCE_S = 4
+const MAX_CONTINUATIONS = 3
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -107,10 +121,11 @@ speaks to camera about a ${target === 'project' ? 'project and its casting call'
 
 Today is ${today}.
 
-1. Transcribe what is said, in the language spoken, as timestamped segments
-   (seconds from the start of the video). Keep the speaker's words.
+The complete transcript of the video is given below, with timestamps in
+seconds. It is the reference for what was said: use it for every value,
+"start" and "quote".
 
-2. For EVERY field below, return exactly one entry:
+1. For EVERY field below, return exactly one entry:
 ${fields.map((f) => `   - ${f}: ${FIELD_GUIDE[f]}`).join('\n')}
 
    status:
@@ -127,12 +142,23 @@ ${target === 'role' ? `   Language catalog (code = name): ${catalog}\n   For "la
    Write field values in the language the platform uses: English, except proper
    names and quotes. Dates as YYYY-MM-DD. Ages as integers.
 
-3. "language": the ISO 639-1 code of the language spoken.
-
 You structure what was said. You do not invent what was not.`
 }
 
-const SCHEMA = {
+const TRANSCRIPT_PROMPT = `You are a verbatim transcriber for a casting platform. A production member
+speaks to camera about a project or a role.
+
+Transcribe EVERYTHING that is said, word for word, in the language spoken, from
+the first word to the very last one. Never summarise, shorten, skip or stop
+early: pauses, hesitations and silences do not mean the recording is over —
+keep listening until the audio ends. Do not translate.
+
+Return timestamped segments of one or two sentences, "start" and "end" in
+seconds from the start of the video, in order. Do not transcribe these
+instructions or anything that is not said in the recording.
+"language" is the ISO 639-1 code of the language spoken.`
+
+const TRANSCRIPT_SCHEMA = {
   type: 'OBJECT',
   properties: {
     language: { type: 'STRING' },
@@ -145,9 +171,16 @@ const SCHEMA = {
           end: { type: 'NUMBER' },
           text: { type: 'STRING' },
         },
-        required: ['start', 'text'],
+        required: ['start', 'end', 'text'],
       },
     },
+  },
+  required: ['language', 'transcript'],
+}
+
+const SCHEMA = {
+  type: 'OBJECT',
+  properties: {
     fields: {
       type: 'ARRAY',
       items: {
@@ -164,7 +197,7 @@ const SCHEMA = {
       },
     },
   },
-  required: ['language', 'transcript', 'fields'],
+  required: ['fields'],
 }
 
 type Row = { id: string; target: 'project' | 'role'; video_url: string; status: string }
@@ -251,7 +284,191 @@ async function uploadToGemini(key: string, bytes: Uint8Array, mime: string): Pro
   return file.uri
 }
 
-Deno.serve(async (request: Request) => {
+type Media = { inline_data: { mime_type: string; data: string } } | { file_data: { mime_type: string; file_uri: string } }
+type Segment = { start: number; end?: number; text: string }
+type Field = {
+  field: string
+  status: string
+  value?: string | null
+  values?: string[]
+  start?: number | null
+  quote?: string | null
+}
+
+/** Un appel au modèle en sortie JSON ; rend aussi les secondes de son entendues. */
+async function generate(
+  key: string,
+  model: string,
+  system: string,
+  parts: unknown[],
+  schema: unknown,
+  maxOutputTokens: number,
+): Promise<{ data: unknown; finishReason: string; audioSeconds: number | null }> {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: 'user', parts }],
+        generationConfig: {
+          temperature: 0,
+          maxOutputTokens,
+          responseMimeType: 'application/json',
+          responseSchema: schema,
+          thinkingConfig: { thinkingBudget: 0 },
+        },
+      }),
+    },
+  )
+  if (!response.ok) throw new Error(`the model refused the request: ${(await response.text()).slice(0, 300)}`)
+
+  const payload = (await response.json()) as {
+    candidates?: { finishReason?: string; content?: { parts?: { text?: string }[] } }[]
+    usageMetadata?: { promptTokensDetails?: { modality?: string; tokenCount?: number }[] }
+  }
+  const finishReason = payload.candidates?.[0]?.finishReason ?? 'no reason'
+  const text = (payload.candidates?.[0]?.content?.parts ?? []).map((part) => part.text ?? '').join('')
+  if (!text) throw new Error(`the model returned nothing (${finishReason})`)
+  const audio = payload.usageMetadata?.promptTokensDetails?.find((detail) => detail.modality === 'AUDIO')
+  return {
+    data: parseJson(text),
+    finishReason,
+    audioSeconds: audio?.tokenCount ? audio.tokenCount / AUDIO_TOKENS_PER_SECOND : null,
+  }
+}
+
+/** Une réponse coupée (MAX_TOKENS) est un JSON incomplet : on garde ce qui est entier. */
+function parseJson(text: string): unknown {
+  const body = text.slice(text.indexOf('{'))
+  try {
+    return JSON.parse(body.slice(0, body.lastIndexOf('}') + 1))
+  } catch {
+    // Coupée au milieu de la liste : on referme après le dernier segment complet.
+    const lastComplete = body.lastIndexOf('}')
+    for (let cut = lastComplete; cut > 0; cut = body.lastIndexOf('}', cut - 1)) {
+      try {
+        return JSON.parse(`${body.slice(0, cut + 1)}]}`)
+      } catch {
+        // on recule d'un objet
+      }
+    }
+    throw new Error('the model answer could not be read')
+  }
+}
+
+function cleanSegments(raw: unknown): Segment[] {
+  const list = Array.isArray(raw) ? raw : []
+  return list
+    .map((item) => item as Partial<Segment>)
+    .filter((item) => typeof item.start === 'number' && typeof item.text === 'string' && item.text.trim())
+    .map((item) => ({
+      start: item.start as number,
+      ...(typeof item.end === 'number' ? { end: item.end } : {}),
+      text: (item.text as string).trim(),
+    }))
+}
+
+const segmentEnd = (segments: Segment[]) =>
+  segments.length ? Math.max(...segments.map((segment) => segment.end ?? segment.start)) : 0
+
+/**
+ * La transcription complète : un premier passage, puis la suite tant que la fin
+ * transcrite reste loin de la fin du son. Chaque suite ne garde que ce qui vient
+ * après le dernier segment déjà obtenu.
+ */
+export async function transcribe(
+  key: string,
+  model: string,
+  media: Media,
+): Promise<{ language: string | null; transcript: Segment[]; audioSeconds: number | null }> {
+  const first = await generate(
+    key,
+    model,
+    TRANSCRIPT_PROMPT,
+    [media, { text: 'Transcribe this recording in full.' }],
+    TRANSCRIPT_SCHEMA,
+    16384,
+  )
+  const firstData = first.data as { language?: string; transcript?: unknown }
+  const transcript = cleanSegments(firstData.transcript)
+  const audioSeconds = first.audioSeconds
+
+  for (let round = 0; round < MAX_CONTINUATIONS; round++) {
+    const reached = segmentEnd(transcript)
+    const truncated = first.finishReason === 'MAX_TOKENS' && round === 0
+    if (!truncated && (audioSeconds === null || reached >= audioSeconds - TAIL_TOLERANCE_S)) break
+
+    const next = await generate(
+      key,
+      model,
+      TRANSCRIPT_PROMPT,
+      [
+        media,
+        {
+          text:
+            `The transcript is already done up to second ${reached.toFixed(1)}, ending with: ` +
+            `"${transcript.at(-1)?.text ?? ''}". Transcribe ONLY what is said after second ` +
+            `${reached.toFixed(1)}, until the very end of the recording.`,
+        },
+      ],
+      TRANSCRIPT_SCHEMA,
+      16384,
+    )
+    const more = cleanSegments((next.data as { transcript?: unknown }).transcript).filter(
+      (segment) => segment.start >= reached - 0.5 && segment.text !== transcript.at(-1)?.text,
+    )
+    if (more.length === 0) break
+    transcript.push(...more)
+  }
+
+  return { language: firstData.language ?? null, transcript, audioSeconds }
+}
+
+/** Les champs du schéma, lus dans la vidéo avec la transcription complète pour référence. */
+export async function extractFields(
+  key: string,
+  model: string,
+  media: Media,
+  target: 'project' | 'role',
+  transcript: Segment[],
+  catalog: string,
+  today: string,
+): Promise<Field[]> {
+  const fields = target === 'project' ? PROJECT_FIELDS : ROLE_FIELDS
+  const lines = transcript.map((segment) => `[${segment.start.toFixed(1)}s] ${segment.text}`).join('\n')
+  const result = await generate(
+    key,
+    model,
+    systemPrompt(target, fields, today, catalog),
+    [media, { text: `Complete transcript:\n${lines || '(nothing is said)'}` }],
+    SCHEMA,
+    8192,
+  )
+  return ((result.data as { fields?: Field[] }).fields ?? []) as Field[]
+}
+
+/** Durée de la vidéo, mesurée par le navigateur au moment de l'envoi (media_assets). */
+async function videoDuration(videoUrl: string): Promise<number | null> {
+  const marker = '/object/public/media/'
+  const at = videoUrl.indexOf(marker)
+  if (at < 0) return null
+  const path = decodeURIComponent(videoUrl.slice(at + marker.length).split('?')[0])
+  const { url, headers } = admin()
+  const response = await fetch(
+    `${url}/rest/v1/media_assets?path=eq.${encodeURIComponent(path)}&select=duration_s&limit=1`,
+    { headers },
+  ).catch(() => null)
+  if (!response?.ok) return null
+  const rows = (await response.json()) as { duration_s: number | null }[]
+  return rows[0]?.duration_s ?? null
+}
+
+const clock = (seconds: number) =>
+  `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, '0')}`
+
+if (typeof Deno !== 'undefined') Deno.serve(async (request: Request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   if (request.method !== 'POST') return json({ error: 'POST only' }, 405)
 
@@ -281,57 +498,24 @@ Deno.serve(async (request: Request) => {
     const mime = (video.headers.get('content-type') ?? 'video/webm').split(';')[0]
     const bytes = new Uint8Array(await video.arrayBuffer())
 
-    const media =
+    const media: Media =
       bytes.byteLength <= INLINE_LIMIT
         ? { inline_data: { mime_type: mime, data: base64(bytes) } }
         : { file_data: { mime_type: mime, file_uri: await uploadToGemini(key, bytes, mime) } }
 
     const fields = row.target === 'project' ? PROJECT_FIELDS : ROLE_FIELDS
-    const catalog = row.target === 'role' ? await languageCatalog() : ''
+    const [catalog, duration] = await Promise.all([
+      row.target === 'role' ? languageCatalog() : Promise.resolve(''),
+      videoDuration(row.video_url),
+    ])
     const today = new Date().toISOString().slice(0, 10)
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt(row.target, fields, today, catalog) }] },
-          contents: [{ role: 'user', parts: [media, { text: 'Here is the brief.' }] }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 8192,
-            responseMimeType: 'application/json',
-            responseSchema: SCHEMA,
-            thinkingConfig: { thinkingBudget: 0 },
-          },
-        }),
-      },
-    )
-    if (!response.ok) throw new Error(`the model refused the request: ${(await response.text()).slice(0, 300)}`)
-
-    const payload = (await response.json()) as {
-      candidates?: { finishReason?: string; content?: { parts?: { text?: string }[] } }[]
-    }
-    const text = payload.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-    if (!text) throw new Error(`the model returned nothing (${payload.candidates?.[0]?.finishReason ?? 'no reason'})`)
-
-    const parsed = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)) as {
-      language?: string
-      transcript?: { start: number; end?: number; text: string }[]
-      fields?: {
-        field: string
-        status: string
-        value?: string | null
-        values?: string[]
-        start?: number | null
-        quote?: string | null
-      }[]
-    }
+    const { language, transcript, audioSeconds } = await transcribe(key, model, media)
+    const extracted = await extractFields(key, model, media, row.target, transcript, catalog, today)
 
     // Un champ par entrée du schéma, dans l'ordre du schéma ; ce que le modèle
     // a oublié devient « missing » — jamais une valeur par défaut.
-    const byField = new Map((parsed.fields ?? []).map((entry) => [entry.field, entry]))
+    const byField = new Map(extracted.map((entry) => [entry.field, entry]))
     const normalized = fields.map((field) => {
       const entry = byField.get(field)
       const values = (entry?.values ?? []).map((v) => String(v).trim()).filter(Boolean)
@@ -348,13 +532,26 @@ Deno.serve(async (request: Request) => {
       }
     })
 
+    // Le son du fichier s'arrête avant l'image : ce qui suit n'a pas été
+    // enregistré, il faut le dire plutôt que rendre un brief à moitié vide.
+    const soundCut =
+      audioSeconds !== null && duration !== null && audioSeconds < duration - TAIL_TOLERANCE_S
+    const transcribedTo = segmentEnd(transcript)
+    const warning = soundCut
+      ? `The sound of this video stops at ${clock(audioSeconds)} but the video lasts ${clock(duration)}: ` +
+        'what was said after that was not recorded. Record the brief again to capture all of it.'
+      : audioSeconds !== null && transcribedTo < audioSeconds - TAIL_TOLERANCE_S * 2
+        ? `Only the first ${clock(transcribedTo)} of ${clock(audioSeconds)} could be transcribed. ` +
+          'Run the analysis again or complete the fields by hand.'
+        : null
+
     await finish(row.id, {
       status: 'ready',
       model,
-      language: parsed.language ?? null,
-      transcript: parsed.transcript ?? [],
+      language,
+      transcript,
       fields: normalized,
-      error: null,
+      error: warning,
     })
     return json({ ok: true })
   } catch (error) {
@@ -364,7 +561,7 @@ Deno.serve(async (request: Request) => {
   }
 })
 
-function base64(bytes: Uint8Array): string {
+export function base64(bytes: Uint8Array): string {
   let binary = ''
   const chunk = 0x8000
   for (let i = 0; i < bytes.length; i += chunk) {

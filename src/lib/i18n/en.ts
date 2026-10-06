@@ -451,6 +451,8 @@ export const en: Record<string, string> = {
   'recorder.noCamera': 'No camera available here — you can still upload a file.',
   'recorder.refused':
     'Camera access was refused. Allow it in your browser, or upload a file instead.',
+  'recorder.soundCut':
+    'The sound of this take stops at {at} but it lasts {total}: what you said after that was not recorded. Record it again.',
   'recorder.failed': 'The recording stopped unexpectedly. Try again.',
 
   // ── Messages ──

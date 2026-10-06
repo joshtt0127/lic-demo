@@ -456,6 +456,8 @@ export const fr: Record<string, string> = {
   'recorder.noCamera': 'Aucune caméra disponible ici — vous pouvez importer un fichier.',
   'recorder.refused':
     'L’accès à la caméra a été refusé. Autorisez-le dans votre navigateur, ou importez un fichier.',
+  'recorder.soundCut':
+    'Le son de cette prise s’arrête à {at} alors qu’elle dure {total} : ce qui a été dit ensuite n’a pas été enregistré. Recommencez la prise.',
   'recorder.failed': 'L’enregistrement s’est interrompu. Réessayez.',
 
   // ── Messages ──
