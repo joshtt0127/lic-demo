@@ -1,17 +1,20 @@
 import { withFlag } from '@/lib/languageFlags'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowDown,
   ArrowLeft,
   Bookmark,
+  Check,
+  Download,
+  Eye,
   Calendar,
   ChevronDown,
   Clapperboard,
   Film,
-  Globe,
   Languages,
   MapPin,
+  Play,
   Sparkles,
   User,
   Users,
@@ -33,7 +36,9 @@ import {
 import { ReportOrBlock } from '@/components/ReportOrBlock'
 import { useT } from '@/lib/i18n'
 import { useProjectBriefs } from '@/features/briefs/queries'
-import { BriefVideoCard } from '@/features/briefs/BriefVideoCard'
+import { BriefVideoCard, formatDuration } from '@/features/briefs/BriefVideoCard'
+import { SidesViewer } from '@/features/sides/SidesViewer'
+import { isPdfSides, sidesDownloadUrl } from '@/features/sides/sides'
 import { useLanguagesCatalog } from '@/features/talent/queries'
 import {
   APPLICATION_STATUS_TONE,
@@ -156,10 +161,17 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
             </div>
           )}
 
-          <div className="grid gap-8 p-6 sm:p-10 md:grid-cols-[minmax(0,300px)_1fr] md:items-end md:gap-12 lg:p-12">
-            <div className="mx-auto aspect-[2/3] w-full max-w-[260px] overflow-hidden rounded-card shadow-[0_30px_80px_rgba(0,0,0,0.55)] ring-1 ring-white/10 md:max-w-none">
-              <PosterImage src={poster} alt={projectTitle} placeholder loading="eager" />
-            </div>
+          <div
+            className={cn(
+              'grid gap-8 p-6 sm:p-10 md:items-end md:gap-12 lg:p-12',
+              poster ? 'md:grid-cols-[minmax(0,300px)_1fr]' : 'pt-16 sm:pt-24',
+            )}
+          >
+            {poster && (
+              <div className="mx-auto aspect-[2/3] w-full max-w-[260px] overflow-hidden rounded-card shadow-[0_30px_80px_rgba(0,0,0,0.55)] ring-1 ring-white/10 md:max-w-none">
+                <PosterImage src={poster} alt={projectTitle} loading="eager" />
+              </div>
+            )}
 
             <div className="min-w-0">
               <p className="text-label font-semibold uppercase tracking-label text-white/60">{eyebrow}</p>
@@ -298,7 +310,7 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
           />
         ) : (
           <ul className={cn('grid gap-6', data.roles.length > 1 && 'md:grid-cols-2')}>
-            {data.roles.map((role) => {
+            {data.roles.map((role, index) => {
               const application = myApplications.find((item) => item.role_id === role.id)
               const gate = applyGate(role, data)
               return (
@@ -310,6 +322,8 @@ export function TalentCastingDetail({ readOnly }: { readOnly?: boolean } = {}) {
                     castingDirector={castingDirector}
                     location={role.location ?? data.location}
                     languageName={languageName}
+                    submitted={Boolean(application)}
+                    index={index}
                     action={
                       !isTalent ? null : application ? (
                         <div className="flex items-center justify-between gap-3 rounded-field bg-paper px-4 py-3">
@@ -361,6 +375,8 @@ function SectionTitle({ eyebrow, title, hint }: { eyebrow: string; title: string
   )
 }
 
+const POSTER_CROPS = ['50% 18%', '50% 62%', '50% 88%', '50% 40%']
+
 function RoleCard({
   role,
   brief,
@@ -369,7 +385,10 @@ function RoleCard({
   location,
   languageName,
   action,
+  submitted,
+  index,
 }: {
+  index: number
   role: RoleRow
   brief: BriefVideoRow | null
   poster: string | undefined
@@ -377,9 +396,17 @@ function RoleCard({
   location: string | null
   languageName: (code: string) => string
   action: React.ReactNode
+  /** La candidature est partie : la dernière étape du parcours est faite. */
+  submitted: boolean
 }) {
   const t = useT()
+  const [playing, setPlaying] = useState(false)
+  const [watched, setWatched] = useState(false)
+  const [readSides, setReadSides] = useState(false)
+  const [viewingSides, setViewingSides] = useState(false)
+  const visualRef = useRef<HTMLDivElement>(null)
   const stage = ROLE_STAGE_KEY[role.status]
+  const sides = role.sides_url
   const typeLabel =
     role.role_type === 'lead'
       ? t('casting.lead')
@@ -397,34 +424,125 @@ function RoleCard({
     location ? { icon: <MapPin className="h-3.5 w-3.5" />, text: location } : null,
   ].filter((item): item is { icon: React.ReactElement; text: string } => item !== null)
 
+  const playBrief = () => {
+    setPlaying(true)
+    setWatched(true)
+    visualRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+  const openSides = () => {
+    setReadSides(true)
+    if (sides && isPdfSides(sides)) setViewingSides(true)
+    else if (sides) window.open(sides, '_blank', 'noopener')
+  }
+
+  // Watch Role Brief → Read Audition Sides → Record / Submit Self-Tape :
+  // seulement les étapes qui existent pour ce rôle.
+  const steps: { key: string; done: boolean; title: string; body: React.ReactNode }[] = []
+  if (brief) {
+    steps.push({
+      key: 'brief',
+      done: watched,
+      title: t('journey.watch'),
+      body: (
+        <button
+          type="button"
+          onClick={playBrief}
+          className="inline-flex h-9 items-center gap-2 rounded-btn bg-ink px-3.5 text-[13px] font-bold text-white transition hover:bg-ink/90"
+        >
+          <Play className="h-3.5 w-3.5 fill-current" />
+          {watched ? t('journey.watchAgain') : t('journey.watchCta')}
+          {formatDuration(brief.duration_s) && (
+            <span className="font-mono text-[11.5px] font-medium text-white/60">{formatDuration(brief.duration_s)}</span>
+          )}
+        </button>
+      ),
+    })
+  }
+  if (sides) {
+    steps.push({
+      key: 'sides',
+      done: readSides,
+      title: t('journey.read'),
+      body: (
+        <div className="flex flex-col gap-3 rounded-field border border-line bg-paper p-3.5">
+          <span className="flex items-start gap-3">
+            <span className="flex h-11 w-9 shrink-0 flex-col items-center justify-end rounded-[6px] bg-card pb-1 text-[8.5px] font-extrabold tracking-wide text-signal-no shadow-card ring-1 ring-line">
+              PDF
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[14px] font-bold text-ink">{t('sides.title')}</span>
+              <span className="block text-[12.5px] leading-snug text-muted">{t('sides.hint')}</span>
+            </span>
+          </span>
+          <span className="flex flex-col gap-2 whitespace-nowrap sm:flex-row">
+            <button
+              type="button"
+              onClick={openSides}
+              className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-btn sm:w-auto sm:flex-1 bg-ink px-3.5 text-[13px] font-bold text-white transition hover:bg-ink/90"
+            >
+              <Eye className="h-3.5 w-3.5" />
+              {t('sides.view')}
+            </button>
+            {isPdfSides(sides) && (
+              <a
+                href={sidesDownloadUrl(sides, role.name)}
+                onClick={() => setReadSides(true)}
+                className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-btn sm:w-auto sm:flex-1 border border-line bg-card px-3.5 text-[13px] font-semibold text-ink transition hover:border-ink/30"
+              >
+                <Download className="h-3.5 w-3.5" />
+                {t('sides.download')}
+              </a>
+            )}
+          </span>
+        </div>
+      ),
+    })
+  }
+  if (action) {
+    steps.push({ key: 'tape', done: submitted, title: t('journey.submit'), body: action })
+  }
+  // Rien à préparer avant : pas de parcours, juste l'action.
+  const showJourney = steps.length > 1
+
   return (
     <article className="flex w-full flex-col overflow-hidden rounded-card border border-line bg-card shadow-card transition-shadow hover:shadow-card-hover">
       {/* Le visuel du rôle : son brief vidéo, sinon l'affiche du projet. */}
-      {brief ? (
-        <BriefVideoCard
-          url={brief.url}
-          durationS={brief.duration_s}
-          kind="role"
-          title={t('brief.role.cardTitle', { name: role.name })}
-          castingDirector={castingDirector}
-          className="aspect-[16/10]"
-        />
-      ) : (
-        <div className="relative aspect-[16/10] overflow-hidden bg-ink">
-          {poster && (
-            <img
-              src={poster}
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 h-full w-full scale-125 object-cover opacity-50 blur-2xl"
-            />
-          )}
-          <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-ink via-ink/60 to-transparent" />
-          <p className="absolute inset-x-0 bottom-0 p-5 font-display text-[2.2rem] font-extrabold leading-none tracking-[-0.03em] text-white">
-            {role.name}
-          </p>
-        </div>
-      )}
+      <div ref={visualRef}>
+        {brief ? (
+          <BriefVideoCard
+            url={brief.url}
+            durationS={brief.duration_s}
+            kind="role"
+            title={t('brief.role.cardTitle', { name: role.name })}
+            castingDirector={castingDirector}
+            className="aspect-[16/10]"
+            playing={playing}
+            onPlay={playBrief}
+          />
+        ) : (
+          <div
+            className={cn(
+              'relative overflow-hidden bg-ink',
+              poster ? 'aspect-[16/10]' : 'aspect-[16/7] bg-[radial-gradient(120%_90%_at_15%_0%,#4a3f2a_0%,#15140F_65%)]',
+            )}
+          >
+            {poster && (
+              // Chaque rôle prend un autre cadrage de l'affiche.
+              <img
+                src={poster}
+                alt=""
+                aria-hidden="true"
+                style={{ objectPosition: POSTER_CROPS[index % POSTER_CROPS.length] }}
+                className="absolute inset-0 h-full w-full object-cover opacity-75 grayscale-[35%]"
+              />
+            )}
+            <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-ink via-ink/55 to-ink/10" />
+            <p className="absolute inset-x-0 bottom-0 p-5 font-display text-[2.2rem] font-extrabold leading-none tracking-[-0.03em] text-white">
+              {role.name}
+            </p>
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-1 flex-col gap-4 p-5 sm:p-6">
         <div>
@@ -432,7 +550,13 @@ function RoleCard({
             <Tag tone={role.role_type === 'lead' ? 'gold' : 'neutral'}>{typeLabel}</Tag>
             {stage && <Tag tone={ROLE_STATUS_TONE[role.status]}>{t(stage)}</Tag>}
           </div>
-          <h3 className="mt-3 font-display text-[1.75rem] font-extrabold leading-tight tracking-[-0.025em] text-ink">
+          {/* Sans brief, le nom est déjà écrit en grand sur le visuel. */}
+          <h3
+            className={cn(
+              'font-display text-[1.75rem] font-extrabold leading-tight tracking-[-0.025em] text-ink',
+              brief ? 'mt-3' : 'sr-only',
+            )}
+          >
             {role.name}
           </h3>
           {criteria.length > 0 && (
@@ -464,7 +588,7 @@ function RoleCard({
           </div>
         )}
 
-        {(role.selftape_instructions || role.sides_url) && (
+        {role.selftape_instructions && (
           <details className="group rounded-field border border-line">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-[13.5px] font-semibold text-ink [&::-webkit-details-marker]:hidden">
               <span className="inline-flex items-center gap-2">
@@ -473,29 +597,52 @@ function RoleCard({
               </span>
               <ChevronDown className="h-4 w-4 text-muted transition-transform group-open:rotate-180" />
             </summary>
-            <div className="flex flex-col gap-3 border-t border-line px-4 py-3.5">
-              {role.selftape_instructions && (
-                <p className="whitespace-pre-line text-[14px] leading-relaxed text-ink/85">
-                  {role.selftape_instructions}
-                </p>
-              )}
-              {role.sides_url && (
-                <a
-                  href={role.sides_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex w-fit items-center gap-1.5 text-[13px] font-semibold text-link hover:underline"
-                >
-                  <Globe className="h-3.5 w-3.5" />
-                  {t('casting.sides')}
-                </a>
-              )}
-            </div>
+            <p className="whitespace-pre-line border-t border-line px-4 py-3.5 text-[14px] leading-relaxed text-ink/85">
+              {role.selftape_instructions}
+            </p>
           </details>
         )}
 
-        {action && <div className="mt-auto pt-1">{action}</div>}
+        {showJourney ? (
+          <div className="mt-auto border-t border-line pt-4">
+            <p className="tech-label">{t('journey.title')}</p>
+            <ol className="mt-3 flex flex-col">
+              {steps.map((step, index) => (
+                <li key={step.key} className="relative flex gap-3.5 pb-5 last:pb-0">
+                  {index < steps.length - 1 && (
+                    <span aria-hidden="true" className="absolute bottom-0 left-[13px] top-8 w-px bg-line" />
+                  )}
+                  <span
+                    className={cn(
+                      'relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12.5px] font-bold',
+                      step.done ? 'bg-signal-good text-white' : 'bg-ink text-white',
+                    )}
+                  >
+                    {step.done ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : index + 1}
+                    <span className="sr-only">{step.done ? t('journey.done') : ''}</span>
+                  </span>
+                  <div className="flex min-w-0 flex-1 flex-col gap-2.5 pt-0.5">
+                    <p className="text-[14.5px] font-bold text-ink">{step.title}</p>
+                    {step.body}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        ) : (
+          steps.length > 0 && (
+            <div className="mt-auto flex flex-col gap-3 pt-1">
+              {steps.map((step) => (
+                <div key={step.key}>{step.body}</div>
+              ))}
+            </div>
+          )
+        )}
       </div>
+
+      {viewingSides && sides && (
+        <SidesViewer url={sides} roleName={role.name} onClose={() => setViewingSides(false)} />
+      )}
     </article>
   )
 }

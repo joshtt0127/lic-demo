@@ -25,6 +25,8 @@ export function BriefVideoCard({
   castingDirector,
   size = 'card',
   className,
+  playing: playingProp,
+  onPlay,
 }: {
   url: string
   durationS: number | null
@@ -33,9 +35,17 @@ export function BriefVideoCard({
   castingDirector?: string | null
   size?: 'hero' | 'card'
   className?: string
+  /** Lecture pilotée de l'extérieur (le parcours d'audition lance la vidéo). */
+  playing?: boolean
+  onPlay?: () => void
 }) {
   const t = useT()
-  const [playing, setPlaying] = useState(false)
+  const [playingState, setPlayingState] = useState(false)
+  const playing = playingProp ?? playingState
+  const play = () => {
+    setPlayingState(true)
+    onPlay?.()
+  }
   const [measured, setMeasured] = useState<number | null>(null)
   const duration = formatDuration(durationS ?? measured)
   const hero = size === 'hero'
@@ -57,7 +67,7 @@ export function BriefVideoCard({
   return (
     <button
       type="button"
-      onClick={() => setPlaying(true)}
+      onClick={play}
       aria-label={t('brief.play', { title })}
       className={cn('group relative block w-full overflow-hidden bg-ink text-left text-white', className)}
     >
