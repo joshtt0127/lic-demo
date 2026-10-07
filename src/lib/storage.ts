@@ -23,10 +23,12 @@ export const BUCKET_BY_KIND: Record<MediaKind, string> = {
   poster: 'media',
   selftape: 'selftapes',
   brief: 'media',
+  sides: 'media',
 }
 
 const IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif']
 const VIDEO_MIMES = ['video/mp4', 'video/quicktime', 'video/webm']
+const PDF_MIMES = ['application/pdf']
 
 const MB = 1024 * 1024
 
@@ -51,6 +53,7 @@ export const RULES: Record<MediaKind, { mimes: string[]; maxBytes: number; label
   showreel: { mimes: VIDEO_MIMES, maxBytes: 200 * MB, label: 'MP4, MOV or WebM up to 200 MB' },
   selftape: { mimes: VIDEO_MIMES, maxBytes: 500 * MB, label: 'MP4, MOV or WebM up to 500 MB' },
   brief: { mimes: VIDEO_MIMES, maxBytes: 200 * MB, label: 'MP4, MOV or WebM up to 200 MB' },
+  sides: { mimes: PDF_MIMES, maxBytes: 20 * MB, label: 'PDF up to 20 MB' },
 }
 
 export function formatBytes(bytes: number): string {
@@ -63,6 +66,7 @@ export function validateFile(file: File, kind: MediaKind): string | null {
   const rule = RULES[kind]
   if (file.size === 0) return 'This file is empty'
   if (!rule.mimes.includes(file.type)) {
+    if (rule.mimes === PDF_MIMES) return 'Sides must be a PDF'
     return rule.mimes === VIDEO_MIMES
       ? 'Unsupported video format — use MP4, MOV or WebM'
       : 'Unsupported image format — use JPG, PNG, WebP or AVIF'

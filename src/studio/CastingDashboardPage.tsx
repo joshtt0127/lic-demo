@@ -775,6 +775,8 @@ export function CastingDashboardPage() {
                 languages: editingRole.languages,
                 skills: editingRole.skills,
                 selftapeInstructions: editingRole.selftape_instructions,
+                selfTapeRequired: editingRole.self_tape_required,
+                sidesUrl: editingRole.sides_url,
               }}
               onChange={(draft) =>
                 setEditingRole({
@@ -789,6 +791,8 @@ export function CastingDashboardPage() {
                   languages: draft.languages ?? [],
                   skills: draft.skills ?? [],
                   selftape_instructions: draft.selftapeInstructions ?? null,
+                  self_tape_required: Boolean(draft.selfTapeRequired),
+                  sides_url: draft.sidesUrl ?? null,
                 })
               }
               submitLabel="Save role"
@@ -810,6 +814,13 @@ export function CastingDashboardPage() {
                         languages: editingRole.languages,
                         skills: editingRole.skills,
                         selftapeInstructions: editingRole.selftape_instructions,
+                        selfTapeRequired: editingRole.self_tape_required,
+                        sidesUrl: editingRole.sides_url,
+                        // Ce que le formulaire ne montre pas ne doit pas être effacé.
+                        accents: editingRole.accents,
+                        requirements: editingRole.requirements,
+                        compensation: editingRole.compensation,
+                        auditionFlow: editingRole.audition_flow,
                       },
                     })
                     setEditingRole(null)

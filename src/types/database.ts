@@ -52,6 +52,7 @@ export type MediaKind =
   | 'poster'
   | 'logo'
   | 'brief'
+  | 'sides'
 export type NoteVisibility = 'team' | 'private'
 export type ConversationContext = 'application' | 'project' | 'casting_call' | 'role' | 'direct'
 export type AvailabilityStatus = 'available' | 'on_project' | 'unavailable'

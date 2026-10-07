@@ -18,6 +18,7 @@ import { EmptyState } from '@/components/EmptyState'
 import { SegmentedControl } from '@/components/form/SegmentedControl'
 import { MultiSelect } from '@/components/form/MultiSelect'
 import { PosterField } from '@/components/upload/PosterField'
+import { SidesField } from '@/components/upload/SidesField'
 import { BriefStudio, type BriefVideoValue } from '@/features/briefs/BriefStudio'
 import { useBriefMutations, useProjectBriefs } from '@/features/briefs/queries'
 import {
@@ -848,6 +849,7 @@ export function RoleForm({
 }) {
   const languages = useLanguagesCatalog()
   const skills = useSkillsCatalog()
+  const { profile } = useAuth()
 
   const set = <K extends keyof RoleInput>(key: K, value: RoleInput[K]) =>
     onChange({ ...draft, [key]: value })
@@ -975,6 +977,15 @@ export function RoleForm({
           placeholder="Scene 12, in French. Chest shot, natural light, one take."
           value={draft.selftapeInstructions ?? ''}
           onChange={(event) => set('selftapeInstructions', event.target.value)}
+        />
+      </FormField>
+
+      <FormField label="Audition sides" plainLabel optional>
+        <SidesField
+          profileId={profile?.id}
+          value={draft.sidesUrl ?? null}
+          onChange={(url) => set('sidesUrl', url)}
+          disabled={busy}
         />
       </FormField>
 
