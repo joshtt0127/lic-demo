@@ -20,7 +20,7 @@ export type CastingCallWithContext = CastingCallRow & {
   project:
     | (Pick<
         ProjectRow,
-        'id' | 'title' | 'production_type' | 'genre' | 'company_name' | 'poster_url' | 'synopsis' | 'director_name' | 'shooting_location' | 'shooting_start' | 'shooting_end' | 'director_brief'
+        'id' | 'title' | 'production_type' | 'genre' | 'company_name' | 'poster_url' | 'synopsis' | 'director_name' | 'casting_director_name' | 'shooting_location' | 'shooting_start' | 'shooting_end' | 'director_brief'
       > & { organization: CastingAuthor | null })
     | null
   roles: RoleRow[]
@@ -30,7 +30,7 @@ const CASTING_SELECT = `
   *,
   projects (
     id, title, production_type, genre, company_name, poster_url, synopsis,
-    director_name, shooting_location, shooting_start, shooting_end, director_brief,
+    director_name, casting_director_name, shooting_location, shooting_start, shooting_end, director_brief,
     organizations ( id, name, logo_url, company_type, city, country )
   ),
   roles (*)
