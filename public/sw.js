@@ -57,6 +57,9 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return
   // Ceinture et bretelles : aucune réponse d'API ne doit finir dans un cache.
   if (url.pathname.startsWith('/rest/') || url.pathname.startsWith('/auth/v1')) return
+  // Vidéos : le navigateur les lit par plages d'octets (Range) ; une réponse
+  // entière servie depuis le cache casse la lecture sur Safari.
+  if (/\.(mp4|mov|webm)$/i.test(url.pathname)) return
 
   if (request.mode === 'navigate') {
     event.respondWith(networkFirst(request))

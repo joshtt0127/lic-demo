@@ -87,6 +87,28 @@ export const FIELD_LABELS: Record<string, string> = {
   requirements: 'Requirements',
 }
 
+/**
+ * Champs du brief projet qui remplissent l'ANNONCE (étape 2 du formulaire),
+ * et non le projet : l'écran de validation les regroupe pour que la
+ * production sache où ils vont.
+ */
+export const CASTING_FIELDS = new Set([
+  'casting_title',
+  'auditions_location',
+  'deadline',
+  'compensation',
+  'casting_description',
+])
+
+/** Libellés des champs d'annonce, côté formulaire (mêmes mots que l'extraction). */
+export const CASTING_LABELS: Record<keyof CastingDraft, string> = {
+  title: 'Casting title',
+  description: 'Submission instructions',
+  location: 'Auditions location',
+  deadlineAt: 'Application deadline',
+  compensation: 'Compensation',
+}
+
 /** Champs dont la valeur est une liste. */
 export const LIST_FIELDS = new Set(['languages', 'skills'])
 

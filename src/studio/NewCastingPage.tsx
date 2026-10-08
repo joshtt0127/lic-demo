@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, Plus } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Plus, Sparkles } from 'lucide-react'
 import {
   Button,
   Card,
@@ -23,6 +23,7 @@ import { BriefStudio, type BriefVideoValue } from '@/features/briefs/BriefStudio
 import { useBriefMutations, useProjectBriefs } from '@/features/briefs/queries'
 import {
   toCastingDraft,
+  CASTING_LABELS,
   toProjectDraft,
   toRoleDraft,
   type Accepted,
@@ -116,6 +117,10 @@ export function NewCastingPage() {
     compensation: '',
   })
 
+  // Champs de l'annonce remplis par le brief projet : rappelés en tête de
+  // l'étape 2, sinon la production ne sait pas qu'ils y sont déjà.
+  const [castingFromBrief, setCastingFromBrief] = useState<string[]>([])
+
   // Step 3 — roles
   const [roles, setRoles] = useState<RoleInput[]>([])
   const [roleDraft, setRoleDraft] = useState<RoleInput>({ name: '', roleType: 'lead' })
@@ -140,7 +145,13 @@ export function NewCastingPage() {
     const castingDraft = toCastingDraft(accepted)
     if (mode === 'new') setProject((current) => ({ ...current, ...projectDraft }))
     setCasting((current) => ({ ...current, ...castingDraft }))
-    toast('Brief applied — review the fields')
+    const filled = Object.keys(castingDraft).map((key) => CASTING_LABELS[key as keyof typeof CASTING_LABELS])
+    setCastingFromBrief(filled)
+    toast(
+      filled.length
+        ? `Brief applied — ${filled.length} casting call field${filled.length > 1 ? 's' : ''} waiting in the next step`
+        : 'Brief applied — review the fields',
+    )
   }
 
   async function saveExistingBrief(
@@ -605,7 +616,13 @@ export function NewCastingPage() {
                 />
               </FormField>
 
-              <FormField label="Director’s brief" htmlFor="brief" plainLabel optional>
+              <FormField
+                label="Tone & intention"
+                htmlFor="brief"
+                plainLabel
+                optional
+                hint="The world, the tone, what the director wants talents to feel. Talents read it as the director’s note."
+              >
                 <TextArea
                   id="brief"
                   rows={3}
@@ -638,6 +655,15 @@ export function NewCastingPage() {
       {step === 2 && (
         <Card className="flex flex-col gap-5">
           <h2 className="font-display text-[19px] font-bold text-ink">The casting call</h2>
+          {castingFromBrief.length > 0 && (
+            <p className="flex items-start gap-2 rounded-field bg-cream/60 px-3.5 py-3 text-[13px] leading-snug text-ink">
+              <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                <strong>Pre-filled from your Project Brief Video:</strong> {castingFromBrief.join(', ')}.
+                Check them before you continue.
+              </span>
+            </p>
+          )}
 
           <TextField
             label="Casting title"
@@ -662,7 +688,7 @@ export function NewCastingPage() {
               }
             />
             <TextField
-              label="Submissions close"
+              label="Application deadline"
               plainLabel
               optional
               fieldSize="lg"
@@ -710,7 +736,7 @@ export function NewCastingPage() {
             </div>
           </FormField>
 
-          <FormField label="Description" htmlFor="casting-description" plainLabel optional>
+          <FormField label="Submission instructions" htmlFor="casting-description" plainLabel optional>
             <TextArea
               id="casting-description"
               rows={3}

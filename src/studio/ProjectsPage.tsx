@@ -408,7 +408,7 @@ function ProjectModal({
         />
       </Field>
 
-      <Field label="Director’s brief">
+      <Field label="Tone & intention">
         <TextArea
           rows={3}
           value={form.directorBrief}

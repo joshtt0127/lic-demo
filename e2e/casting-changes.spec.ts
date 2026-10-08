@@ -428,7 +428,7 @@ test('a production edits a published casting from the app, and applicants are to
   // L'avertissement n'apparaît que parce que quelqu'un a candidaté.
   await expect(page.getByText(/1 person has applied/)).toBeVisible({ timeout: 20_000 })
 
-  await page.getByLabel('Location').fill('Marseille')
+  await page.getByLabel('Auditions location').fill('Marseille')
   await page.getByRole('button', { name: 'Save changes' }).click()
 
   await expect

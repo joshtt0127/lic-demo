@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { AlertTriangle, ChevronDown, Play, X } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { useLanguagesCatalog } from '@/features/talent/queries'
-import { FIELD_LABELS, LIST_FIELDS, timecode, type Accepted } from '@/features/briefs/mapping'
+import { CASTING_FIELDS, FIELD_LABELS, LIST_FIELDS, timecode, type Accepted } from '@/features/briefs/mapping'
 import { languageFlag } from '@/lib/languageFlags'
 import { cn } from '@/lib/cn'
 import type { BriefExtractedField, BriefExtractionRow } from '@/types/database'
@@ -70,6 +70,21 @@ export function ExtractionReview({
     return [...fields].sort((a, b) => rank[a.status] - rank[b.status])
   }, [fields])
 
+  // Brief projet : certains champs vont au projet, d'autres à l'annonce
+  // (étape suivante). On le montre plutôt que de les verser en silence.
+  const groups =
+    extraction.target === 'project'
+      ? [
+          { key: 'project', title: 'Project', hint: null, fields: ordered.filter((f) => !CASTING_FIELDS.has(f.field)) },
+          {
+            key: 'casting',
+            title: 'Casting call',
+            hint: 'These go to the casting call — you will find them in the next step.',
+            fields: ordered.filter((f) => CASTING_FIELDS.has(f.field)),
+          },
+        ].filter((group) => group.fields.length > 0)
+      : [{ key: 'all', title: null, hint: null, fields: ordered }]
+
   const counts = {
     detected: fields.filter((f) => f.status === 'detected').length,
     suggested: fields.filter((f) => f.status === 'suggested').length,
@@ -129,104 +144,114 @@ export function ExtractionReview({
         </Button>
       </div>
 
-      <ul className="flex flex-col divide-y divide-line rounded-field border border-line bg-card">
-        {ordered.map((field) => {
-          const row = rows[field.field]
-          if (!row) return null
-          const style = STATUS_STYLE[field.status]
-          const isList = LIST_FIELDS.has(field.field)
-          const long = LONG_FIELDS.has(field.field)
-          return (
-            <li key={field.field} className="flex flex-col gap-2 px-3.5 py-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="inline-flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={row.include}
-                    onChange={(event) => update(field.field, { include: event.target.checked })}
-                    className="h-4 w-4 accent-ink"
-                  />
-                  <span className="text-[13.5px] font-semibold text-ink">
-                    {FIELD_LABELS[field.field] ?? field.field}
-                  </span>
-                </label>
-                <span
-                  className={cn(
-                    'rounded-full px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide',
-                    style.className,
-                  )}
-                >
-                  {style.label}
-                </span>
-                {field.start != null && (
-                  <button
-                    type="button"
-                    onClick={() => onSeek(field.start as number)}
-                    className="inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 font-mono text-[11px] text-muted transition-colors hover:border-ink/30 hover:text-ink"
-                    title="Play this moment of the brief"
-                  >
-                    <Play className="h-2.5 w-2.5" />
-                    {timecode(field.start)}
-                  </button>
-                )}
-              </div>
-
-              {isList ? (
-                row.values.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {row.values.map((item) => (
-                      <span
-                        key={item}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper py-1 pl-2.5 pr-1.5 text-xs font-medium text-ink"
-                      >
-                        {field.field === 'languages' && (
-                          <span aria-hidden>{languageFlag(item)}</span>
-                        )}
-                        {field.field === 'languages' ? languageName(item) : item}
-                        <button
-                          type="button"
-                          aria-label={`Remove ${item}`}
-                          onClick={() =>
-                            update(field.field, { values: row.values.filter((v) => v !== item) })
-                          }
-                          className="flex h-4 w-4 items-center justify-center rounded-full text-muted hover:bg-ink/10 hover:text-ink"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
+      {groups.map((group) => (
+        <div key={group.key} className="flex flex-col gap-2">
+          {group.title && (
+            <div>
+              <p className="text-[13px] font-bold text-ink">{group.title}</p>
+              {group.hint && <p className="text-[12px] text-muted">{group.hint}</p>}
+            </div>
+          )}
+          <ul className="flex flex-col divide-y divide-line rounded-field border border-line bg-card">
+            {group.fields.map((field) => {
+              const row = rows[field.field]
+              if (!row) return null
+              const style = STATUS_STYLE[field.status]
+              const isList = LIST_FIELDS.has(field.field)
+              const long = LONG_FIELDS.has(field.field)
+              return (
+                <li key={field.field} className="flex flex-col gap-2 px-3.5 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="inline-flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={row.include}
+                        onChange={(event) => update(field.field, { include: event.target.checked })}
+                        className="h-4 w-4 accent-ink"
+                      />
+                      <span className="text-[13.5px] font-semibold text-ink">
+                        {FIELD_LABELS[field.field] ?? field.field}
                       </span>
-                    ))}
+                    </label>
+                    <span
+                      className={cn(
+                        'rounded-full px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide',
+                        style.className,
+                      )}
+                    >
+                      {style.label}
+                    </span>
+                    {field.start != null && (
+                      <button
+                        type="button"
+                        onClick={() => onSeek(field.start as number)}
+                        className="inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 font-mono text-[11px] text-muted transition-colors hover:border-ink/30 hover:text-ink"
+                        title="Play this moment of the brief"
+                      >
+                        <Play className="h-2.5 w-2.5" />
+                        {timecode(field.start)}
+                      </button>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-[12.5px] text-muted">Not in the brief — add it in the form.</p>
-                )
-              ) : long ? (
-                <textarea
-                  rows={3}
-                  value={row.value}
-                  placeholder={field.status === 'missing' ? 'Not in the brief — complete it here or later' : ''}
-                  onChange={(event) =>
-                    update(field.field, { value: event.target.value, include: Boolean(event.target.value.trim()) || row.include })
-                  }
-                  className="w-full rounded-btn border border-line bg-paper px-3 py-2 text-[13.5px] text-ink outline-none placeholder:text-muted/70 focus:border-ink/30 focus:bg-card"
-                />
-              ) : (
-                <input
-                  value={row.value}
-                  placeholder={field.status === 'missing' ? 'Not in the brief — complete it here or later' : ''}
-                  onChange={(event) =>
-                    update(field.field, { value: event.target.value, include: Boolean(event.target.value.trim()) || row.include })
-                  }
-                  className="w-full rounded-btn border border-line bg-paper px-3 py-2 text-[13.5px] text-ink outline-none placeholder:text-muted/70 focus:border-ink/30 focus:bg-card"
-                />
-              )}
 
-              {field.quote && (
-                <p className="text-[12px] italic leading-snug text-muted">“{field.quote}”</p>
-              )}
-            </li>
-          )
-        })}
-      </ul>
+                  {isList ? (
+                    row.values.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {row.values.map((item) => (
+                          <span
+                            key={item}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper py-1 pl-2.5 pr-1.5 text-xs font-medium text-ink"
+                          >
+                            {field.field === 'languages' && (
+                              <span aria-hidden>{languageFlag(item)}</span>
+                            )}
+                            {field.field === 'languages' ? languageName(item) : item}
+                            <button
+                              type="button"
+                              aria-label={`Remove ${item}`}
+                              onClick={() =>
+                                update(field.field, { values: row.values.filter((v) => v !== item) })
+                              }
+                              className="flex h-4 w-4 items-center justify-center rounded-full text-muted hover:bg-ink/10 hover:text-ink"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[12.5px] text-muted">Not in the brief — add it in the form.</p>
+                    )
+                  ) : long ? (
+                    <textarea
+                      rows={3}
+                      value={row.value}
+                      placeholder={field.status === 'missing' ? 'Not in the brief — complete it here or later' : ''}
+                      onChange={(event) =>
+                        update(field.field, { value: event.target.value, include: Boolean(event.target.value.trim()) || row.include })
+                      }
+                      className="w-full rounded-btn border border-line bg-paper px-3 py-2 text-[13.5px] text-ink outline-none placeholder:text-muted/70 focus:border-ink/30 focus:bg-card"
+                    />
+                  ) : (
+                    <input
+                      value={row.value}
+                      placeholder={field.status === 'missing' ? 'Not in the brief — complete it here or later' : ''}
+                      onChange={(event) =>
+                        update(field.field, { value: event.target.value, include: Boolean(event.target.value.trim()) || row.include })
+                      }
+                      className="w-full rounded-btn border border-line bg-paper px-3 py-2 text-[13.5px] text-ink outline-none placeholder:text-muted/70 focus:border-ink/30 focus:bg-card"
+                    />
+                  )}
+
+                  {field.quote && (
+                    <p className="text-[12px] italic leading-snug text-muted">“{field.quote}”</p>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      ))}
 
       {(extraction.transcript?.length ?? 0) > 0 && (
         <div>

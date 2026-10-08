@@ -315,14 +315,14 @@ export function EditCastingModal({
 
                 <div className="grid gap-4 sm:grid-cols-3">
                   <TextField
-                    label="Location"
+                    label="Auditions location"
                     plainLabel
                     placeholder="Los Angeles"
                     value={form.location}
                     onChange={(event) => set('location', event.target.value)}
                   />
                   <TextField
-                    label="Deadline"
+                    label="Application deadline"
                     plainLabel
                     type="date"
                     value={form.deadlineAt}
@@ -352,7 +352,7 @@ export function EditCastingModal({
                 </FormField>
 
                 <FormField
-                  label="Description"
+                  label="Submission instructions"
                   htmlFor="edit-casting-description"
                   plainLabel
                   optional
@@ -471,7 +471,7 @@ export function EditCastingModal({
                         />
                       </FormField>
                       <FormField
-                        label="Director brief"
+                        label="Tone & intention"
                         htmlFor="edit-director-brief"
                         plainLabel
                         optional

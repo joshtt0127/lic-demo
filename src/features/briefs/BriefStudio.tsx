@@ -18,7 +18,8 @@ import { SelfTapeRecorder } from '@/components/upload/SelfTapeRecorder'
 import { useMediaMutations } from '@/features/talent/queries'
 import { useBriefMutations } from '@/features/briefs/queries'
 import { ExtractionReview } from '@/features/briefs/ExtractionReview'
-import type { Accepted } from '@/features/briefs/mapping'
+import { KimBriefTip } from '@/features/briefs/KimBriefTip'
+import { CASTING_FIELDS, type Accepted } from '@/features/briefs/mapping'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 import { EnglishOnly } from '@/lib/i18n'
@@ -45,22 +46,6 @@ export const VISIBILITY_OPTIONS: {
   { value: 'applicants', label: 'Talents', hint: 'Everyone who can see the casting.', icon: Users },
   { value: 'public', label: 'Public', hint: 'Also on the public share link.', icon: Globe },
 ]
-
-const TALKING_POINTS = {
-  project: [
-    'What is the project, and what are you trying to create?',
-    'The tone, the universe — what matters to you',
-    'Where and when it shoots',
-    'Where auditions happen, the deadline, the fee',
-    'What talents should know before they apply',
-  ],
-  role: [
-    'Who the character is — the energy, the intention',
-    'Playing age, languages, skills you need',
-    'Where they must be based or available',
-    'What the self-tape must contain',
-  ],
-}
 
 export type BriefVideoValue = { url: string; visibility: BriefVisibility }
 
@@ -97,7 +82,8 @@ export function BriefStudio({
   const [percent, setPercent] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [extraction, setExtraction] = useState<BriefExtractionRow | null>(null)
-  const [applied, setApplied] = useState(false)
+  // Où sont partis les champs validés : le formulaire visible, ou l'étape suivante.
+  const [applied, setApplied] = useState<{ here: number; next: number } | null>(null)
 
   const analysing = briefs.extract.isPending
   const busy = percent !== null || analysing
@@ -105,7 +91,7 @@ export function BriefStudio({
   async function analyse(url: string) {
     if (!orgId) return
     setExtraction(null)
-    setApplied(false)
+    setApplied(null)
     try {
       const result = await briefs.extract.mutateAsync({ orgId, target, videoUrl: url })
       setExtraction(result)
@@ -250,22 +236,12 @@ export function BriefStudio({
               label="Or drop an existing video"
             />
           </div>
-          {!compact && (
-            <div className="rounded-field bg-paper p-4">
-              <span className="tech-label">What to say</span>
-              <ul className="mt-2 flex flex-col gap-1.5">
-                {TALKING_POINTS[target].map((point) => (
-                  <li key={point} className="flex gap-2 text-[13px] leading-snug text-ink/80">
-                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted" />
-                    {point}
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-3 text-[12px] text-muted">
-                Anything you do not say stays empty — we never guess a date or a fee.
-              </p>
-            </div>
-          )}
+          <div className="flex flex-col gap-2">
+            <KimBriefTip target={target} compact={compact} />
+            <p className="text-[12px] text-muted">
+              Anything you do not say stays empty — we never guess a date or a fee.
+            </p>
+          </div>
         </div>
       )}
 
@@ -320,15 +296,24 @@ export function BriefStudio({
           onSeek={seek}
           onApply={(accepted) => {
             onApply(accepted)
-            setApplied(true)
+            const keys = Object.keys(accepted)
+            const next = target === 'project' ? keys.filter((key) => CASTING_FIELDS.has(key)).length : 0
+            setApplied({ here: keys.length - next, next })
           }}
         />
       )}
 
       {applied && (
-        <p className="inline-flex items-center gap-2 text-[13px] font-semibold text-signal-good">
-          <Check className="h-4 w-4" />
-          Validated fields were added below — review them before you continue.
+        <p className="inline-flex items-start gap-2 text-[13px] font-semibold text-signal-good">
+          <Check className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            {applied.here > 0 && `${applied.here} field${applied.here > 1 ? 's' : ''} added below`}
+            {applied.here > 0 && applied.next > 0 && ' · '}
+            {applied.next > 0 &&
+              `${applied.next} casting call field${applied.next > 1 ? 's' : ''} waiting in the next step`}
+            {applied.here + applied.next === 0 && 'Nothing was selected'}
+            {applied.here + applied.next > 0 && ' — review them before you continue.'}
+          </span>
         </p>
       )}
     </section>
