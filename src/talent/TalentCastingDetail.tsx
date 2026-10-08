@@ -435,10 +435,18 @@ function RoleCard({
     else if (sides) window.open(sides, '_blank', 'noopener')
   }
 
-  // Watch Role Brief → Read Audition Sides → Record / Submit Self-Tape :
-  // seulement les étapes qui existent pour ce rôle.
-  const steps: { key: string; done: boolean; title: string; body: React.ReactNode }[] = []
-  if (brief) {
+  // Watch Role Brief → Read Audition Sides → Record / Submit Self-Tape : les
+  // trois étapes sont toujours là, pour que la page dise quoi faire ensuite.
+  // Une étape que la production n'a pas encore fournie le dit, sans bouton mort.
+  const pendingNote = (text: string) => (
+    <p className="rounded-field border border-dashed border-line px-3.5 py-2.5 text-[13px] leading-snug text-muted">
+      {text}
+    </p>
+  )
+  const steps: { key: string; done: boolean; pending?: boolean; title: string; body: React.ReactNode }[] = []
+  if (!brief) {
+    steps.push({ key: 'brief', done: false, pending: true, title: t('journey.watch'), body: pendingNote(t('journey.noBrief')) })
+  } else {
     steps.push({
       key: 'brief',
       done: watched,
@@ -458,7 +466,27 @@ function RoleCard({
       ),
     })
   }
-  if (sides) {
+  if (!sides) {
+    steps.push({
+      key: 'sides',
+      done: false,
+      pending: true,
+      title: t('journey.read'),
+      body: (
+        <div className="flex items-start gap-3 rounded-field border border-dashed border-line p-3.5">
+          <span className="flex h-11 w-9 shrink-0 flex-col items-center justify-end rounded-[6px] bg-paper pb-1 text-[8.5px] font-extrabold tracking-wide text-muted ring-1 ring-line">
+            PDF
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[14px] font-bold text-ink/70">{t('sides.title')}</span>
+            <span className="block text-[12.5px] leading-snug text-muted">
+              {role.selftape_instructions ? t('sides.noneWithInstructions') : t('sides.none')}
+            </span>
+          </span>
+        </div>
+      ),
+    })
+  } else {
     steps.push({
       key: 'sides',
       done: readSides,
@@ -498,11 +526,12 @@ function RoleCard({
       ),
     })
   }
-  if (action) {
-    steps.push({ key: 'tape', done: submitted, title: t('journey.submit'), body: action })
-  }
-  // Rien à préparer avant : pas de parcours, juste l'action.
-  const showJourney = steps.length > 1
+  steps.push({
+    key: 'tape',
+    done: submitted,
+    title: t('journey.submit'),
+    body: action ?? pendingNote(t('journey.submitInfo')),
+  })
 
   return (
     <article className="flex w-full flex-col overflow-hidden rounded-card border border-line bg-card shadow-card transition-shadow hover:shadow-card-hover">
@@ -603,8 +632,7 @@ function RoleCard({
           </details>
         )}
 
-        {showJourney ? (
-          <div className="mt-auto border-t border-line pt-4">
+        <div className="mt-auto border-t border-line pt-4">
             <p className="tech-label">{t('journey.title')}</p>
             <ol className="mt-3 flex flex-col">
               {steps.map((step, index) => (
@@ -615,29 +643,26 @@ function RoleCard({
                   <span
                     className={cn(
                       'relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12.5px] font-bold',
-                      step.done ? 'bg-signal-good text-white' : 'bg-ink text-white',
+                      step.done
+                        ? 'bg-signal-good text-white'
+                        : step.pending
+                          ? 'bg-line text-muted'
+                          : 'bg-ink text-white',
                     )}
                   >
                     {step.done ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : index + 1}
                     <span className="sr-only">{step.done ? t('journey.done') : ''}</span>
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col gap-2.5 pt-0.5">
-                    <p className="text-[14.5px] font-bold text-ink">{step.title}</p>
+                    <p className={cn('text-[14.5px] font-bold', step.pending ? 'text-ink/60' : 'text-ink')}>
+                      {step.title}
+                    </p>
                     {step.body}
                   </div>
                 </li>
               ))}
             </ol>
           </div>
-        ) : (
-          steps.length > 0 && (
-            <div className="mt-auto flex flex-col gap-3 pt-1">
-              {steps.map((step) => (
-                <div key={step.key}>{step.body}</div>
-              ))}
-            </div>
-          )
-        )}
       </div>
 
       {viewingSides && sides && (

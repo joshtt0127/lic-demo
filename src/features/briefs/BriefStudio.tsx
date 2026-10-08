@@ -82,7 +82,7 @@ export function BriefStudio({
   const [percent, setPercent] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [extraction, setExtraction] = useState<BriefExtractionRow | null>(null)
-  // Où sont partis les champs validés : le formulaire visible, ou l'étape suivante.
+  // Où sont partis les champs validés : le projet ou l'annonce, tous deux sous la vidéo.
   const [applied, setApplied] = useState<{ here: number; next: number } | null>(null)
 
   const analysing = briefs.extract.isPending
@@ -307,10 +307,11 @@ export function BriefStudio({
         <p className="inline-flex items-start gap-2 text-[13px] font-semibold text-signal-good">
           <Check className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
-            {applied.here > 0 && `${applied.here} field${applied.here > 1 ? 's' : ''} added below`}
+            {applied.here > 0 &&
+              `${applied.here} ${target === 'project' ? 'project ' : ''}field${applied.here > 1 ? 's' : ''} added below`}
             {applied.here > 0 && applied.next > 0 && ' · '}
             {applied.next > 0 &&
-              `${applied.next} casting call field${applied.next > 1 ? 's' : ''} waiting in the next step`}
+              `${applied.next} casting call field${applied.next > 1 ? 's' : ''} added further down`}
             {applied.here + applied.next === 0 && 'Nothing was selected'}
             {applied.here + applied.next > 0 && ' — review them before you continue.'}
           </span>

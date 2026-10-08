@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, Plus, Sparkles } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Plus } from 'lucide-react'
 import {
   Button,
   Card,
@@ -23,7 +23,6 @@ import { BriefStudio, type BriefVideoValue } from '@/features/briefs/BriefStudio
 import { useBriefMutations, useProjectBriefs } from '@/features/briefs/queries'
 import {
   toCastingDraft,
-  CASTING_LABELS,
   toProjectDraft,
   toRoleDraft,
   type Accepted,
@@ -86,7 +85,9 @@ export function NewCastingPage() {
   const projects = useOrgProjects(organization?.id)
   const mutations = useStudioMutations(organization?.id, profile?.id)
 
-  const [step, setStep] = useState<1 | 2 | 3>(1)
+  // 1 = le projet et son annonce, 3 = les rôles (l'ancienne étape 2 est fusionnée dans la 1).
+  const [step, setStep] = useState<1 | 3>(1)
+  const [createdProjectId, setCreatedProjectId] = useState<string | null>(null)
   const [projectId, setProjectId] = useState<string | null>(null)
   const [castingId, setCastingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -117,10 +118,6 @@ export function NewCastingPage() {
     compensation: '',
   })
 
-  // Champs de l'annonce remplis par le brief projet : rappelés en tête de
-  // l'étape 2, sinon la production ne sait pas qu'ils y sont déjà.
-  const [castingFromBrief, setCastingFromBrief] = useState<string[]>([])
-
   // Step 3 — roles
   const [roles, setRoles] = useState<RoleInput[]>([])
   const [roleDraft, setRoleDraft] = useState<RoleInput>({ name: '', roleType: 'lead' })
@@ -145,13 +142,7 @@ export function NewCastingPage() {
     const castingDraft = toCastingDraft(accepted)
     if (mode === 'new') setProject((current) => ({ ...current, ...projectDraft }))
     setCasting((current) => ({ ...current, ...castingDraft }))
-    const filled = Object.keys(castingDraft).map((key) => CASTING_LABELS[key as keyof typeof CASTING_LABELS])
-    setCastingFromBrief(filled)
-    toast(
-      filled.length
-        ? `Brief applied — ${filled.length} casting call field${filled.length > 1 ? 's' : ''} waiting in the next step`
-        : 'Brief applied — review the fields',
-    )
+    toast('Brief applied — review the project and casting call fields below')
   }
 
   async function saveExistingBrief(
@@ -208,19 +199,31 @@ export function NewCastingPage() {
     )
   }
 
-  async function submitProject() {
+  /** Le projet (choisi ou créé), puis l'annonce : un seul geste pour la production. */
+  async function submitAll() {
     setError(null)
+    if (mode === 'existing' && !projectId) {
+      setError('Pick a project, or create a new one')
+      return
+    }
+    if (mode === 'new' && !project.title.trim()) {
+      setError('Your project needs a title')
+      return
+    }
+    if (!casting.title.trim()) {
+      setError('Give this casting call a title')
+      return
+    }
+    const id = await submitProject()
+    if (id) await submitCasting(id)
+  }
+
+  async function submitProject(): Promise<string | null> {
     try {
-      if (mode === 'existing') {
-        if (!projectId) {
-          setError('Pick a project, or create a new one')
-          return
-        }
-      } else {
-        if (!project.title.trim()) {
-          setError('Your project needs a title')
-          return
-        }
+      if (mode === 'existing') return projectId
+      // Déjà créé lors d'un essai précédent (l'annonce avait échoué) : on ne le recrée pas.
+      if (createdProjectId) return createdProjectId
+      {
         const created = await mutations.createProject.mutateAsync({
           title: project.title,
           productionType: project.productionType,
@@ -237,6 +240,7 @@ export function NewCastingPage() {
         })
         track('project_created', { project_id: created.id })
         setProjectId(created.id)
+        setCreatedProjectId(created.id)
         if (projectBrief) {
           await briefs.save.mutateAsync({
             projectId: created.id,
@@ -248,23 +252,15 @@ export function NewCastingPage() {
           })
           track('brief_recorded', { target: 'project', project_id: created.id })
         }
+        return created.id
       }
-      setStep(2)
     } catch (submitError) {
       setError(errorMessage(submitError, 'Could not save the project'))
+      return null
     }
   }
 
-  async function submitCasting() {
-    setError(null)
-    if (!projectId) {
-      setStep(1)
-      return
-    }
-    if (!casting.title.trim()) {
-      setError('Give this casting call a title')
-      return
-    }
+  async function submitCasting(projectId: string) {
     try {
       const created = await mutations.createCasting.mutateAsync({
         projectId,
@@ -361,13 +357,13 @@ export function NewCastingPage() {
           New casting
         </h1>
         <p className="mt-1 text-[15px] text-muted">
-          Three steps: the project, the casting call, its roles. Published roles are visible to
-          talents immediately.
+          Two steps: the project and its casting call, then the roles. Published roles are visible
+          to talents immediately.
         </p>
       </div>
 
       <div className="flex items-center gap-2">
-        {[1, 2, 3].map((index) => (
+        {[1, 3].map((index) => (
           <span
             key={index}
             className={cn(
@@ -636,125 +632,104 @@ export function NewCastingPage() {
             </div>
           )}
 
+          {/* L'annonce, dans la même étape que le projet : le Project Brief Video
+              remplit les deux, et la production voit tout ce qu'il a compris
+              juste sous la vidéo — pas de champ versé dans une étape cachée. */}
+          <div className="flex flex-col gap-5 border-t border-line pt-5">
+            <div>
+              <h2 className="font-display text-[19px] font-bold text-ink">The casting call</h2>
+              <p className="mt-1 text-[14px] text-muted">
+                Where and until when talents can apply. Your Project Brief Video fills these too.
+              </p>
+            </div>
+            <TextField
+              label="Casting title"
+              plainLabel
+              fieldSize="lg"
+              value={casting.title}
+              onChange={(event) =>
+                setCasting((current) => ({ ...current, title: event.target.value }))
+              }
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label="Auditions location"
+                plainLabel
+                optional
+                fieldSize="lg"
+                placeholder="Los Angeles"
+                value={casting.location}
+                onChange={(event) =>
+                  setCasting((current) => ({ ...current, location: event.target.value }))
+                }
+              />
+              <TextField
+                label="Application deadline"
+                plainLabel
+                optional
+                fieldSize="lg"
+                type="date"
+                value={casting.deadlineAt}
+                onChange={(event) =>
+                  setCasting((current) => ({ ...current, deadlineAt: event.target.value }))
+                }
+              />
+            </div>
+
+            <TextField
+              label="Compensation"
+              plainLabel
+              optional
+              fieldSize="lg"
+              placeholder="SAG scale + 10%"
+              value={casting.compensation}
+              onChange={(event) =>
+                setCasting((current) => ({ ...current, compensation: event.target.value }))
+              }
+            />
+
+            {/* Qui peut voir cette annonce. Posé ici plutôt qu'en base : les trois
+                visibilités existent depuis la Phase 3, elles n'étaient nulle part
+                à l'écran. */}
+            <FormField label="Who can see it" plainLabel>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {VISIBILITIES.map(({ value, label, hint }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setCasting((current) => ({ ...current, visibility: value }))}
+                    className={cn(
+                      'rounded-field border p-3 text-left transition-colors',
+                      casting.visibility === value
+                        ? 'border-ink/30 bg-paper'
+                        : 'border-line hover:border-ink/20',
+                    )}
+                  >
+                    <span className="block text-[13.5px] font-bold text-ink">{label}</span>
+                    <span className="mt-0.5 block text-[12px] leading-snug text-muted">{hint}</span>
+                  </button>
+                ))}
+              </div>
+            </FormField>
+
+            <FormField label="Submission instructions" htmlFor="casting-description" plainLabel optional>
+              <TextArea
+                id="casting-description"
+                rows={3}
+                placeholder="What talents should know before applying."
+                value={casting.description}
+                onChange={(event) =>
+                  setCasting((current) => ({ ...current, description: event.target.value }))
+                }
+              />
+            </FormField>
+          </div>
+
           <div className="flex justify-end border-t border-line pt-5">
             <button
               type="button"
-              onClick={submitProject}
-              disabled={busy}
-              className="inline-flex h-13 items-center gap-2.5 rounded-field bg-ink px-7 py-3.5 text-[15px] font-bold text-white transition-colors hover:bg-ink/90 disabled:opacity-60"
-            >
-              {busy && <Spinner className="h-[18px] w-[18px]" />}
-              Continue
-              {!busy && <ArrowRight className="h-[18px] w-[18px]" />}
-            </button>
-          </div>
-        </Card>
-      )}
-
-      {/* ── Step 2 — casting call ── */}
-      {step === 2 && (
-        <Card className="flex flex-col gap-5">
-          <h2 className="font-display text-[19px] font-bold text-ink">The casting call</h2>
-          {castingFromBrief.length > 0 && (
-            <p className="flex items-start gap-2 rounded-field bg-cream/60 px-3.5 py-3 text-[13px] leading-snug text-ink">
-              <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>
-                <strong>Pre-filled from your Project Brief Video:</strong> {castingFromBrief.join(', ')}.
-                Check them before you continue.
-              </span>
-            </p>
-          )}
-
-          <TextField
-            label="Casting title"
-            plainLabel
-            fieldSize="lg"
-            value={casting.title}
-            onChange={(event) =>
-              setCasting((current) => ({ ...current, title: event.target.value }))
-            }
-          />
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <TextField
-              label="Auditions location"
-              plainLabel
-              optional
-              fieldSize="lg"
-              placeholder="Los Angeles"
-              value={casting.location}
-              onChange={(event) =>
-                setCasting((current) => ({ ...current, location: event.target.value }))
-              }
-            />
-            <TextField
-              label="Application deadline"
-              plainLabel
-              optional
-              fieldSize="lg"
-              type="date"
-              value={casting.deadlineAt}
-              onChange={(event) =>
-                setCasting((current) => ({ ...current, deadlineAt: event.target.value }))
-              }
-            />
-          </div>
-
-          <TextField
-            label="Compensation"
-            plainLabel
-            optional
-            fieldSize="lg"
-            placeholder="SAG scale + 10%"
-            value={casting.compensation}
-            onChange={(event) =>
-              setCasting((current) => ({ ...current, compensation: event.target.value }))
-            }
-          />
-
-          {/* Qui peut voir cette annonce. Posé ici plutôt qu'en base : les trois
-              visibilités existent depuis la Phase 3, elles n'étaient nulle part
-              à l'écran. */}
-          <FormField label="Who can see it" plainLabel>
-            <div className="grid gap-2 sm:grid-cols-3">
-              {VISIBILITIES.map(({ value, label, hint }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setCasting((current) => ({ ...current, visibility: value }))}
-                  className={cn(
-                    'rounded-field border p-3 text-left transition-colors',
-                    casting.visibility === value
-                      ? 'border-ink/30 bg-paper'
-                      : 'border-line hover:border-ink/20',
-                  )}
-                >
-                  <span className="block text-[13.5px] font-bold text-ink">{label}</span>
-                  <span className="mt-0.5 block text-[12px] leading-snug text-muted">{hint}</span>
-                </button>
-              ))}
-            </div>
-          </FormField>
-
-          <FormField label="Submission instructions" htmlFor="casting-description" plainLabel optional>
-            <TextArea
-              id="casting-description"
-              rows={3}
-              placeholder="What talents should know before applying."
-              value={casting.description}
-              onChange={(event) =>
-                setCasting((current) => ({ ...current, description: event.target.value }))
-              }
-            />
-          </FormField>
-
-          <div className="flex items-center justify-between border-t border-line pt-5">
-            <Button variant="secondary" onClick={() => setStep(1)} disabled={busy}>
-              Back
-            </Button>
-            <button
-              type="button"
-              onClick={submitCasting}
+              onClick={submitAll}
               disabled={busy}
               className="inline-flex h-13 items-center gap-2.5 rounded-field bg-ink px-7 py-3.5 text-[15px] font-bold text-white transition-colors hover:bg-ink/90 disabled:opacity-60"
             >

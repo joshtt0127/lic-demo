@@ -90,7 +90,7 @@ test('a casting reaches a talent, and their application reaches the production b
   // New project
   await production.getByRole('radio', { name: 'New project' }).click()
   await production.getByLabel('Project title').fill(projectTitle)
-  await production.getByRole('button', { name: 'Continue' }).click()
+  // Le projet et son annonce sont dans la même étape.
 
   // Casting call
   await expect(production.getByText('The casting call')).toBeVisible()

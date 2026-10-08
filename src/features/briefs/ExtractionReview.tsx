@@ -79,7 +79,7 @@ export function ExtractionReview({
           {
             key: 'casting',
             title: 'Casting call',
-            hint: 'These go to the casting call — you will find them in the next step.',
+            hint: 'These fill the casting call section of the form below.',
             fields: ordered.filter((f) => CASTING_FIELDS.has(f.field)),
           },
         ].filter((group) => group.fields.length > 0)

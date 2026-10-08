@@ -96,7 +96,7 @@ test('a casting goes from draft to cast, and the talent sees the truth at each s
   await production.goto('/studio/casting-calls/new')
   await production.getByRole('radio', { name: 'New project' }).click()
   await production.getByLabel('Project title').fill(projectTitle)
-  await production.getByRole('button', { name: 'Continue' }).click()
+  // Le projet et son annonce sont dans la même étape.
 
   await production.getByLabel('Casting title').fill(`${projectTitle} — open call`)
   await production.getByLabel('Auditions location').fill('Brest')
