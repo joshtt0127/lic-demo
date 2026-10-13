@@ -96,24 +96,41 @@ export function sortQueue(
   return [{ key: mode, band: null, title: null, description: null, items: [...items].sort(compare) }]
 }
 
-/** Progression de revue, pour la personne qui regarde (vu = elle l'a ouvert). */
-export function progress(items: QueueItem[], seen: Set<string>) {
-  let decided = 0
-  let viewed = 0
-  for (const item of items) {
-    if (isDecided(item.status)) decided++
-    else if (seen.has(item.application_id)) viewed++
-  }
-  return { total: items.length, decided, seen: viewed, unseen: items.length - decided - viewed }
+/**
+ * Où en est une audition, pour la personne qui revoit :
+ *   unseen   — je ne l'ai pas encore ouverte ;
+ *   seen     — je l'ai vue, personne ne l'a encore évaluée ;
+ *   waiting  — évaluée (votes, étiquettes ou « under review »), la décision attend ;
+ *   decided  — shortlist, callback, offre, casting ou pass.
+ * « Vu » est personnel ; « évaluée » et « décidée » sont l'état de l'équipe.
+ */
+export type ReviewState = 'unseen' | 'seen' | 'waiting' | 'decided'
+
+export function reviewState(item: QueueItem, seen: Set<string>, labelled: Set<string> = new Set()): ReviewState {
+  if (isDecided(item.status)) return 'decided'
+  if (!seen.has(item.application_id)) return 'unseen'
+  const evaluated =
+    item.good_count + item.maybe_count + item.no_count > 0 ||
+    item.status === 'under_review' ||
+    labelled.has(item.application_id)
+  return evaluated ? 'waiting' : 'seen'
 }
 
-export type ProgressFilter = 'all' | 'unseen' | 'seen' | 'decided'
+export function progress(items: QueueItem[], seen: Set<string>, labelled: Set<string> = new Set()) {
+  const counts = { total: items.length, unseen: 0, seen: 0, waiting: 0, decided: 0 }
+  for (const item of items) counts[reviewState(item, seen, labelled)]++
+  return counts
+}
 
-export function matchesProgress(item: QueueItem, filter: ProgressFilter, seen: Set<string>) {
-  if (filter === 'all') return true
-  if (filter === 'decided') return isDecided(item.status)
-  if (isDecided(item.status)) return false
-  return filter === 'seen' ? seen.has(item.application_id) : !seen.has(item.application_id)
+export type ProgressFilter = 'all' | ReviewState
+
+export function matchesProgress(
+  item: QueueItem,
+  filter: ProgressFilter,
+  seen: Set<string>,
+  labelled: Set<string> = new Set(),
+) {
+  return filter === 'all' || reviewState(item, seen, labelled) === filter
 }
 
 /** Export CSV de la sélection : ce que l'équipe voit, rien de plus. */

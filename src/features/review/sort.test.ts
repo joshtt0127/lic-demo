@@ -56,12 +56,28 @@ describe('Audition Review Queue', () => {
     expect(sortQueue(items, 'role', 'asc', labels).map((s) => s.title)).toEqual(['Agnès', 'Chloé'])
   })
 
-  it('counts unseen, seen and decided for the current reviewer', () => {
-    const decided = buildQueue([...candidates.slice(0, 2), candidate('e', 'E', '2026-10-01', { status: 'shortlisted' })], [])
-    const seen = new Set(['a', 'e'])
-    expect(progress(decided, seen)).toEqual({ total: 3, decided: 1, seen: 1, unseen: 1 })
-    expect(decided.filter((i) => matchesProgress(i, 'unseen', seen)).map((i) => i.application_id)).toEqual(['b'])
-    expect(decided.filter((i) => matchesProgress(i, 'decided', seen)).map((i) => i.application_id)).toEqual(['e'])
+  it('tells unseen, seen, waiting and decided apart for the current reviewer', () => {
+    const queue = buildQueue(
+      [
+        candidate('a', 'A', '2026-10-01'),
+        candidate('b', 'B', '2026-10-01'),
+        candidate('v', 'Voted', '2026-10-01', { good_count: 1 }),
+        candidate('l', 'Labelled', '2026-10-01'),
+        candidate('u', 'Under review', '2026-10-01', { status: 'under_review' }),
+        candidate('e', 'E', '2026-10-01', { status: 'shortlisted' }),
+        candidate('t', 'Teammate voted, I did not see', '2026-10-01', { maybe_count: 2 }),
+      ],
+      [],
+    )
+    const seen = new Set(['a', 'v', 'l', 'u', 'e'])
+    const labelled = new Set(['l'])
+    expect(progress(queue, seen, labelled)).toEqual({ total: 7, unseen: 2, seen: 1, waiting: 3, decided: 1 })
+    const pick = (filter: Parameters<typeof matchesProgress>[1]) =>
+      queue.filter((i) => matchesProgress(i, filter, seen, labelled)).map((i) => i.application_id)
+    expect(pick('unseen')).toEqual(['b', 't'])
+    expect(pick('seen')).toEqual(['a'])
+    expect(pick('waiting')).toEqual(['v', 'l', 'u'])
+    expect(pick('decided')).toEqual(['e'])
   })
 
   it('escapes CSV fields', () => {

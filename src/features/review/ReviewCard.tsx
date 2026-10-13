@@ -6,7 +6,7 @@ import { APPLICATION_STATUS_LABEL, APPLICATION_STATUS_TONE, relativeTime } from 
 import { cn } from '@/lib/cn'
 import type { ReviewLabelRow, ReviewVote } from '@/types/database'
 import { LabelChips } from './LabelPicker'
-import { isDecided, type QueueItem } from './sort'
+import { isDecided, type QueueItem, type ReviewState } from './sort'
 import type { QueueTape } from './queries'
 
 const VOTE_LABEL: Record<ReviewVote, string> = { good: 'Good match', maybe: 'Maybe', no: 'No go' }
@@ -29,7 +29,7 @@ export function formatSeconds(seconds: number | null | undefined) {
 export function ReviewCard({
   item,
   tape,
-  seen,
+  state,
   myVote,
   selected,
   selectable,
@@ -41,7 +41,7 @@ export function ReviewCard({
 }: {
   item: QueueItem
   tape: QueueTape | undefined
-  seen: boolean
+  state: ReviewState
   myVote: ReviewVote | undefined
   selected: boolean
   selectable: boolean
@@ -122,7 +122,9 @@ export function ReviewCard({
         <span className="absolute right-2 top-2">
           {decided ? (
             <Tag tone={APPLICATION_STATUS_TONE[item.status]}>{APPLICATION_STATUS_LABEL[item.status]}</Tag>
-          ) : seen ? (
+          ) : state === 'waiting' ? (
+            <span className="rounded-full bg-cream px-2 py-0.5 text-[11px] font-bold text-ink">Waiting for a decision</span>
+          ) : state === 'seen' ? (
             <span className="rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-semibold text-white">Seen</span>
           ) : (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-ink">

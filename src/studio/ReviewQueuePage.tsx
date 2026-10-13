@@ -19,6 +19,7 @@ import {
   buildQueue,
   matchesProgress,
   progress,
+  reviewState,
   sortQueue,
   toCsv,
   type ProgressFilter,
@@ -98,6 +99,10 @@ export function ReviewQueuePage() {
   const labelMutations = useLabelMutations(organization?.id, profile?.id)
   const labelId = params.get('label')
   const labelsById = useMemo(() => new Map((orgLabels.data ?? []).map((label) => [label.id, label])), [orgLabels.data])
+  const labelled = useMemo(
+    () => new Set(Object.entries(applied.data ?? {}).filter(([, list]) => list.length > 0).map(([id]) => id)),
+    [applied.data],
+  )
   const labelsOf = (applicationId: string): ReviewLabelRow[] =>
     (applied.data?.[applicationId] ?? []).map((id) => labelsById.get(id)).filter((label): label is ReviewLabelRow => Boolean(label))
 
@@ -105,18 +110,18 @@ export function ReviewQueuePage() {
     const needle = query.trim().toLowerCase()
     return inRole.filter(
       (item) =>
-        matchesProgress(item, show, seen) &&
+        matchesProgress(item, show, seen, labelled) &&
         (!needle || item.name.toLowerCase().includes(needle)) &&
         (!labelId || (applied.data?.[item.application_id] ?? []).includes(labelId)),
     )
-  }, [inRole, show, seen, query, labelId, applied.data])
+  }, [inRole, show, seen, labelled, query, labelId, applied.data])
   const sections = useMemo(() => sortQueue(filtered, sort, dir, BANDS), [filtered, sort, dir])
   const ordered = useMemo(() => sections.flatMap((section) => section.items), [sections])
 
   // Les cartes affichées (pagination) : seules leurs tapes sont signées.
   const visibleIds = useMemo(() => new Set(ordered.slice(0, limit).map((item) => item.application_id)), [ordered, limit])
   const tapes = useQueueTapes([...visibleIds])
-  const stats = progress(inRole, seen)
+  const stats = progress(inRole, seen, labelled)
 
   const loading = casting.isLoading || (roleIds.length > 0 && candidates.isLoading)
   if (loading) {
@@ -131,7 +136,7 @@ export function ReviewQueuePage() {
     return <FormError>{errorMessage(casting.error, 'This casting is not available.')}</FormError>
   }
 
-  const counts = { all: stats.total, unseen: stats.unseen, seen: stats.seen, decided: stats.decided }
+  const counts = { all: stats.total, unseen: stats.unseen, seen: stats.seen, waiting: stats.waiting, decided: stats.decided }
   const selectedItems = ordered.filter((item) => selected.has(item.application_id))
   const toggle = (id: string) =>
     setSelected((current) => {
@@ -140,7 +145,7 @@ export function ReviewQueuePage() {
       else next.add(id)
       return next
     })
-  const firstUnseen = ordered.findIndex((item) => !seen.has(item.application_id) && item.status !== 'not_selected')
+  const firstUnseen = ordered.findIndex((item) => reviewState(item, seen, labelled) === 'unseen')
 
   function exportCsv(items: QueueItem[]) {
     const csv = toCsv(
@@ -298,7 +303,7 @@ export function ReviewQueuePage() {
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-label font-semibold uppercase tracking-label text-muted">Show</span>
-          {(['all', 'unseen', 'seen', 'decided'] as ProgressFilter[]).map((key) => (
+          {(['all', 'unseen', 'seen', 'waiting', 'decided'] as ProgressFilter[]).map((key) => (
             <button
               key={key}
               type="button"
@@ -334,10 +339,11 @@ export function ReviewQueuePage() {
             <div className="ml-auto flex min-w-[180px] flex-1 items-center gap-2 sm:max-w-xs" aria-label="Your review progress">
               <div className="flex h-2 flex-1 overflow-hidden rounded-full bg-line">
                 <span className="bg-ink" style={{ width: `${(stats.decided / stats.total) * 100}%` }} />
-                <span className="bg-ink/35" style={{ width: `${(stats.seen / stats.total) * 100}%` }} />
+                <span className="bg-ink/55" style={{ width: `${(stats.waiting / stats.total) * 100}%` }} />
+                <span className="bg-ink/25" style={{ width: `${(stats.seen / stats.total) * 100}%` }} />
               </div>
               <span className="whitespace-nowrap text-[12px] text-muted">
-                {stats.decided} decided · {stats.seen} seen · {stats.unseen} unseen
+                {stats.decided} decided · {stats.waiting} waiting · {stats.seen} seen · {stats.unseen} unseen
               </span>
             </div>
           )}
@@ -382,7 +388,7 @@ export function ReviewQueuePage() {
                       key={item.application_id}
                       item={item}
                       tape={tapes.data?.[item.application_id]}
-                      seen={seen.has(item.application_id)}
+                      state={reviewState(item, seen, labelled)}
                       myVote={votes.data?.[item.application_id]}
                       selected={selected.has(item.application_id)}
                       selectable={mayReview}
