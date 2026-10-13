@@ -107,7 +107,12 @@ export function ReviewCard({
         ) : (
           <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/70">
             <Avatar src={item.avatar_url ?? undefined} name={item.name} size="lg" />
-            <span className="text-[12px]">No self-tape yet</span>
+            {/* Une tape existe mais son lien est en route : on ne dit pas « pas de tape ». */}
+            {item.has_self_tape ? (
+              <span className="h-1 w-16 animate-pulse rounded-full bg-white/25" aria-label="Loading the self-tape" />
+            ) : (
+              <span className="text-[12px]">No self-tape yet</span>
+            )}
           </span>
         )}
         <span className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
