@@ -23,8 +23,8 @@ export function LabelChips({ labels, max = 3 }: { labels: ReviewLabelRow[]; max?
 
 /**
  * Poser une étiquette sans interrompre la lecture : un clic, la vidéo continue.
- * Tant que l'équipe n'en a créé aucune, des étiquettes de départ sont
- * proposées — elles ne sont créées qu'au premier usage.
+ * Les étiquettes de départ que l'équipe n'a pas encore créées restent
+ * proposées (en pointillé) — elles ne sont créées qu'au premier usage.
  */
 export function LabelPicker({
   labels,
@@ -77,20 +77,19 @@ export function LabelPicker({
           </button>
         )
       })}
-      {labels.length === 0 &&
-        starters.map((starter) => (
-          <button
-            key={starter.name}
-            type="button"
-            disabled={busy}
-            onClick={() => onCreate(starter.name, starter.tone)}
-            className={cn(chip(false), 'border-dashed')}
-            title="Suggested — created for your team on first use"
-          >
-            <Plus className="h-3 w-3" />
-            {starter.name}
-          </button>
-        ))}
+      {starters.map((starter) => (
+        <button
+          key={starter.name}
+          type="button"
+          disabled={busy}
+          onClick={() => onCreate(starter.name, starter.tone)}
+          className={cn(chip(false), 'border-dashed')}
+          title="Suggested — created for your team on first use"
+        >
+          <Plus className="h-3 w-3" />
+          {starter.name}
+        </button>
+      ))}
       {adding ? (
         <form
           onSubmit={(event) => {
