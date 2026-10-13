@@ -138,6 +138,12 @@ export const router = createBrowserRouter([
             })),
           },
           {
+            path: 'casting/:castingId/review',
+            lazy: freshChunk(async () => ({
+              Component: (await import('./studio/ReviewQueuePage')).ReviewQueuePage,
+            })),
+          },
+          {
             path: 'casting/:castingId/console',
             lazy: freshChunk(async () => ({
               Component: (await import('./studio/SelectionConsolePage')).SelectionConsolePage,

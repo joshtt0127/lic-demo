@@ -14,6 +14,7 @@ import {
   Users,
   Layers,
   LifeBuoy,
+  PlayCircle,
   Pencil,
   Plus,
   Search,
@@ -345,6 +346,13 @@ export function CastingDashboardPage() {
           >
             View as talent
           </Button>
+          <Link
+            to={`/studio/casting/${data.id}/review`}
+            className="inline-flex h-9 items-center gap-1.5 rounded-field bg-ink px-3.5 text-[13px] font-bold text-white transition-colors hover:bg-ink/90"
+          >
+            <PlayCircle className="h-3.5 w-3.5" />
+            Review queue
+          </Link>
           <Link
             to={`/studio/casting/${data.id}/console`}
             className="inline-flex h-9 items-center gap-1.5 rounded-field bg-cream px-3.5 text-[13px] font-bold text-ink transition-colors hover:bg-cream/80"

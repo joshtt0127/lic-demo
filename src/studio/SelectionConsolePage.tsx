@@ -5,6 +5,7 @@ import {
   Check,
   Film,
   LayoutGrid,
+  PlayCircle,
   Search,
   Users,
 } from 'lucide-react'
@@ -198,14 +199,23 @@ export function SelectionConsolePage() {
           </p>
         </div>
 
-        <SegmentedControl
-          options={[
-            { value: 'board', label: 'Board' },
-            { value: 'wall', label: 'Wall' },
-          ]}
-          value={view}
-          onChange={(value) => value && setView(value as typeof view)}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            to={`/studio/casting/${data.id}/review`}
+            className="inline-flex h-9 items-center gap-1.5 rounded-field bg-ink px-3.5 text-[13px] font-bold text-white transition-colors hover:bg-ink/90"
+          >
+            <PlayCircle className="h-3.5 w-3.5" />
+            Review queue
+          </Link>
+          <SegmentedControl
+            options={[
+              { value: 'board', label: 'Board' },
+              { value: 'wall', label: 'Wall' },
+            ]}
+            value={view}
+            onChange={(value) => value && setView(value as typeof view)}
+          />
+        </div>
       </header>
 
       {error && <FormError>{error}</FormError>}
