@@ -4,7 +4,8 @@ import { Avatar, Tag } from '@/components/ui'
 import { explainReason } from '@/features/intelligence/reasons'
 import { APPLICATION_STATUS_LABEL, APPLICATION_STATUS_TONE, relativeTime } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import type { ReviewVote } from '@/types/database'
+import type { ReviewLabelRow, ReviewVote } from '@/types/database'
+import { LabelChips } from './LabelPicker'
 import { isDecided, type QueueItem } from './sort'
 import type { QueueTape } from './queries'
 
@@ -34,6 +35,7 @@ export function ReviewCard({
   selectable,
   showRole,
   showWhy,
+  labels,
   onToggle,
   onOpen,
 }: {
@@ -45,6 +47,8 @@ export function ReviewCard({
   selectable: boolean
   showRole: boolean
   showWhy: boolean
+  /** Étiquettes d'équipe posées sur cette audition. */
+  labels: ReviewLabelRow[]
   onToggle: () => void
   onOpen: () => void
 }) {
@@ -179,6 +183,8 @@ export function ReviewCard({
             </span>
           )}
         </div>
+
+        <LabelChips labels={labels} />
 
         {/* Pourquoi cette audition est là — seulement quand le feed ordonne. */}
         {showWhy && reasons.length > 0 && (

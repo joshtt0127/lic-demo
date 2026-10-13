@@ -117,8 +117,12 @@ export function matchesProgress(item: QueueItem, filter: ProgressFilter, seen: S
 }
 
 /** Export CSV de la sélection : ce que l'équipe voit, rien de plus. */
-export function toCsv(items: QueueItem[], explain: (item: QueueItem) => string) {
-  const head = ['Name', 'Role', 'Status', 'Submitted', 'City', 'Good', 'Maybe', 'No go', 'Why this audition']
+export function toCsv(
+  items: QueueItem[],
+  explain: (item: QueueItem) => string,
+  labels: (item: QueueItem) => string = () => '',
+) {
+  const head = ['Name', 'Role', 'Status', 'Submitted', 'City', 'Good', 'Maybe', 'No go', 'Labels', 'Why this audition']
   const esc = (value: string | number | null) => {
     const text = value == null ? '' : String(value)
     return /[",\n;]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
@@ -132,6 +136,7 @@ export function toCsv(items: QueueItem[], explain: (item: QueueItem) => string) 
     item.good_count,
     item.maybe_count,
     item.no_count,
+    labels(item),
     explain(item),
   ])
   return [head, ...rows].map((row) => row.map(esc).join(',')).join('\n')

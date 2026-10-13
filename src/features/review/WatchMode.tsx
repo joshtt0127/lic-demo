@@ -11,7 +11,8 @@ import { can } from '@/lib/access'
 import { APPLICATION_STATUS_LABEL, APPLICATION_STATUS_TONE } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { errorMessage } from '@/lib/supabase'
-import type { ApplicationStatus, ReviewVote } from '@/types/database'
+import type { ApplicationStatus, ReviewLabelRow, ReviewLabelTone, ReviewVote } from '@/types/database'
+import { LabelPicker } from './LabelPicker'
 import type { QueueItem } from './sort'
 
 const VOTES: { value: ReviewVote; label: string; key: string; icon: typeof ThumbsUp; on: string }[] = [
@@ -33,6 +34,11 @@ export function WatchMode({
   onClose,
   onOpenFullReview,
   onSeen,
+  labels,
+  appliedLabels,
+  onToggleLabel,
+  onCreateLabel,
+  labelsBusy,
 }: {
   items: QueueItem[]
   index: number
@@ -40,6 +46,12 @@ export function WatchMode({
   onClose: () => void
   onOpenFullReview: (item: QueueItem) => void
   onSeen: (applicationId: string) => void
+  labels: ReviewLabelRow[]
+  /** Étiquettes posées sur l'audition affichée. */
+  appliedLabels: Set<string>
+  onToggleLabel: (applicationId: string, label: ReviewLabelRow, on: boolean) => void
+  onCreateLabel: (applicationId: string, name: string, tone: ReviewLabelTone) => void
+  labelsBusy?: boolean
 }) {
   const item = items[index]
   const { profile } = useAuth()
@@ -255,6 +267,23 @@ export function WatchMode({
                   </button>
                 ))}
               </div>
+            </section>
+          )}
+
+          {mayReview && (
+            <section>
+              <p className="text-label font-semibold uppercase tracking-label text-white/50">Labels</p>
+              <div className="mt-2">
+                <LabelPicker
+                  dark
+                  labels={labels}
+                  active={appliedLabels}
+                  busy={labelsBusy}
+                  onToggle={(label, on) => onToggleLabel(item.application_id, label, on)}
+                  onCreate={(name, tone) => onCreateLabel(item.application_id, name, tone)}
+                />
+              </div>
+              <p className="mt-2 text-[11.5px] text-white/45">Team labels — the video keeps playing. Talents never see them.</p>
             </section>
           )}
 

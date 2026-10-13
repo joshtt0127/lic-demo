@@ -382,6 +382,25 @@ export type CandidateReviewRow = {
   updated_at: string
 }
 
+/** Audition Review Queue™ — étiquette d'équipe (« Strong on camera »…). */
+export type ReviewLabelTone = 'neutral' | 'good' | 'maybe' | 'no' | 'gold' | 'link'
+
+export type ReviewLabelRow = {
+  id: string
+  org_id: string
+  name: string
+  tone: ReviewLabelTone
+  created_by: string | null
+  created_at: string
+}
+
+export type ApplicationLabelRow = {
+  application_id: string
+  label_id: string
+  added_by: string | null
+  created_at: string
+}
+
 export type CandidateNoteRow = {
   id: string
   application_id: string
@@ -894,6 +913,8 @@ export type Database = {
       application_media: Writable<ApplicationMediaRow, 'application_id' | 'media_asset_id'>
       candidate_reviews: Writable<CandidateReviewRow, 'application_id' | 'reviewer_id' | 'vote'>
       candidate_notes: Writable<CandidateNoteRow, 'application_id' | 'author_id' | 'body'>
+      review_labels: Writable<ReviewLabelRow, 'org_id' | 'name'>
+      application_labels: Writable<ApplicationLabelRow, 'application_id' | 'label_id'>
       saved_searches: Writable<SavedSearchRow, 'owner_id' | 'name'>
       saved_castings: Writable<SavedCastingRow, 'talent_id' | 'casting_call_id'>
       saved_talents: Writable<SavedTalentRow, 'production_id' | 'talent_id'>

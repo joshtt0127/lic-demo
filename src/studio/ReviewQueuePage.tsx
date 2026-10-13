@@ -13,6 +13,7 @@ import { BAND_DESCRIPTION, BAND_LABEL, explainReason } from '@/features/intellig
 import { ReviewCard } from '@/features/review/ReviewCard'
 import { WatchMode } from '@/features/review/WatchMode'
 import { useBatchStatus, useMySeen, useMyVotes, useQueueTapes } from '@/features/review/queries'
+import { useApplicationLabels, useLabelMutations, useOrgLabels } from '@/features/review/labels'
 import {
   DEFAULT_DIR,
   buildQueue,
@@ -30,7 +31,7 @@ import { can } from '@/lib/access'
 import { APPLICATION_STATUS_LABEL } from '@/lib/format'
 import { errorMessage } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
-import type { ApplicationStatus, AttentionBand } from '@/types/database'
+import type { ApplicationStatus, AttentionBand, ReviewLabelRow, ReviewLabelTone } from '@/types/database'
 
 const PAGE = 48
 const MOVE_TO: ApplicationStatus[] = ['under_review', 'shortlisted', 'offer', 'cast', 'not_selected']
@@ -92,13 +93,23 @@ export function ReviewQueuePage() {
   const seenQuery = useMySeen(profile?.id, ids)
   const votes = useMyVotes(profile?.id, ids)
   const seen = useMemo(() => new Set([...(seenQuery.data ?? []), ...localSeen]), [seenQuery.data, localSeen])
+  const orgLabels = useOrgLabels(organization?.id)
+  const applied = useApplicationLabels(ids)
+  const labelMutations = useLabelMutations(organization?.id, profile?.id)
+  const labelId = params.get('label')
+  const labelsById = useMemo(() => new Map((orgLabels.data ?? []).map((label) => [label.id, label])), [orgLabels.data])
+  const labelsOf = (applicationId: string): ReviewLabelRow[] =>
+    (applied.data?.[applicationId] ?? []).map((id) => labelsById.get(id)).filter((label): label is ReviewLabelRow => Boolean(label))
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
     return inRole.filter(
-      (item) => matchesProgress(item, show, seen) && (!needle || item.name.toLowerCase().includes(needle)),
+      (item) =>
+        matchesProgress(item, show, seen) &&
+        (!needle || item.name.toLowerCase().includes(needle)) &&
+        (!labelId || (applied.data?.[item.application_id] ?? []).includes(labelId)),
     )
-  }, [inRole, show, seen, query])
+  }, [inRole, show, seen, query, labelId, applied.data])
   const sections = useMemo(() => sortQueue(filtered, sort, dir, BANDS), [filtered, sort, dir])
   const ordered = useMemo(() => sections.flatMap((section) => section.items), [sections])
 
@@ -132,13 +143,38 @@ export function ReviewQueuePage() {
   const firstUnseen = ordered.findIndex((item) => !seen.has(item.application_id) && item.status !== 'not_selected')
 
   function exportCsv(items: QueueItem[]) {
-    const csv = toCsv(items, (item) => (item.feed?.reasons ?? []).map(explainReason).join(' | '))
+    const csv = toCsv(
+      items,
+      (item) => (item.feed?.reasons ?? []).map(explainReason).join(' | '),
+      (item) => labelsOf(item.application_id).map((label) => label.name).join(' | '),
+    )
     const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
     link.download = `${casting.data?.title ?? 'auditions'} — review queue.csv`.replace(/[/\\?%*:|"<>]/g, '-')
     link.click()
     URL.revokeObjectURL(link.href)
+  }
+
+  async function setLabel(applicationIds: string[], label: ReviewLabelRow, on: boolean) {
+    setError(null)
+    try {
+      await labelMutations.set.mutateAsync({ applicationIds, labelId: label.id, on })
+    } catch (labelError) {
+      setError(errorMessage(labelError, 'Could not update the label'))
+    }
+  }
+
+  async function createAndSet(applicationIds: string[], name: string, tone: ReviewLabelTone) {
+    setError(null)
+    try {
+      const label = await labelMutations.create.mutateAsync({ name, tone })
+      await labelMutations.set.mutateAsync({ applicationIds, labelId: label.id, on: true })
+      return label
+    } catch (labelError) {
+      setError(errorMessage(labelError, 'Could not create the label'))
+      return null
+    }
   }
 
   async function applyBatch(status: ApplicationStatus) {
@@ -275,6 +311,24 @@ export function ReviewQueuePage() {
               {key} <span className={show === key ? 'text-white/60' : 'text-muted'}>{counts[key]}</span>
             </button>
           ))}
+          {(orgLabels.data ?? []).length > 0 && (
+            <select
+              aria-label="Filter by label"
+              value={labelId ?? ''}
+              onChange={(event) => setParam('label', event.target.value || null)}
+              className={cn(
+                'h-8 rounded-full border px-3 text-[12.5px] font-semibold',
+                labelId ? 'border-ink bg-ink text-white' : 'border-line bg-card text-ink',
+              )}
+            >
+              <option value="">Any label</option>
+              {(orgLabels.data ?? []).map((label) => (
+                <option key={label.id} value={label.id}>
+                  {label.name}
+                </option>
+              ))}
+            </select>
+          )}
           {/* Progression personnelle de la revue */}
           {stats.total > 0 && (
             <div className="ml-auto flex min-w-[180px] flex-1 items-center gap-2 sm:max-w-xs" aria-label="Your review progress">
@@ -334,6 +388,7 @@ export function ReviewQueuePage() {
                       selectable={mayReview}
                       showRole={!singleRole && roles.length > 1}
                       showWhy={sort === 'intelligence'}
+                      labels={labelsOf(item.application_id)}
                       onToggle={() => toggle(item.application_id)}
                       onOpen={() => setWatching(ordered.indexOf(item))}
                     />
@@ -389,6 +444,34 @@ export function ReviewQueuePage() {
               </select>
             </>
           )}
+          {mayReview && (
+            <select
+              aria-label="Label the selected auditions"
+              value=""
+              disabled={labelMutations.set.isPending || labelMutations.create.isPending}
+              onChange={(event) => {
+                const value = event.target.value
+                if (!value) return
+                const ids = selectedItems.map((item) => item.application_id)
+                if (value.startsWith('new:')) {
+                  const name = window.prompt('Name of the new label')
+                  if (name?.trim()) void createAndSet(ids, name, 'neutral').then((label) => label && toast(`“${label.name}” added to ${ids.length}`))
+                  return
+                }
+                const label = labelsById.get(value)
+                if (label) void setLabel(ids, label, true).then(() => toast(`“${label.name}” added to ${ids.length}`))
+              }}
+              className="h-9 rounded-btn border border-white/20 bg-transparent px-2.5 text-[13px] font-semibold text-white"
+            >
+              <option value="" className="text-ink">Label…</option>
+              {(orgLabels.data ?? []).map((label) => (
+                <option key={label.id} value={label.id} className="text-ink">
+                  {label.name}
+                </option>
+              ))}
+              <option value="new:" className="text-ink">+ New label…</option>
+            </select>
+          )}
           <Button size="sm" variant="secondary" icon={<Download className="h-3.5 w-3.5" />} onClick={() => exportCsv(selectedItems)}>
             Export
           </Button>
@@ -415,6 +498,11 @@ export function ReviewQueuePage() {
             setReviewing(item)
           }}
           onSeen={(id) => setLocalSeen((current) => new Set(current).add(id))}
+          labels={orgLabels.data ?? []}
+          appliedLabels={new Set(applied.data?.[ordered[watching].application_id] ?? [])}
+          labelsBusy={labelMutations.set.isPending || labelMutations.create.isPending}
+          onToggleLabel={(applicationId, label, on) => void setLabel([applicationId], label, on)}
+          onCreateLabel={(applicationId, name, tone) => void createAndSet([applicationId], name, tone)}
         />
       )}
 
