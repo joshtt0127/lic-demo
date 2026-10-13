@@ -39,6 +39,9 @@ export function WatchMode({
   onToggleLabel,
   onCreateLabel,
   labelsBusy,
+  assigneeId,
+  assignOptions,
+  onAssign,
 }: {
   items: QueueItem[]
   index: number
@@ -52,6 +55,10 @@ export function WatchMode({
   onToggleLabel: (applicationId: string, label: ReviewLabelRow, on: boolean) => void
   onCreateLabel: (applicationId: string, name: string, tone: ReviewLabelTone) => void
   labelsBusy?: boolean
+  assigneeId: string | null
+  /** Ce que cette personne a le droit d'attribuer (tout le monde, ou soi-même). */
+  assignOptions: { id: string; name: string }[]
+  onAssign: (applicationId: string, assigneeId: string | null) => void
 }) {
   const item = items[index]
   const { profile } = useAuth()
@@ -267,6 +274,32 @@ export function WatchMode({
                   </button>
                 ))}
               </div>
+            </section>
+          )}
+
+          {mayReview && (
+            <section>
+              <label className="text-label font-semibold uppercase tracking-label text-white/50" htmlFor="watch-assignee">
+                Assigned to
+              </label>
+              <select
+                id="watch-assignee"
+                value={assigneeId ?? ''}
+                onChange={(event) => onAssign(item.application_id, event.target.value || null)}
+                className="mt-2 h-9 w-full rounded-btn border border-white/20 bg-transparent px-2.5 text-[13px] font-semibold text-white"
+              >
+                <option value="" className="text-ink">Nobody</option>
+                {assigneeId && !assignOptions.some((option) => option.id === assigneeId) && (
+                  <option value={assigneeId} className="text-ink">
+                    {team.find((member) => member.id === assigneeId)?.name ?? 'A teammate'}
+                  </option>
+                )}
+                {assignOptions.map((option) => (
+                  <option key={option.id} value={option.id} className="text-ink">
+                    {option.id === profile?.id ? `Me (${option.name})` : option.name}
+                  </option>
+                ))}
+              </select>
             </section>
           )}
 

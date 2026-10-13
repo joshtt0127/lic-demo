@@ -401,6 +401,14 @@ export type ApplicationLabelRow = {
   created_at: string
 }
 
+/** Audition Review Queue™ — à qui une audition est confiée. */
+export type ApplicationAssignmentRow = {
+  application_id: string
+  assignee_id: string
+  assigned_by: string | null
+  assigned_at: string
+}
+
 export type CandidateNoteRow = {
   id: string
   application_id: string
@@ -915,6 +923,7 @@ export type Database = {
       candidate_notes: Writable<CandidateNoteRow, 'application_id' | 'author_id' | 'body'>
       review_labels: Writable<ReviewLabelRow, 'org_id' | 'name'>
       application_labels: Writable<ApplicationLabelRow, 'application_id' | 'label_id'>
+      application_assignments: Writable<ApplicationAssignmentRow, 'application_id' | 'assignee_id'>
       saved_searches: Writable<SavedSearchRow, 'owner_id' | 'name'>
       saved_castings: Writable<SavedCastingRow, 'talent_id' | 'casting_call_id'>
       saved_talents: Writable<SavedTalentRow, 'production_id' | 'talent_id'>

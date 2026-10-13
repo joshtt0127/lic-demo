@@ -6,7 +6,8 @@ import { Skeleton } from '@/components/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
 import { useToast } from '@/components/Toast'
 import { useAuth } from '@/features/auth/AuthProvider'
-import { useCurrentOrganization } from '@/features/organizations/queries'
+import { useCurrentOrganization, useOrgMembers } from '@/features/organizations/queries'
+import { useAssign, useAssignments } from '@/features/review/assignments'
 import { useCandidatesForRoles, useOrgCasting } from '@/features/studio/queries'
 import { useIntelligenceFeed } from '@/features/intelligence/queries'
 import { BAND_DESCRIPTION, BAND_LABEL, explainReason } from '@/features/intelligence/reasons'
@@ -98,6 +99,31 @@ export function ReviewQueuePage() {
   const applied = useApplicationLabels(ids)
   const labelMutations = useLabelMutations(organization?.id, profile?.id)
   const labelId = params.get('label')
+  const assignedFilter = params.get('assigned')
+  const members = useOrgMembers(organization?.id)
+  const assignments = useAssignments(ids)
+  const assign = useAssign(profile?.id)
+  // Les membres à qui on peut confier une audition : actifs, et pas viewer.
+  const reviewers = useMemo(
+    () =>
+      (members.data ?? [])
+        .filter((member) => member.status === 'active' && member.role !== 'viewer')
+        .map((member) => ({
+          id: member.profile_id,
+          name: [member.profile?.first_name, member.profile?.last_name].filter(Boolean).join(' ') || 'Member',
+          avatar: member.profile?.avatar_url ?? undefined,
+        })),
+    [members.data],
+  )
+  const reviewerById = useMemo(() => new Map(reviewers.map((reviewer) => [reviewer.id, reviewer])), [reviewers])
+  // Un responsable attribue à tout le monde ; un membre, à lui-même seulement.
+  const assignOptions = mayDecide ? reviewers : reviewers.filter((reviewer) => reviewer.id === profile?.id)
+  const assigneeOf = (applicationId: string) => {
+    const id = assignments.data?.[applicationId]
+    if (!id) return null
+    const reviewer = reviewerById.get(id)
+    return { name: reviewer?.name ?? 'A teammate', avatar: reviewer?.avatar, isMe: id === profile?.id }
+  }
   const labelsById = useMemo(() => new Map((orgLabels.data ?? []).map((label) => [label.id, label])), [orgLabels.data])
   const labelled = useMemo(
     () => new Set(Object.entries(applied.data ?? {}).filter(([, list]) => list.length > 0).map(([id]) => id)),
@@ -112,9 +138,13 @@ export function ReviewQueuePage() {
       (item) =>
         matchesProgress(item, show, seen, labelled) &&
         (!needle || item.name.toLowerCase().includes(needle)) &&
-        (!labelId || (applied.data?.[item.application_id] ?? []).includes(labelId)),
+        (!labelId || (applied.data?.[item.application_id] ?? []).includes(labelId)) &&
+        (!assignedFilter ||
+          (assignedFilter === 'none'
+            ? !assignments.data?.[item.application_id]
+            : assignments.data?.[item.application_id] === (assignedFilter === 'me' ? profile?.id : assignedFilter))),
     )
-  }, [inRole, show, seen, labelled, query, labelId, applied.data])
+  }, [inRole, show, seen, labelled, query, labelId, applied.data, assignedFilter, assignments.data, profile?.id])
   const sections = useMemo(() => sortQueue(filtered, sort, dir, BANDS), [filtered, sort, dir])
   const ordered = useMemo(() => sections.flatMap((section) => section.items), [sections])
 
@@ -179,6 +209,21 @@ export function ReviewQueuePage() {
     } catch (labelError) {
       setError(errorMessage(labelError, 'Could not create the label'))
       return null
+    }
+  }
+
+  async function assignTo(applicationIds: string[], assigneeId: string | null) {
+    setError(null)
+    try {
+      await assign.mutateAsync({ applicationIds, assigneeId })
+      const who = assigneeId ? reviewerById.get(assigneeId)?.name ?? 'a teammate' : null
+      toast(
+        who
+          ? `${applicationIds.length} audition${applicationIds.length > 1 ? 's' : ''} assigned to ${assigneeId === profile?.id ? 'you' : who}`
+          : 'Unassigned',
+      )
+    } catch (assignError) {
+      setError(errorMessage(assignError, 'Could not assign these auditions'))
     }
   }
 
@@ -316,6 +361,26 @@ export function ReviewQueuePage() {
               {key} <span className={show === key ? 'text-white/60' : 'text-muted'}>{counts[key]}</span>
             </button>
           ))}
+          <select
+            aria-label="Filter by assignee"
+            value={assignedFilter ?? ''}
+            onChange={(event) => setParam('assigned', event.target.value || null)}
+            className={cn(
+              'h-8 rounded-full border px-3 text-[12.5px] font-semibold',
+              assignedFilter ? 'border-ink bg-ink text-white' : 'border-line bg-card text-ink',
+            )}
+          >
+            <option value="">Anyone</option>
+            <option value="me">Assigned to me</option>
+            <option value="none">Unassigned</option>
+            {reviewers
+              .filter((reviewer) => reviewer.id !== profile?.id)
+              .map((reviewer) => (
+                <option key={reviewer.id} value={reviewer.id}>
+                  Assigned to {reviewer.name}
+                </option>
+              ))}
+          </select>
           {(orgLabels.data ?? []).length > 0 && (
             <select
               aria-label="Filter by label"
@@ -395,6 +460,7 @@ export function ReviewQueuePage() {
                       showRole={!singleRole && roles.length > 1}
                       showWhy={sort === 'intelligence'}
                       labels={labelsOf(item.application_id)}
+                      assignee={assigneeOf(item.application_id)}
                       onToggle={() => toggle(item.application_id)}
                       onOpen={() => setWatching(ordered.indexOf(item))}
                     />
@@ -449,6 +515,30 @@ export function ReviewQueuePage() {
                 ))}
               </select>
             </>
+          )}
+          {mayReview && assignOptions.length > 0 && (
+            <select
+              aria-label="Assign the selected auditions"
+              value=""
+              disabled={assign.isPending}
+              onChange={(event) => {
+                const value = event.target.value
+                if (!value) return
+                void assignTo(
+                  selectedItems.map((item) => item.application_id),
+                  value === 'none' ? null : value,
+                )
+              }}
+              className="h-9 rounded-btn border border-white/20 bg-transparent px-2.5 text-[13px] font-semibold text-white"
+            >
+              <option value="" className="text-ink">Assign to…</option>
+              {assignOptions.map((option) => (
+                <option key={option.id} value={option.id} className="text-ink">
+                  {option.id === profile?.id ? `Me (${option.name})` : option.name}
+                </option>
+              ))}
+              <option value="none" className="text-ink">Unassign</option>
+            </select>
           )}
           {mayReview && (
             <select
@@ -509,6 +599,9 @@ export function ReviewQueuePage() {
           labelsBusy={labelMutations.set.isPending || labelMutations.create.isPending}
           onToggleLabel={(applicationId, label, on) => void setLabel([applicationId], label, on)}
           onCreateLabel={(applicationId, name, tone) => void createAndSet([applicationId], name, tone)}
+          assigneeId={assignments.data?.[ordered[watching].application_id] ?? null}
+          assignOptions={assignOptions}
+          onAssign={(applicationId, assigneeId) => void assignTo([applicationId], assigneeId)}
         />
       )}
 

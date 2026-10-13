@@ -36,6 +36,7 @@ export function ReviewCard({
   showRole,
   showWhy,
   labels,
+  assignee,
   onToggle,
   onOpen,
 }: {
@@ -49,6 +50,8 @@ export function ReviewCard({
   showWhy: boolean
   /** Étiquettes d'équipe posées sur cette audition. */
   labels: ReviewLabelRow[]
+  /** La personne de l'équipe à qui l'audition est confiée. */
+  assignee: { name: string; avatar: string | undefined; isMe: boolean } | null
   onToggle: () => void
   onOpen: () => void
 }) {
@@ -187,6 +190,13 @@ export function ReviewCard({
         </div>
 
         <LabelChips labels={labels} />
+
+        {assignee && (
+          <p className="flex items-center gap-1.5 text-[12px] text-muted">
+            <Avatar src={assignee.avatar} name={assignee.name} size="xs" />
+            {assignee.isMe ? <strong className="text-ink">Assigned to you</strong> : <>Assigned to {assignee.name}</>}
+          </p>
+        )}
 
         {/* Pourquoi cette audition est là — seulement quand le feed ordonne. */}
         {showWhy && reasons.length > 0 && (
