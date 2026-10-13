@@ -557,6 +557,8 @@ export type AttentionReason =
   | { code: 'worked_with_you'; times: number }
   | { code: 'called_back_before'; times: number }
   | { code: 'shortlisted_before'; times: number }
+  /** Écarté chez nous alors que l'équipe l'avait remarqué (vote good, étiquette positive). */
+  | { code: 'passed_but_noted'; castings: number; good_votes: number; labels: number; project: string | null }
   | { code: 'team_waiting'; votes: number }
   | { code: 'rewatched'; times: number }
   | { code: 'watched_fully' }

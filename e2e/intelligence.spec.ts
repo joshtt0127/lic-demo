@@ -569,3 +569,70 @@ test.describe('Ce qui est vrai pour tout le monde ne classe personne', () => {
     }
   })
 })
+
+test.describe('A pass is not a failure — la mémoire propre à l’équipe', () => {
+  test('un comédien remarqué puis écarté remonte au casting suivant, avec sa raison', async () => {
+    const stamp = Date.now() + 40
+    const house = await organization(stamp, 'pass')
+    const masterchef = await castingFor(house.orgId, house.ownerId, stamp, 'MasterChef')
+    const bigBrother = await castingFor(house.orgId, house.ownerId, stamp, 'BigBrother')
+    const talentId = await createAccount(`e2e.pass.${stamp}@letitcast.dev`, 'talent', 'Pia')
+
+    // MasterChef : l'équipe vote « good », puis écarte.
+    const { data: first } = await admin
+      .from('applications')
+      .insert({ role_id: masterchef.roleId, talent_id: talentId, status: 'submitted', submitted_at: new Date().toISOString() })
+      .select('id')
+      .single()
+    await admin.from('candidate_reviews').insert({ application_id: first!.id, reviewer_id: house.ownerId, vote: 'good' })
+    await admin
+      .from('applications')
+      .update({ status: 'not_selected', decided_at: new Date().toISOString() })
+      .eq('id', first!.id)
+
+    // Big Brother : la même personne postule.
+    const { data: again } = await admin
+      .from('applications')
+      .insert({ role_id: bigBrother.roleId, talent_id: talentId, status: 'submitted', submitted_at: new Date().toISOString() })
+      .select('id')
+      .single()
+
+    const owner = await signedIn(house.email)
+    const { data: feed } = await owner.rpc('intelligence_feed', { p_casting: bigBrother.castingId })
+    const row = feed!.find((r: { application_id: string }) => r.application_id === again!.id)
+    expect(row.band).toBe('priority')
+    expect(row.reasons).toContainEqual(
+      expect.objectContaining({ code: 'passed_but_noted', castings: 1, good_votes: 1, project: `MasterChef ${stamp}` }),
+    )
+  })
+
+  test('la mémoire d’une autre organisation n’est jamais lue', async () => {
+    const stamp = Date.now() + 41
+    const elsewhere = await organization(stamp, 'passother')
+    const house = await organization(stamp, 'passhome')
+    const theirs = await castingFor(elsewhere.orgId, elsewhere.ownerId, stamp, 'Theirs')
+    const ours = await castingFor(house.orgId, house.ownerId, stamp, 'Ours')
+    const talentId = await createAccount(`e2e.pass.other.${stamp}@letitcast.dev`, 'talent', 'Paz')
+
+    const { data: past } = await admin
+      .from('applications')
+      .insert({ role_id: theirs.roleId, talent_id: talentId, status: 'submitted', submitted_at: new Date().toISOString() })
+      .select('id')
+      .single()
+    await admin.from('candidate_reviews').insert({ application_id: past!.id, reviewer_id: elsewhere.ownerId, vote: 'good' })
+    await admin
+      .from('applications')
+      .update({ status: 'not_selected', decided_at: new Date().toISOString() })
+      .eq('id', past!.id)
+    const { data: now } = await admin
+      .from('applications')
+      .insert({ role_id: ours.roleId, talent_id: talentId, status: 'submitted', submitted_at: new Date().toISOString() })
+      .select('id')
+      .single()
+
+    const owner = await signedIn(house.email)
+    const { data: feed } = await owner.rpc('intelligence_feed', { p_casting: ours.castingId })
+    const row = feed!.find((r: { application_id: string }) => r.application_id === now!.id)
+    expect(row.reasons.map((reason: { code: string }) => reason.code)).not.toContain('passed_but_noted')
+  })
+})

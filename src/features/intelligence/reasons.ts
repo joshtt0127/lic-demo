@@ -36,6 +36,26 @@ export function explainReason(reason: AttentionReason): string {
       return `You called this talent back ${times(reason.times)} before`
     case 'shortlisted_before':
       return `You shortlisted this talent ${times(reason.times)} before`
+    /**
+     * « A pass is not a failure » — dit comme un fait sur ce que l'ÉQUIPE a
+     * fait, jamais comme un avis sur le comédien : combien de votes, combien
+     * d'étiquettes, sur quel casting de la maison.
+     */
+    case 'passed_but_noted': {
+      const where =
+        reason.castings > 1
+          ? `${reason.castings} of your castings${reason.project ? ` (last: “${reason.project}”)` : ''}`
+          : reason.project
+            ? `“${reason.project}”`
+            : 'one of your castings'
+      const what = [
+        reason.good_votes > 0 ? `${reason.good_votes} good vote${reason.good_votes === 1 ? '' : 's'}` : null,
+        reason.labels > 0 ? `${reason.labels} positive label${reason.labels === 1 ? '' : 's'}` : null,
+      ]
+        .filter(Boolean)
+        .join(' and ')
+      return `Passed on ${where} after ${what || 'a positive note'} from your team`
+    }
     case 'team_waiting':
       return reason.votes === 1
         ? 'A teammate voted and nobody has decided'

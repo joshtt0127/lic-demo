@@ -33,6 +33,18 @@ describe('explainReason', () => {
     expect(explainReason({ code: 'team_waiting', votes: 2 })).toContain('2 teammates')
   })
 
+  it('rappelle un pass remarqué avec ses chiffres et le casting concerné', () => {
+    expect(
+      explainReason({ code: 'passed_but_noted', castings: 1, good_votes: 2, labels: 0, project: 'MasterChef' }),
+    ).toBe('Passed on “MasterChef” after 2 good votes from your team')
+    expect(
+      explainReason({ code: 'passed_but_noted', castings: 1, good_votes: 1, labels: 3, project: 'MasterChef' }),
+    ).toBe('Passed on “MasterChef” after 1 good vote and 3 positive labels from your team')
+    expect(
+      explainReason({ code: 'passed_but_noted', castings: 2, good_votes: 0, labels: 1, project: 'Big Brother' }),
+    ).toContain('2 of your castings (last: “Big Brother”)')
+  })
+
   it('n’invente pas une note technique quand la tape n’a pas été mesurée', () => {
     expect(explainReason({ code: 'tape_ready', quality: null })).toBe('Self-tape ready to watch')
     expect(explainReason({ code: 'tape_ready', quality: 82 })).toContain('82/100')
@@ -57,6 +69,7 @@ describe('explainReason', () => {
       explainReason({ code: 'complete_submission' }),
       explainReason({ code: 'never_opened', waiting_hours: 200 }),
       explainReason({ code: 'cast_elsewhere', productions: 2 }),
+      explainReason({ code: 'passed_but_noted', castings: 1, good_votes: 2, labels: 1, project: 'MasterChef' }),
       explainReason({ code: 'called_back_elsewhere', productions: 3 }),
       explainReason({ code: 'submission_ready', met: 6, applicable: 7 }),
       explainReason({ code: 'submission_partial', met: 3, applicable: 7 }),
