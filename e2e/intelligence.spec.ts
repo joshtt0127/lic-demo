@@ -635,4 +635,29 @@ test.describe('A pass is not a failure — la mémoire propre à l’équipe', (
     const row = feed!.find((r: { application_id: string }) => r.application_id === now!.id)
     expect(row.reasons.map((reason: { code: string }) => reason.code)).not.toContain('passed_but_noted')
   })
+
+  test('une shortlist d’aujourd’hui n’est pas un « retenu avant »', async () => {
+    const stamp = Date.now() + 42
+    const house = await organization(stamp, 'pastonly')
+    const casting = await castingFor(house.orgId, house.ownerId, stamp, 'Today')
+    const talentId = await createAccount(`e2e.pastonly.${stamp}@letitcast.dev`, 'talent', 'Noa')
+
+    const { data: application } = await admin
+      .from('applications')
+      .insert({ role_id: casting.roleId, talent_id: talentId, status: 'submitted', submitted_at: new Date().toISOString() })
+      .select('id')
+      .single()
+    await admin
+      .from('applications')
+      .update({ status: 'shortlisted', decided_at: new Date().toISOString() })
+      .eq('id', application!.id)
+
+    const owner = await signedIn(house.email)
+    const { data: feed } = await owner.rpc('intelligence_feed', { p_casting: casting.castingId })
+    const row = feed!.find((r: { application_id: string }) => r.application_id === application!.id)
+    const codes = row.reasons.map((reason: { code: string }) => reason.code)
+    expect(codes).not.toContain('shortlisted_before')
+    expect(codes).not.toContain('called_back_before')
+    expect(codes).not.toContain('worked_with_you')
+  })
 })

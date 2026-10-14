@@ -13,6 +13,7 @@ import { cn } from '@/lib/cn'
 import { errorMessage } from '@/lib/supabase'
 import type { ApplicationStatus, ReviewLabelRow, ReviewLabelTone, ReviewVote } from '@/types/database'
 import { LabelPicker } from './LabelPicker'
+import type { QueueTape } from './queries'
 import type { QueueItem } from './sort'
 
 const VOTES: { value: ReviewVote; label: string; key: string; icon: typeof ThumbsUp; on: string }[] = [
@@ -42,6 +43,7 @@ export function WatchMode({
   assigneeId,
   assignOptions,
   onAssign,
+  tapes,
 }: {
   items: QueueItem[]
   index: number
@@ -59,6 +61,8 @@ export function WatchMode({
   /** Ce que cette personne a le droit d'attribuer (tout le monde, ou soi-même). */
   assignOptions: { id: string; name: string }[]
   onAssign: (applicationId: string, assigneeId: string | null) => void
+  /** Les tapes déjà signées par la file, par candidature. */
+  tapes?: Record<string, QueueTape>
 }) {
   const item = items[index]
   const { profile } = useAuth()
@@ -68,14 +72,19 @@ export function WatchMode({
   const mutations = useStudioMutations(organization?.id, profile?.id)
   const members = useOrgMembers(organization?.id)
   const tape = useSelfTape(item?.application_id)
+  // La file a déjà signé les tapes visibles : la lecture démarre sans attendre.
+  const src = (item && tapes?.[item.application_id]?.url) || tape.data?.url
+  const nextSrc = items[index + 1] ? tapes?.[items[index + 1].application_id]?.url : undefined
   const reviews = useCandidateReviews(item?.application_id)
   const engagement = useRecordEngagement()
   const videoRef = useRef<HTMLVideoElement>(null)
   const watched = useRef({ completed: false, plays: 0 })
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState<ApplicationStatus | null>(null)
+  // Le vote s'affiche à la frappe, la base suit.
+  const [pendingVote, setPendingVote] = useState<ReviewVote | null>(null)
 
-  const myVote = (reviews.data ?? []).find((review) => review.reviewer_id === profile?.id)?.vote
+  const myVote = pendingVote ?? (reviews.data ?? []).find((review) => review.reviewer_id === profile?.id)?.vote
   const atEnd = index >= items.length - 1
 
   // Ouvrir une audition : le signal « ouverte », et « vue » si elle ne l'était pas.
@@ -84,6 +93,7 @@ export function WatchMode({
     watched.current = { completed: false, plays: 0 }
     setError(null)
     setStatus(null)
+    setPendingVote(null)
     engagement.mutate({ applicationId: item.application_id, kind: 'AUDITION_OPENED' })
     onSeen(item.application_id)
     if (item.status === 'submitted' && mayDecide) mutations.markViewed.mutate(item.application_id)
@@ -96,12 +106,14 @@ export function WatchMode({
   async function vote(value: ReviewVote) {
     if (!item || !mayReview) return
     setError(null)
+    setPendingVote(value)
     try {
       await mutations.vote.mutateAsync({ applicationId: item.application_id, vote: value })
-      void reviews.refetch()
+      await reviews.refetch()
     } catch (voteError) {
       setError(errorMessage(voteError, 'Could not save your vote'))
     }
+    setPendingVote(null)
   }
 
   async function decide(value: ApplicationStatus) {
@@ -201,13 +213,11 @@ export function WatchMode({
 
       <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="flex min-h-0 items-center justify-center bg-black p-3 sm:p-6">
-          {tape.isLoading ? (
-            <Spinner />
-          ) : tape.data ? (
+          {src ? (
             <video
               key={item.application_id}
               ref={videoRef}
-              src={tape.data.url}
+              src={src}
               controls
               autoPlay
               playsInline
@@ -225,9 +235,13 @@ export function WatchMode({
                 engagement.mutate({ applicationId: item.application_id, kind: 'AUDITION_COMPLETED', progress })
               }}
             />
+          ) : tape.isLoading ? (
+            <Spinner />
           ) : (
             <p className="text-[14px] text-white/60">No self-tape for this audition yet.</p>
           )}
+          {/* La suivante se charge pendant qu'on regarde : Watch & Advance sans attente. */}
+          {nextSrc && <video key={`next-${nextSrc}`} src={nextSrc} preload="auto" muted hidden aria-hidden />}
         </div>
 
         <aside className="flex min-h-0 flex-col gap-5 overflow-y-auto border-l border-white/10 bg-[#15140f] p-5">

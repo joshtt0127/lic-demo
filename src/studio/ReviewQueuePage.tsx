@@ -602,6 +602,7 @@ export function ReviewQueuePage() {
           assigneeId={assignments.data?.[ordered[watching].application_id] ?? null}
           assignOptions={assignOptions}
           onAssign={(applicationId, assigneeId) => void assignTo([applicationId], assigneeId)}
+          tapes={tapes.data}
         />
       )}
 

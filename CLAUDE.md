@@ -24,6 +24,9 @@ et survivre à un refresh / une reconnexion.
 Commandes : `npm run dev` · `npm run build` · `npm run typecheck` · `npm test` ·
 `npm run db:push` (migrations) · `npm run db:types` · `npm run smoke` (26 écrans
 de la production, erreurs réelles).
+`npm run db:seed:review` remet à zéro la démo de l'Audition Review Queue™ :
+MasterChef Australia, saison 17 (28 vraies self-tapes, quatre producteurs) et
+Big Brother Australia, saison 16 (la mémoire des pass).
 
 ⚠️ **Une seule base pour le dev et la prod** — décision assumée, pas d'oubli.
 D'où une règle de travail : **`node scripts/db.mjs check` avant `db:push`**. La
