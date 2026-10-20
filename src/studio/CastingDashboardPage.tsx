@@ -2,7 +2,7 @@ import { withFlag } from '@/lib/languageFlags'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import {
+import { LayoutGrid,
   ArrowLeft,
   ArrowUpRight,
   CalendarDays,
@@ -359,6 +359,13 @@ export function CastingDashboardPage() {
           >
             <Layers className="h-3.5 w-3.5" />
             Casting console
+          </Link>
+          <Link
+            to={`/studio/projects/${data.project_id}/wall`}
+            className="inline-flex h-9 items-center gap-1.5 rounded-field border border-line bg-card px-3.5 text-[13px] font-bold text-ink transition-colors hover:bg-paper"
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+            The Wall
           </Link>
           {!mayPublish ? null : !published && (orgSuspended || !orgMayPublish) ? (
             <span className="inline-flex max-w-[320px] items-center rounded-field bg-cream px-3 py-2 text-[12.5px] leading-snug text-ink">
