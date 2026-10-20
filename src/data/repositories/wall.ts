@@ -223,3 +223,21 @@ export async function saveTapeStill(input: {
   // 23505 : une autre session l'a enregistrée entre-temps — c'est la même image.
   if (error && error.code !== '23505') throw error
 }
+
+/**
+ * Les changements du mur en direct. Le journal reçoit une ligne pour chaque
+ * changement (y compris un retrait), filtrable par projet.
+ */
+export function subscribeToWall(projectId: string, onChange: () => void): () => void {
+  const channel = supabase
+    .channel(`wall-${projectId}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'wall_selection_history', filter: `project_id=eq.${projectId}` },
+      () => onChange(),
+    )
+    .subscribe()
+  return () => {
+    void supabase.removeChannel(channel)
+  }
+}
