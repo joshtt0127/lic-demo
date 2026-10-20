@@ -211,7 +211,7 @@ export async function saveTapeStill(input: {
     .from(STILLS_BUCKET)
     .upload(path, input.blob, { contentType: 'image/jpeg', upsert: true })
   if (uploadError) throw uploadError
-  const { error } = await supabase.from('tape_stills').insert({
+  const { error } = await supabase.from('tape_stills').upsert({
     self_tape_id: input.selfTapeId,
     org_id: input.orgId,
     path,
@@ -219,9 +219,9 @@ export async function saveTapeStill(input: {
     width: input.width,
     height: input.height,
     created_by: input.profileId,
-  })
-  // 23505 : une autre session l'a enregistrée entre-temps — c'est la même image.
-  if (error && error.code !== '23505') throw error
+  }, { onConflict: 'self_tape_id', ignoreDuplicates: true })
+  // Déjà enregistrée par une autre session : c'est la même image, rien à faire.
+  if (error) throw error
 }
 
 /**
