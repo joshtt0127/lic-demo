@@ -78,6 +78,8 @@ test.describe('The Wall™', () => {
     const sarah = menu.getByRole('listitem').filter({ hasText: 'Sarah Lefèvre' })
     await sarah.getByRole('button', { name: 'Place' }).click()
     await expect(card().getByText('Sarah Lefèvre')).toBeVisible()
+    // La carte change tout de suite ; le toast arrive quand le serveur a confirmé.
+    await expect(page.getByText('Sarah Lefèvre placed on the Wall as Maman Parc')).toBeVisible()
 
     // Survit au rechargement, et l'historique garde la trace.
     await page.reload()
@@ -88,6 +90,7 @@ test.describe('The Wall™', () => {
 
     // Vider la carte : elle redevient une décision ouverte.
     await menu.getByRole('button', { name: 'Clear selection' }).click()
+    await expect(page.getByText(/Maman Parc is open again/)).toBeVisible()
     await expect(page.getByRole('article', { name: 'Maman Parc, open role' })).toBeVisible()
     await expect(page.getByText('4 of 8', { exact: true })).toBeVisible()
 
