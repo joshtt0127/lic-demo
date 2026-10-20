@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowLeft, ArrowRight, ExternalLink, Minus, Sparkles, ThumbsDown, ThumbsUp, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ExternalLink, LayoutGrid, Minus, Sparkles, ThumbsDown, ThumbsUp, X } from 'lucide-react'
 import { Avatar, Spinner, Tag } from '@/components/ui'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useCurrentOrganization, useOrgMembers } from '@/features/organizations/queries'
@@ -15,6 +15,14 @@ import type { ApplicationStatus, ReviewLabelRow, ReviewLabelTone, ReviewVote } f
 import { LabelPicker } from './LabelPicker'
 import type { QueueTape } from './queries'
 import type { QueueItem } from './sort'
+
+export type WallAction = {
+  /** `on` : cette audition est sur le mur ; `other` : quelqu'un d'autre occupe la carte. */
+  status: (item: QueueItem) => { state: 'on' | 'other' | 'none'; actorName: string | null }
+  canPlace: (item: QueueItem) => boolean
+  onPlace: (item: QueueItem) => Promise<void>
+  busy: boolean
+}
 
 const VOTES: { value: ReviewVote; label: string; key: string; icon: typeof ThumbsUp; on: string }[] = [
   { value: 'no', label: 'No go', key: '1', icon: ThumbsDown, on: 'bg-signal-no text-white border-signal-no' },
@@ -44,6 +52,7 @@ export function WatchMode({
   assignOptions,
   onAssign,
   tapes,
+  wall,
 }: {
   items: QueueItem[]
   index: number
@@ -63,6 +72,8 @@ export function WatchMode({
   onAssign: (applicationId: string, assigneeId: string | null) => void
   /** Les tapes déjà signées par la file, par candidature. */
   tapes?: Record<string, QueueTape>
+  /** The Wall™ : poser l'audition affichée sur la carte de son rôle. */
+  wall?: WallAction
 }) {
   const item = items[index]
   const { profile } = useAuth()
@@ -162,6 +173,9 @@ export function WatchMode({
           break
         case 'x':
           void decide('not_selected')
+          break
+        case 'w':
+          if (wall && item && wall.canPlace(item) && wall.status(item).state !== 'on') void wall.onPlace(item)
           break
         default:
           return
@@ -334,6 +348,10 @@ export function WatchMode({
             </section>
           )}
 
+          {wall && wall.canPlace(item) && (
+            <WallSection item={item} wall={wall} />
+          )}
+
           {mayDecide && (
             <section>
               <p className="text-label font-semibold uppercase tracking-label text-white/50">Decision</p>
@@ -374,11 +392,45 @@ export function WatchMode({
           <p className="mt-auto border-t border-white/10 pt-3 text-[11.5px] leading-relaxed text-white/45">
             <kbd className="font-mono">← →</kbd> previous / next · <kbd className="font-mono">Space</kbd> play / pause ·{' '}
             <kbd className="font-mono">1 2 3</kbd> vote · <kbd className="font-mono">S</kbd> shortlist · <kbd className="font-mono">X</kbd> pass ·{' '}
+            {wall && (
+              <>
+                <kbd className="font-mono">W</kbd> place on Wall ·{' '}
+              </>
+            )}
             <kbd className="font-mono">Esc</kbd> close
           </p>
         </aside>
       </div>
     </div>,
     document.body,
+  )
+}
+
+/** The Wall™ dans le lecteur : la sélection est un choix de travail, jamais une réservation. */
+function WallSection({ item, wall }: { item: QueueItem; wall: WallAction }) {
+  const { state, actorName } = wall.status(item)
+  return (
+    <section>
+      <p className="text-label font-semibold uppercase tracking-label text-white/50">The Wall™ · {item.role_name}</p>
+      {state === 'on' ? (
+        <p className="mt-2 inline-flex items-center gap-1.5 rounded-btn bg-white/10 px-3 py-2.5 text-[13px] font-bold text-white">
+          <LayoutGrid className="h-3.5 w-3.5" aria-hidden /> On the Wall
+        </p>
+      ) : (
+        <button
+          type="button"
+          disabled={wall.busy}
+          onClick={() => void wall.onPlace(item)}
+          className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-btn bg-gold px-3 py-2.5 text-[13px] font-bold text-ink hover:brightness-95 disabled:opacity-50"
+        >
+          <LayoutGrid className="h-3.5 w-3.5" aria-hidden /> Place on Wall <kbd className="ml-1 font-mono text-[10px] opacity-50">W</kbd>
+        </button>
+      )}
+      <p className="mt-2 text-[11.5px] text-white/45">
+        {state === 'other' && actorName
+          ? `Replaces ${actorName} on the ${item.role_name} card — nothing is erased.`
+          : 'A provisional choice for the team — it never books the actor.'}
+      </p>
+    </section>
   )
 }

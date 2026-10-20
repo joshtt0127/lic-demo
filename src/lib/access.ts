@@ -68,6 +68,10 @@ export type Capability =
   | 'candidate:decide'
   | 'candidate:note'
   | 'message:send'
+  /** The Wall™ : poser, remplacer, retirer un comédien, arranger les cartes. */
+  | 'wall:select'
+  /** The Wall™ : exporter, imprimer (les auditions sont confidentielles). */
+  | 'wall:export'
 
 /**
  * Ce qu'un owner peut faire. Un admin en hérite **sauf `org:transfer`** :
@@ -88,6 +92,8 @@ const OWNER: Capability[] = [
   'candidate:decide',
   'candidate:note',
   'message:send',
+  'wall:select',
+  'wall:export',
 ]
 
 const ADMIN: Capability[] = OWNER.filter((capability) => capability !== 'org:transfer')
@@ -98,7 +104,8 @@ export const CAPABILITIES: Record<OrgRole, Capability[]> = {
   admin: ADMIN,
   // Converti en `admin` par la migration ; conservé pour les lignes historiques.
   casting_director: ADMIN,
-  member: ['candidate:review', 'candidate:note', 'message:send'],
+  // Reviewer = proposer sur le mur (même règle que `can_review_org` en base).
+  member: ['candidate:review', 'candidate:note', 'message:send', 'wall:select', 'wall:export'],
   viewer: [],
 }
 

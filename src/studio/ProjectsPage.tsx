@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Calendar, FolderOpen, MapPin, Pencil, Plus, Upload } from 'lucide-react'
+import { Calendar, FolderOpen, LayoutGrid, MapPin, Pencil, Plus, Upload } from 'lucide-react'
 import {
   Button,
   Card,
@@ -153,6 +153,16 @@ export function ProjectsPage() {
                           </span>
                         )}
                       </div>
+
+                      {roles > 0 && (
+                        <Link
+                          to={`/studio/projects/${project.id}/wall`}
+                          className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-full bg-ink px-3.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-ink/90"
+                        >
+                          <LayoutGrid className="h-3.5 w-3.5" aria-hidden />
+                          The Wall
+                        </Link>
+                      )}
                     </div>
                   </div>
 

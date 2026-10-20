@@ -412,7 +412,9 @@ function RoleCard({
       ? t('casting.lead')
       : role.role_type === 'contestant'
         ? t('casting.contestant')
-        : t('casting.supporting')
+        : role.role_type === 'small'
+          ? t('casting.small')
+          : t('casting.supporting')
   const criteria = [
     role.playing_age_min !== null && role.playing_age_max !== null
       ? { icon: <User className="h-3.5 w-3.5" />, text: t('casting.years', { min: role.playing_age_min, max: role.playing_age_max }) }

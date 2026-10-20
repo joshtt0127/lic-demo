@@ -8,6 +8,7 @@ import type {
   RoleRow,
   RoleStatsViewRow,
   RoleStatus,
+  RoleTypeDb,
 } from '@/types/database'
 
 /**
@@ -293,7 +294,9 @@ export async function setCastingStatus(id: string, status: CastingStatus): Promi
 export type RoleInput = {
   name: string
   description?: string | null
-  roleType?: 'lead' | 'supporting' | 'contestant'
+  roleType?: RoleTypeDb
+  /** Groupe propre à la production, lu par The Wall™ (« La famille Parc »). */
+  roleGroup?: string | null
   genderPref?: string | null
   playingAgeMin?: number | null
   playingAgeMax?: number | null
@@ -329,6 +332,7 @@ function rolePayload(input: RoleInput) {
     self_tape_required: input.selfTapeRequired ?? false,
     sides_url: input.sidesUrl ?? null,
     audition_flow: input.auditionFlow ?? 'open_call',
+    ...(input.roleGroup !== undefined ? { role_group: input.roleGroup?.trim() || null } : {}),
     ...(input.sortOrder !== undefined ? { sort_order: input.sortOrder } : {}),
   }
 }

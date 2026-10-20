@@ -154,6 +154,10 @@ export const router = createBrowserRouter([
             lazy: freshChunk(async () => ({ Component: (await import('./studio/ProjectsPage')).ProjectsPage })),
           },
           {
+            path: 'projects/:projectId/wall',
+            lazy: freshChunk(async () => ({ Component: (await import('./features/wall/WallPage')).WallPage })),
+          },
+          {
             path: 'talent',
             lazy: freshChunk(async () => ({
               Component: (await import('./studio/TalentRecruiterPage')).TalentRecruiterPage,

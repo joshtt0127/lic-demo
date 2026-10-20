@@ -33,7 +33,7 @@ export type CastingDraft = {
 export type RoleDraft = {
   name?: string
   description?: string
-  roleType?: 'lead' | 'supporting' | 'contestant'
+  roleType?: 'lead' | 'supporting' | 'small' | 'contestant'
   genderPref?: string
   playingAgeMin?: number
   playingAgeMax?: number
@@ -178,7 +178,7 @@ export function toRoleDraft(accepted: Accepted, languageCodes: string[]): RoleDr
   return prune({
     name: text(v('name')),
     description: text(v('description')),
-    roleType: oneOf(v('role_type'), ['lead', 'supporting', 'contestant'] as const),
+    roleType: oneOf(v('role_type'), ['lead', 'supporting', 'small', 'contestant'] as const),
     genderPref: oneOf(v('gender_pref'), ['Female', 'Male', 'Non-binary'] as const),
     playingAgeMin: min,
     playingAgeMax: max,
