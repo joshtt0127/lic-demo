@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowDownUp, ArrowLeft, Download, Play, Search, X } from 'lucide-react'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { ArrowDownUp, ArrowLeft, Download, LayoutGrid, Play, Search, X } from 'lucide-react'
 import { Button, FormError } from '@/components/ui'
 import { Skeleton } from '@/components/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
@@ -12,7 +12,8 @@ import { useCandidatesForRoles, useOrgCasting } from '@/features/studio/queries'
 import { useIntelligenceFeed } from '@/features/intelligence/queries'
 import { BAND_DESCRIPTION, BAND_LABEL, explainReason } from '@/features/intelligence/reasons'
 import { ReviewCard } from '@/features/review/ReviewCard'
-import { WatchMode } from '@/features/review/WatchMode'
+import { WatchMode, type WallAction } from '@/features/review/WatchMode'
+import { useWallMutations, useWallRoles } from '@/features/wall/queries'
 import { useBatchStatus, useMySeen, useMyVotes, useQueueTapes } from '@/features/review/queries'
 import { useApplicationLabels, useLabelMutations, useOrgLabels } from '@/features/review/labels'
 import {
@@ -59,6 +60,12 @@ export function ReviewQueuePage() {
   const mayDecide = can(organization?.role, 'candidate:decide')
 
   const casting = useOrgCasting(castingId)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const projectId = casting.data?.project_id
+  const wallRoles = useWallRoles(projectId)
+  const wallSelect = useWallMutations(projectId).select
+  const mayPlace = can(organization?.role, 'wall:select')
   const roles = casting.data?.roles ?? []
   const roleIds = roles.map((role) => role.id)
   const candidates = useCandidatesForRoles(roleIds)
@@ -166,6 +173,38 @@ export function ReviewQueuePage() {
     return <FormError>{errorMessage(casting.error, 'This casting is not available.')}</FormError>
   }
 
+  // The Wall™ : la file est l'endroit où l'on choisit, le mur celui où le choix se voit.
+  const fromWall = Boolean((location.state as { fromWall?: boolean } | null)?.fromWall) || params.has('wall')
+  const wallUrl = `/studio/projects/${casting.data.project_id}/wall`
+  const backToWall = () => {
+    if ((location.state as { fromWall?: boolean } | null)?.fromWall) navigate(-1)
+    else navigate(wallUrl)
+  }
+  const wallCard = (roleKey: string) => wallRoles.data?.find((row) => row.role_id === roleKey)
+  const wall: WallAction | undefined =
+    mayPlace && wallRoles.data
+      ? {
+          status: (item) => {
+            const card = wallCard(item.role_id)
+            if (!card?.application_id) return { state: 'none', actorName: null }
+            return { state: card.application_id === item.application_id ? 'on' : 'other', actorName: card.actor_name }
+          },
+          canPlace: (item) => item.has_self_tape && !['draft', 'withdrawn'].includes(item.status),
+          onPlace: async (item) => {
+            setError(null)
+            try {
+              await wallSelect.mutateAsync({ roleId: item.role_id, applicationId: item.application_id, actorName: item.name })
+              toast(`${item.name} placed on the Wall as ${item.role_name}`)
+            } catch (placeError) {
+              setError(errorMessage(placeError, 'This audition could not be placed on the Wall'))
+            }
+          },
+          busy: wallSelect.isPending,
+        }
+      : undefined
+  const focusRole = singleRole ? roles.find((role) => role.id === roleId) : undefined
+  const focusCard = focusRole ? wallCard(focusRole.id) : undefined
+
   const counts = { all: stats.total, unseen: stats.unseen, seen: stats.seen, waiting: stats.waiting, decided: stats.decided }
   const selectedItems = ordered.filter((item) => selected.has(item.application_id))
   const toggle = (id: string) =>
@@ -252,6 +291,34 @@ export function ReviewQueuePage() {
 
   return (
     <div className="flex flex-col gap-5 pb-28">
+      {fromWall && (
+        <div className="flex flex-col gap-3 rounded-[20px] border border-line bg-card px-4 py-3 shadow-card sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold/20 text-ink">
+              <LayoutGrid className="h-4 w-4" aria-hidden />
+            </span>
+            <p className="min-w-0 text-[13.5px] leading-snug text-ink">
+              {focusRole ? (
+                <>
+                  <span className="font-semibold">Choosing an actor for {focusRole.name}.</span>{' '}
+                  <span className="text-muted">
+                    {focusCard?.application_id
+                      ? `${focusCard.actor_name} is on the card now.`
+                      : 'The card is empty.'}{' '}
+                    {mayPlace ? 'Watch an audition, then Place on Wall (W).' : ''}
+                  </span>
+                </>
+              ) : (
+                <span className="font-semibold">Opened from The Wall™.</span>
+              )}
+            </p>
+          </div>
+          <Button variant="secondary" size="sm" icon={<ArrowLeft className="h-3.5 w-3.5" />} onClick={backToWall} className="shrink-0">
+            Back to The Wall
+          </Button>
+        </div>
+      )}
+
       <div>
         <Link
           to={`/studio/casting/${castingId}`}
@@ -486,6 +553,17 @@ export function ReviewQueuePage() {
             Select all {ordered.length}
           </button>
           <span className="flex-1" />
+          {wall && selectedItems.length === 1 && wall.canPlace(selectedItems[0]) && wall.status(selectedItems[0]).state !== 'on' && (
+            <Button
+              size="sm"
+              variant="premium"
+              icon={<LayoutGrid className="h-3.5 w-3.5" />}
+              disabled={wall.busy}
+              onClick={() => void wall.onPlace(selectedItems[0]).then(() => setSelected(new Set()))}
+            >
+              Place on Wall
+            </Button>
+          )}
           {mayDecide && (
             <>
               <Button size="sm" variant="premium" disabled={batch.isPending} onClick={() => void applyBatch('shortlisted')}>
@@ -603,6 +681,7 @@ export function ReviewQueuePage() {
           assignOptions={assignOptions}
           onAssign={(applicationId, assigneeId) => void assignTo([applicationId], assigneeId)}
           tapes={tapes.data}
+          wall={wall}
         />
       )}
 
