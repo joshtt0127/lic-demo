@@ -27,7 +27,7 @@ export type CastingStatus = 'draft' | 'published' | 'closed' | 'archived'
  */
 export type CastingVisibility = 'public' | 'private' | 'private_link' | 'invite_only'
 export type CastingFormat = 'scripted' | 'non_scripted'
-export type RoleTypeDb = 'lead' | 'supporting' | 'contestant'
+export type RoleTypeDb = 'lead' | 'supporting' | 'small' | 'contestant'
 export type AuditionFlowDb = 'open_call' | 'invited' | 'in_house'
 export type RoleStatus = 'open' | 'reviewing' | 'callbacks' | 'booked' | 'closed'
 export type ApplicationStatus =
@@ -286,6 +286,8 @@ export type ProjectRow = {
   shooting_start: string | null
   shooting_end: string | null
   status: ProjectStatus
+  /** The Wall™ : ordre des cartes choisi par l'équipe, null = ordre d'importance. */
+  wall_order: string[] | null
   created_by: string | null
   created_at: string
   updated_at: string
@@ -339,8 +341,72 @@ export type RoleRow = {
   audition_flow: AuditionFlowDb
   status: RoleStatus
   sort_order: number
+  /** Groupe propre à la production (« La famille Parc »), en plus du type. */
+  role_group: string | null
   created_at: string
   updated_at: string
+}
+
+// ── The Wall™ ────────────────────────────────────────────────────────────────
+
+/** La sélection active d'un rôle sur le mur (une par rôle). */
+export type WallSelectionRow = {
+  role_id: string
+  project_id: string
+  application_id: string
+  selected_by: string | null
+  selected_at: string
+}
+
+/** Journal des changements du mur, append-only. */
+export type WallSelectionHistoryRow = {
+  id: number
+  role_id: string
+  project_id: string
+  previous_application_id: string | null
+  new_application_id: string | null
+  previous_name: string | null
+  new_name: string | null
+  changed_by: string | null
+  changed_at: string
+}
+
+/** Image tirée d'une self-tape, rangée dans le bucket privé `tape-stills`. */
+export type TapeStillRow = {
+  self_tape_id: string
+  org_id: string
+  path: string
+  at_s: number | null
+  width: number | null
+  height: number | null
+  created_by: string | null
+  created_at: string
+}
+
+/** `v_wall_roles` : une ligne par rôle du projet, compteurs et sélection active. */
+export type WallRoleViewRow = {
+  role_id: string
+  project_id: string
+  casting_call_id: string
+  casting_title: string
+  casting_created_at: string
+  name: string
+  description: string | null
+  role_type: RoleTypeDb
+  role_group: string | null
+  sort_order: number
+  role_status: RoleStatus
+  created_at: string
+  auditions: number
+  interesting: number
+  application_id: string | null
+  selected_by: string | null
+  selected_at: string | null
+  talent_id: string | null
+  application_status: ApplicationStatus | null
+  actor_name: string | null
+  self_tape_id: string | null
+  duration_s: number | null
 }
 
 export type ApplicationRow = {
@@ -949,6 +1015,9 @@ export type Database = {
       organization_follows: Writable<OrganizationFollowRow, 'profile_id' | 'org_id'>
       brief_videos: Writable<BriefVideoRow, 'project_id' | 'url'>
       brief_extractions: Writable<BriefExtractionRow, 'org_id' | 'target' | 'video_url'>
+      wall_selections: Writable<WallSelectionRow, 'role_id' | 'project_id' | 'application_id'>
+      wall_selection_history: Writable<WallSelectionHistoryRow, 'role_id' | 'project_id'>
+      tape_stills: Writable<TapeStillRow, 'self_tape_id' | 'org_id' | 'path'>
     }
     Views: {
       v_candidates: ReadOnly<CandidateViewRow>
@@ -959,6 +1028,7 @@ export type Database = {
       v_ops_health: ReadOnly<OpsHealthViewRow>
       v_talent_memory: ReadOnly<TalentMemoryViewRow>
       v_production_memory: ReadOnly<ProductionMemoryViewRow>
+      v_wall_roles: ReadOnly<WallRoleViewRow>
     }
     Functions: {
       accept_organization_invite: {
@@ -1032,6 +1102,14 @@ export type Database = {
       }
       record_profile_view: {
         Args: { p_talent: string }
+        Returns: void
+      }
+      set_wall_selection: {
+        Args: { p_role: string; p_application: string | null }
+        Returns: void
+      }
+      set_wall_order: {
+        Args: { p_project: string; p_order: string[] | null }
         Returns: void
       }
     }

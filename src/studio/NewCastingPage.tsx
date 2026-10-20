@@ -872,6 +872,7 @@ export function RoleForm({
             options={[
               { value: 'lead', label: 'Lead' },
               { value: 'supporting', label: 'Supporting' },
+              { value: 'small', label: 'Small' },
               { value: 'contestant', label: 'Contestant' },
             ]}
             value={draft.roleType ?? 'supporting'}
@@ -879,6 +880,18 @@ export function RoleForm({
           />
         </FormField>
       </div>
+
+      <TextField
+        id="role-group"
+        label="Role group"
+        plainLabel
+        optional
+        maxLength={40}
+        placeholder="The Parc family, The hospital…"
+        hint="Groups appear as extra tabs on The Wall™, next to Lead, Supporting and Small roles."
+        value={draft.roleGroup ?? ''}
+        onChange={(event) => set('roleGroup', event.target.value)}
+      />
 
       <FormField label="Description" htmlFor="role-description" plainLabel optional>
         <TextArea

@@ -42,7 +42,7 @@ import {
   type ActivityEntry,
 } from '@/features/studio/queries'
 import { useLanguagesCatalog } from '@/features/talent/queries'
-import {
+import { ROLE_TYPE_LABEL,
   APPLICATION_STATUS_LABEL,
   formatDate,
   formatDateShort,
@@ -776,6 +776,7 @@ export function CastingDashboardPage() {
                 name: editingRole.name,
                 description: editingRole.description,
                 roleType: editingRole.role_type,
+                roleGroup: editingRole.role_group,
                 genderPref: editingRole.gender_pref,
                 playingAgeMin: editingRole.playing_age_min,
                 playingAgeMax: editingRole.playing_age_max,
@@ -792,6 +793,7 @@ export function CastingDashboardPage() {
                   name: draft.name,
                   description: draft.description ?? null,
                   role_type: draft.roleType ?? editingRole.role_type,
+                  role_group: draft.roleGroup ?? null,
                   gender_pref: draft.genderPref ?? null,
                   playing_age_min: draft.playingAgeMin ?? null,
                   playing_age_max: draft.playingAgeMax ?? null,
@@ -815,6 +817,7 @@ export function CastingDashboardPage() {
                         name: editingRole.name,
                         description: editingRole.description,
                         roleType: editingRole.role_type,
+                        roleGroup: editingRole.role_group,
                         genderPref: editingRole.gender_pref,
                         playingAgeMin: editingRole.playing_age_min,
                         playingAgeMax: editingRole.playing_age_max,
@@ -1037,11 +1040,7 @@ function RolesTable({
                   </span>
                 </button>
                 <Tag tone={role.role_type === 'lead' ? 'link' : 'cream'}>
-                  {role.role_type === 'lead'
-                    ? 'Lead'
-                    : role.role_type === 'contestant'
-                      ? 'Contestant'
-                      : 'Supporting'}
+                  {ROLE_TYPE_LABEL[role.role_type]}
                 </Tag>
               </div>
 
@@ -1140,11 +1139,7 @@ function RolesTable({
                 </td>
                 <td className="px-2 py-3">
                   <Tag tone={role.role_type === 'lead' ? 'link' : 'cream'}>
-                    {role.role_type === 'lead'
-                      ? 'Lead'
-                      : role.role_type === 'contestant'
-                        ? 'Contestant'
-                        : 'Supporting'}
+                    {ROLE_TYPE_LABEL[role.role_type]}
                   </Tag>
                 </td>
                 <td className="px-2 py-3 text-[15px] font-semibold text-ink">{own.length}</td>

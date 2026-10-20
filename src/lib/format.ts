@@ -1,5 +1,5 @@
 import { currentLocale, type Translate } from '@/lib/i18n'
-import type { ApplicationStatus, CastingStatus } from '@/types/database'
+import type { ApplicationStatus, CastingStatus, RoleTypeDb } from '@/types/database'
 
 /**
  * Display formatting.
@@ -70,6 +70,14 @@ export function isClosingSoon(value: string | null | undefined): boolean {
 }
 
 // ── Application status ───────────────────────────────────────────────────────
+
+/** Studio label of a role type (the studio stays in English). */
+export const ROLE_TYPE_LABEL: Record<RoleTypeDb, string> = {
+  lead: 'Lead',
+  supporting: 'Supporting',
+  small: 'Small role',
+  contestant: 'Contestant',
+}
 
 export const APPLICATION_STATUS_LABEL: Record<ApplicationStatus, string> = {
   draft: 'Draft',

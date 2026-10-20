@@ -312,6 +312,7 @@ export const fr: Record<string, string> = {
   'post.roleType.lead': 'Premier rôle',
   'post.roleType.supporting': 'Second rôle',
   'post.roleType.contestant': 'Candidat',
+  'post.roleType.small': 'Petit rôle',
   'post.age': '{min}–{max} ans',
   'post.ageSingle': '{age} ans',
 
@@ -460,6 +461,7 @@ export const fr: Record<string, string> = {
   'casting.lead': 'Premier rôle',
   'casting.supporting': 'Second rôle',
   'casting.contestant': 'Candidat·e',
+  'casting.small': 'Petit rôle',
   'sides.badge': 'Audition Sides™',
   'sides.title': 'Audition Sides · PDF',
   'sides.hint': 'La ou les scènes à préparer pour votre self-tape.',
