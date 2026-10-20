@@ -406,11 +406,9 @@ export function WallPage() {
       <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex min-w-0 items-end gap-4">
           {p.poster_url && (
-            <PosterImage
-              src={p.poster_url}
-              alt={`${p.title} poster`}
-              className="hidden h-[102px] w-[68px] shrink-0 rounded-[14px] object-cover shadow-card sm:block"
-            />
+            <span className="hidden h-[102px] w-[68px] shrink-0 overflow-hidden rounded-[14px] shadow-card sm:block">
+              <PosterImage src={p.poster_url} alt={`${p.title} poster`} />
+            </span>
           )}
           <div className="min-w-0">
             <Link
@@ -521,7 +519,9 @@ export function WallPage() {
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div className="flex min-w-0 items-end gap-4">
                 {p.poster_url && (
-                  <PosterImage src={p.poster_url} alt="" className="hidden h-[96px] w-[64px] shrink-0 rounded-[12px] object-cover sm:block" />
+                  <span className="hidden h-[96px] w-[64px] shrink-0 overflow-hidden rounded-[12px] sm:block">
+                    <PosterImage src={p.poster_url} />
+                  </span>
                 )}
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-label text-white/55">
