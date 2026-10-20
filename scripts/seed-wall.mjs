@@ -2,9 +2,9 @@
 /**
  * Let It Cast — The Wall™ demo.
  *
- * A scripted feature in Peter's organization, cast from real self-tapes:
+ * A scripted series in Peter's organization, cast from real self-tapes:
  *
- *   Une saison chez les Parc   8 roles — 2 lead, 3 supporting, 3 small
+ *   Clem — new season   8 roles — 2 lead, 3 supporting, 3 small
  *
  * Five roles have an actor on the Wall (one of them confirmed as Cast), two
  * are open with auditions waiting, one has no audition yet. Votes come from
@@ -288,17 +288,17 @@ async function seed() {
 
   // ── Projet, casting, rôles ──
   const projectRow = {
-    title: 'Une saison chez les Parc',
-    subtitle: 'Feature film',
-    production_type: 'Feature film',
-    genre: 'Comedy drama',
+    title: 'Clem',
+    subtitle: 'New season',
+    production_type: 'TV series',
+    genre: 'Family drama',
     company_name: 'A24 France',
     director_name: 'Anaïs Roche',
     casting_director_name: 'Lara Khan',
     shooting_location: 'Nantes',
     shooting_start: new Date(Date.now() + 70 * DAY).toISOString().slice(0, 10),
     shooting_end: new Date(Date.now() + 110 * DAY).toISOString().slice(0, 10),
-    synopsis: 'Un été, une maison trop petite, une famille qui ne se dit rien. Jusqu’au retour d’Alizée.',
+    synopsis: 'Un été chez les Parc : une maison trop petite, une famille qui ne se dit rien. Jusqu’au retour d’Alizée.',
     status: 'casting',
     wall_order: null,
   }
@@ -309,12 +309,12 @@ async function seed() {
     die('project', error)
     project = data
   }
-  const poster = await uploadAsset(team.peter, 'poster', '/posters/la-nuit-vive.png')
+  const poster = await uploadAsset(team.peter, 'poster', '/posters/p8.png')
   await db.from('projects').update({ poster_url: poster.url }).eq('id', project.id)
 
   const castingRow = {
-    title: 'Une saison chez les Parc — Casting',
-    description: 'Long métrage, comédie dramatique. Tournage à Nantes cet été. Self-tape sur les scènes jointes, deux prises maximum.',
+    title: 'Clem — New season',
+    description: 'Série, comédie dramatique familiale. Tournage à Nantes cet été. Self-tape sur les scènes jointes, deux prises maximum.',
     location: 'Nantes',
     compensation: 'Convention collective + défraiement',
     format: 'scripted',
