@@ -193,6 +193,33 @@ Utilitaire `cn()` dans `src/lib/cn.ts`.
   `Review.tsx` : rating + étoiles, other ratings, AI scene analysis, feedback direct à l'acteur) avec un
   compteur **XX / YY** (position dans la file de candidats du rôle) à côté de la nav précédent/suivant.
 
+## The Wall™ (`/studio/projects/:id/wall`)
+
+Le mur de casting d'un projet : une carte par rôle, un comédien retenu par carte
+(`src/features/wall/`). Démo : `npm run db:seed:wall` (série « Clem », 8 rôles,
+5 posés, Julien confirmé). Tests : `e2e/wall.spec.ts`, `order.test.ts`, `render.test.ts`.
+
+- **Ordre** : type du rôle (`lead` → `supporting` → `small` → `contestant`) puis
+  l'ordre de la fiche rôle — jamais déduit des auditions. `projects.wall_order`
+  garde l'arrangement de l'équipe (null = importance, bouton Reset).
+- **Sélection ≠ casting** : `wall_selections` (une par rôle) n'est écrite que par
+  `set_wall_selection()` (droits `can_review_org`, audition envoyée avec tape) et
+  journalisée dans `wall_selection_history` (noms figés). Le statut `cast` reste
+  la seule décision ferme (« Confirm casting », `candidate:decide`).
+- **Chiffres** : `v_wall_roles` — `auditions` = candidatures ni brouillon ni retirées ;
+  `interesting` = candidats distincts avec au moins un Yes/Maybe d'un membre qui
+  peut reviewer. Jamais un rang de l'Intelligence Feed™.
+- **Images** : tirées de la self-tape dans le navigateur (`stills.ts`, meilleure
+  image parmi 4 instants), rangées dans le bucket privé `tape-stills`
+  (`<org>/<self_tape>.jpg`, table `tape_stills`). Pas d'image : fond neutre, jamais un headshot.
+- **Temps réel** : abonnement au journal (`wall_selection_history`) + relecture 30 s.
+- **Export** (`render.ts`) : recomposé sur canvas pour chaque format (image,
+  fond d'écran FHD/QHD/4K, impression A4/A3 multi-pages, présentation sans
+  chiffres internes). `planGrid` / `paginate` sont des fonctions pures testées.
+- **Review Queue** : « Place on Wall » (touche W dans le lecteur, ou lot d'une
+  audition) ; `?wall=` affiche le bandeau « Back to The Wall ».
+- Capacités `wall:select` / `wall:export` dans `lib/access.ts` (owner, admin, member).
+
 ## Self-tapes, cycle de vie, équipe
 
 - **Self-tape** (`data/repositories/selftapes.ts`, `features/selftapes/queries.ts`,
