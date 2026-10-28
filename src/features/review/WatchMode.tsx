@@ -6,7 +6,8 @@ import { useAuth } from '@/features/auth/AuthProvider'
 import { useCurrentOrganization, useOrgMembers } from '@/features/organizations/queries'
 import { useCandidateReviews, useSelfTape, useStudioMutations } from '@/features/studio/queries'
 import { useRecordEngagement } from '@/features/intelligence/queries'
-import { explainReason } from '@/features/intelligence/reasons'
+import { orderedSignals } from '@/features/intelligence/reasons'
+import { SignalCard } from '@/features/intelligence/SignalCard'
 import { can } from '@/lib/access'
 import { APPLICATION_STATUS_LABEL, APPLICATION_STATUS_TONE } from '@/lib/format'
 import { cn } from '@/lib/cn'
@@ -272,12 +273,12 @@ export function WatchMode({
               <p className="flex items-center gap-1.5 text-label font-semibold uppercase tracking-label text-white/50">
                 <Sparkles className="h-3.5 w-3.5" /> Why this audition?
               </p>
-              <ul className="mt-2 flex flex-col gap-1.5 text-[13px] leading-snug text-white/85">
-                {reasons.map((reason, i) => (
-                  <li key={i}>• {explainReason(reason)}</li>
+              <div className="mt-2 flex flex-col gap-2">
+                {orderedSignals(reasons).map((signal, i) => (
+                  <SignalCard key={i} signal={signal} tone="dark" />
                 ))}
-              </ul>
-              <p className="mt-2 text-[11.5px] text-white/45">Prioritized is not “best”: it says where attention is due, never who to cast.</p>
+              </div>
+              <p className="mt-2 text-[11.5px] text-white/45">The feed prioritizes attention. It does not automate judgment — your team decides.</p>
             </section>
           )}
 

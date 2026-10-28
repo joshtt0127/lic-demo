@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
 import { Check, ChevronDown, Film, Play, Sparkles } from 'lucide-react'
 import { Avatar, Tag } from '@/components/ui'
-import { explainReason } from '@/features/intelligence/reasons'
+import { orderedSignals } from '@/features/intelligence/reasons'
+import { SignalCard } from '@/features/intelligence/SignalCard'
 import { APPLICATION_STATUS_LABEL, APPLICATION_STATUS_TONE, relativeTime } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import type { ReviewLabelRow, ReviewVote } from '@/types/database'
@@ -60,6 +61,7 @@ export function ReviewCard({
   const decided = isDecided(item.status)
   const reasons = item.feed?.reasons ?? []
   const firstTime = reasons.some((reason) => reason.code === 'new_to_you')
+  const signals = orderedSignals(reasons)
   const age =
     item.playing_age_min != null && item.playing_age_max != null
       ? `${item.playing_age_min}–${item.playing_age_max}`
@@ -204,29 +206,26 @@ export function ReviewCard({
         )}
 
         {/* Pourquoi cette audition est là — seulement quand le feed ordonne. */}
-        {showWhy && reasons.length > 0 && (
-          <div className="mt-auto border-t border-line pt-2">
-            <button
-              type="button"
-              onClick={() => setWhyOpen((open) => !open)}
-              aria-expanded={whyOpen}
-              className="flex w-full items-start gap-1.5 text-left text-[12px] leading-snug text-ink/80"
-            >
-              <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-link" />
-              <span className="min-w-0 flex-1">
-                <span className="font-semibold text-ink">Why this audition? </span>
-                {!whyOpen && explainReason(reasons[0])}
-              </span>
-              <ChevronDown className={cn('mt-0.5 h-3.5 w-3.5 shrink-0 text-muted transition-transform', whyOpen && 'rotate-180')} />
-            </button>
+        {showWhy && signals.length > 0 && (
+          <div className="mt-auto border-t border-line pt-2.5">
+            <SignalCard signal={signals[0]} compact />
+            {signals.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setWhyOpen((open) => !open)}
+                aria-expanded={whyOpen}
+                className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-semibold text-ink/70 hover:text-ink"
+              >
+                {whyOpen ? 'Hide' : 'Why this audition?'} · {signals.length} signal{signals.length > 1 ? 's' : ''}
+                <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', whyOpen && 'rotate-180')} />
+              </button>
+            )}
             {whyOpen && (
-              <ul className="mt-1.5 flex flex-col gap-1 pl-5 text-[12px] leading-snug text-ink/80">
-                {reasons.map((reason, index) => (
-                  <li key={index} className="list-disc">
-                    {explainReason(reason)}
-                  </li>
+              <div className="mt-2 flex flex-col gap-2">
+                {signals.map((signal, index) => (
+                  <SignalCard key={index} signal={signal} />
                 ))}
-              </ul>
+              </div>
             )}
           </div>
         )}

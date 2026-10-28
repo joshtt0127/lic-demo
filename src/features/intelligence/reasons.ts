@@ -146,3 +146,87 @@ export const BAND_DESCRIPTION: Record<AttentionBand, string> = {
   discovery: 'Complete submissions from people your team has never reviewed.',
   all: 'Everyone else who applied. Nothing is ever hidden.',
 }
+
+/**
+ * Une raison du feed, présentée comme un signal (Feature Concept Memo, § 2) :
+ * ce que c'est, ce qui l'appuie, et d'où vient l'information. Le mot
+ * « potentially » est voulu : un signal oriente l'attention, il ne dit jamais
+ * qui est le meilleur.
+ */
+export type SignalKind = 'talent' | 'team' | 'discovery'
+
+export type Signal = {
+  kind: SignalKind
+  title: string
+  detail: string
+  source: string
+}
+
+export const SIGNAL_KIND_LABEL: Record<SignalKind, string> = {
+  talent: 'Potentially relevant signal',
+  team: 'Waiting on your team',
+  discovery: 'Discovery',
+}
+
+const FROM_MEMORY = 'Based on prior authorized review decisions by your team.'
+const FROM_GRAPH = 'Based on decisions across productions on Let It Cast — counts only, never which ones.'
+const FROM_CASTING = 'Based on your team’s activity on this casting.'
+const FROM_SUBMISSION = 'Based on this submission.'
+
+export function describeSignal(reason: AttentionReason): Signal {
+  const line = explainReason(reason)
+  switch (reason.code) {
+    case 'passed_but_noted': {
+      const names = reason.label_names ?? []
+      return {
+        kind: 'talent',
+        title: names.length ? `Previously recognized: ${names.join(' · ')}` : 'Noted by your team on a past casting',
+        detail: `${line}. A pass is not a failure — it was not the right role then.`,
+        source: FROM_MEMORY,
+      }
+    }
+    case 'worked_with_you':
+      return { kind: 'talent', title: 'Cast by your team before', detail: `${line}.`, source: FROM_MEMORY }
+    case 'called_back_before':
+      return { kind: 'talent', title: 'Called back by your team before', detail: `${line}.`, source: FROM_MEMORY }
+    case 'shortlisted_before':
+      return { kind: 'talent', title: 'Shortlisted by your team before', detail: `${line}.`, source: FROM_MEMORY }
+    case 'cast_elsewhere':
+      return { kind: 'talent', title: 'Cast by other productions', detail: `${line}. Your team has no history with this talent yet.`, source: FROM_GRAPH }
+    case 'called_back_elsewhere':
+      return { kind: 'talent', title: 'Called back by other productions', detail: `${line}. Your team has no history with this talent yet.`, source: FROM_GRAPH }
+    case 'team_waiting':
+      return { kind: 'team', title: 'Team votes are in, no decision yet', detail: `${line}.`, source: FROM_CASTING }
+    case 'rewatched':
+      return { kind: 'team', title: 'Your team went back to this tape', detail: `${line}.`, source: FROM_CASTING }
+    case 'watched_fully':
+      return { kind: 'team', title: 'Watched to the end', detail: `${line}.`, source: FROM_CASTING }
+    case 'overdue':
+      return { kind: 'team', title: 'Waiting longer than usual', detail: `${line}.`, source: FROM_CASTING }
+    case 'never_opened':
+      return { kind: 'team', title: 'Nobody has opened it yet', detail: `${line}.`, source: FROM_CASTING }
+    case 'deadline_close':
+      return { kind: 'team', title: 'Deadline approaching', detail: `${line}.`, source: FROM_CASTING }
+    case 'new_to_you':
+      return {
+        kind: 'discovery',
+        title: 'New to your team',
+        detail: 'No history with your team. A lack of prior data is never read as a lack of potential.',
+        source: FROM_SUBMISSION,
+      }
+    case 'submission_ready':
+      return { kind: 'discovery', title: 'Ready to watch', detail: `${reason.met} of ${reason.applicable} checks met: tape, note, headshot and fit with the brief.`, source: FROM_SUBMISSION }
+    case 'submission_partial':
+      return { kind: 'discovery', title: 'Submission incomplete', detail: `${reason.met} of ${reason.applicable} checks met — the dossier can still be completed.`, source: FROM_SUBMISSION }
+    case 'tape_ready':
+      return { kind: 'discovery', title: 'Self-tape ready', detail: `${line}.`, source: FROM_SUBMISSION }
+    case 'complete_submission':
+      return { kind: 'discovery', title: 'Complete submission', detail: `${line}.`, source: FROM_SUBMISSION }
+  }
+}
+
+/** L'ordre de lecture : d'abord ce qui concerne le talent, puis l'équipe, puis le dossier. */
+export function orderedSignals(reasons: AttentionReason[]): Signal[] {
+  const rank: Record<SignalKind, number> = { talent: 0, team: 1, discovery: 2 }
+  return reasons.map(describeSignal).sort((a, b) => rank[a.kind] - rank[b.kind])
+}
