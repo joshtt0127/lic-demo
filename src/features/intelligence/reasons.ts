@@ -143,7 +143,7 @@ export const BAND_LABEL: Record<AttentionBand, string> = {
 
 export const BAND_DESCRIPTION: Record<AttentionBand, string> = {
   priority: 'Something here is waiting on a decision from you.',
-  discovery: 'Complete submissions from people your team has never reviewed.',
+  discovery: 'First-time talent your team has never reviewed. Memory amplifies discovery — it never replaces it.',
   all: 'Everyone else who applied. Nothing is ever hidden.',
 }
 
@@ -225,8 +225,13 @@ export function describeSignal(reason: AttentionReason): Signal {
   }
 }
 
-/** L'ordre de lecture : d'abord ce qui concerne le talent, puis l'équipe, puis le dossier. */
-export function orderedSignals(reasons: AttentionReason[]): Signal[] {
-  const rank: Record<SignalKind, number> = { talent: 0, team: 1, discovery: 2 }
+/**
+ * L'ordre de lecture : d'abord ce qui concerne le talent, puis l'équipe, puis
+ * le dossier. Dans la bande Discovery, la découverte passe en tête : c'est la
+ * raison même de sa place.
+ */
+export function orderedSignals(reasons: AttentionReason[], band?: AttentionBand | null): Signal[] {
+  const rank: Record<SignalKind, number> =
+    band === 'discovery' ? { discovery: 0, talent: 1, team: 2 } : { talent: 0, team: 1, discovery: 2 }
   return reasons.map(describeSignal).sort((a, b) => rank[a.kind] - rank[b.kind])
 }

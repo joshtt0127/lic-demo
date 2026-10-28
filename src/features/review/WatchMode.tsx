@@ -274,7 +274,7 @@ export function WatchMode({
                 <Sparkles className="h-3.5 w-3.5" /> Why this audition?
               </p>
               <div className="mt-2 flex flex-col gap-2">
-                {orderedSignals(reasons).map((signal, i) => (
+                {orderedSignals(reasons, item.feed?.band).map((signal, i) => (
                   <SignalCard key={i} signal={signal} tone="dark" />
                 ))}
               </div>

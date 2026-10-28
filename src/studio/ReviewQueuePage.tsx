@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowDownUp, ArrowLeft, Download, LayoutGrid, Play, Search, X } from 'lucide-react'
+import { ArrowLeft, Download, LayoutGrid, Play, Search, X } from 'lucide-react'
 import { Button, FormError } from '@/components/ui'
 import { Skeleton } from '@/components/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
@@ -13,6 +13,7 @@ import { useIntelligenceFeed } from '@/features/intelligence/queries'
 import { BAND_DESCRIPTION, BAND_LABEL, explainReason } from '@/features/intelligence/reasons'
 import { ReviewCard } from '@/features/review/ReviewCard'
 import { WatchMode, type WallAction } from '@/features/review/WatchMode'
+import { SortControl } from '@/features/review/SortControl'
 import { useWallMutations, useWallRoles } from '@/features/wall/queries'
 import { useBatchStatus, useMySeen, useMyVotes, useQueueTapes } from '@/features/review/queries'
 import { useApplicationLabels, useLabelMutations, useOrgLabels } from '@/features/review/labels'
@@ -279,16 +280,6 @@ export function ReviewQueuePage() {
     }
   }
 
-  const sortOptions: { value: SortMode; label: string }[] = [
-    { value: 'intelligence', label: 'Intelligence Feed™' },
-    { value: 'date', label: 'Submission date' },
-    { value: 'name', label: 'Actor name' },
-    // Trier par rôle n'a de sens que sur plusieurs rôles.
-    ...(!singleRole && roles.length > 1 ? [{ value: 'role' as SortMode, label: 'Role' }] : []),
-  ]
-  const dirLabel =
-    sort === 'date' ? (dir === 'desc' ? 'Newest first' : 'Oldest first') : dir === 'asc' ? 'A → Z' : 'Z → A'
-
   return (
     <div className="flex flex-col gap-5 pb-28">
       {fromWall && (
@@ -328,13 +319,16 @@ export function ReviewQueuePage() {
           {casting.data.project?.title ?? casting.data.title}
         </Link>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="font-display text-[1.9rem] font-extrabold tracking-[-0.025em] text-ink sm:text-[2.3rem]">
-              Audition Review Queue™
-            </h1>
-            <p className="mt-1 text-[15px] text-muted">
-              See who matters first. Every audition stays one click away — the feed orders attention, your team decides.
-            </p>
+          <div className="min-w-0">
+            <p className="text-label font-semibold uppercase tracking-label text-muted">Audition Review Queue™ · See who matters first</p>
+            <div className="mt-1 flex flex-wrap items-center gap-3">
+              <h1 className="font-display text-[1.9rem] font-extrabold tracking-[-0.025em] text-ink sm:text-[2.3rem]">
+                Auditions — {focusRole?.name ?? casting.data.title}
+              </h1>
+              <span className="rounded-full border border-line bg-card px-3 py-1 text-[13px] font-semibold tabular-nums text-ink">
+                {inRole.length.toLocaleString('en-US')} submission{inRole.length === 1 ? '' : 's'}
+              </span>
+            </div>
           </div>
           {firstUnseen >= 0 && (
             <Button variant="premium" icon={<Play className="h-4 w-4 fill-current" />} onClick={() => setWatching(firstUnseen)}>
@@ -372,36 +366,17 @@ export function ReviewQueuePage() {
 
       {/* Barre de tri et progression */}
       <div className="flex flex-col gap-3 rounded-card border border-line bg-card p-3.5 shadow-card">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-label font-semibold uppercase tracking-label text-muted">Sort</span>
-          <div role="radiogroup" aria-label="Sort auditions" className="flex flex-wrap gap-1 rounded-btn bg-paper p-1">
-            {sortOptions.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                role="radio"
-                aria-checked={sort === option.value}
-                onClick={() => setParam('sort', option.value === 'intelligence' ? null : option.value)}
-                className={cn(
-                  'rounded-inner px-3 py-1.5 text-[13px] font-semibold transition-colors',
-                  sort === option.value ? 'bg-ink text-white' : 'text-ink/75 hover:text-ink',
-                )}
-              >
-                {option.label}
-              </button>
-            ))}
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <SortControl
+              sort={sort}
+              dir={dir}
+              withRole={!singleRole && roles.length > 1}
+              onSort={(mode) => setParam('sort', mode === 'intelligence' ? null : mode)}
+              onFlip={() => setParam('dir', dir === 'asc' ? 'desc' : 'asc')}
+            />
           </div>
-          {sort !== 'intelligence' && (
-            <button
-              type="button"
-              onClick={() => setParam('dir', dir === 'asc' ? 'desc' : 'asc')}
-              className="inline-flex items-center gap-1.5 rounded-btn border border-line px-3 py-1.5 text-[13px] font-semibold text-ink hover:border-ink/30"
-            >
-              <ArrowDownUp className="h-3.5 w-3.5" />
-              {dirLabel}
-            </button>
-          )}
-          <label className="relative ml-auto w-full sm:w-56">
+          <label className="relative w-full lg:w-56">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
             <input
               value={query}
@@ -412,6 +387,8 @@ export function ReviewQueuePage() {
             />
           </label>
         </div>
+
+        <div className="h-px bg-line" />
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-label font-semibold uppercase tracking-label text-muted">Show</span>
@@ -482,11 +459,23 @@ export function ReviewQueuePage() {
         </div>
       </div>
 
-      {sort === 'intelligence' && (
-        <p className="text-[12.5px] leading-snug text-muted">
-          Prioritized is not “best”. The feed orders attention for <em>this</em> casting from signals your team can read on
-          every card — and keeps a Discovery lane so first-time applicants are never buried.
-        </p>
+      {sort === 'intelligence' && sections.length > 1 && (
+        <nav aria-label="Jump to a lane" className="flex flex-wrap items-center gap-2">
+          {sections.map((section) => (
+            <a
+              key={section.key}
+              href={`#lane-${section.key}`}
+              className={cn(
+                'inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors',
+                section.band === 'discovery' ? 'border-signal-good/30 bg-signal-good-bg text-signal-good hover:border-signal-good' : 'border-line bg-card text-ink hover:border-ink/30',
+              )}
+            >
+              {section.title}
+              <span className="tabular-nums opacity-70">{section.items.length}</span>
+            </a>
+          ))}
+          <span className="text-[12.5px] text-muted">Prioritized is not “best” — every lane stays one click away.</span>
+        </nav>
       )}
 
       {error && <FormError>{error}</FormError>}
@@ -504,7 +493,7 @@ export function ReviewQueuePage() {
             shown += items.length
             if (items.length === 0) return null
             return (
-              <section key={section.key} className="flex flex-col gap-3">
+              <section key={section.key} id={`lane-${section.key}`} className="flex scroll-mt-24 flex-col gap-3">
                 {section.title && (
                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
                     <h2 className="font-display text-[1.25rem] font-extrabold text-ink">{section.title}</h2>

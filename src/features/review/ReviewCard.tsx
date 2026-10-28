@@ -61,7 +61,7 @@ export function ReviewCard({
   const decided = isDecided(item.status)
   const reasons = item.feed?.reasons ?? []
   const firstTime = reasons.some((reason) => reason.code === 'new_to_you')
-  const signals = orderedSignals(reasons)
+  const signals = orderedSignals(reasons, item.feed?.band)
   const age =
     item.playing_age_min != null && item.playing_age_max != null
       ? `${item.playing_age_min}–${item.playing_age_max}`
