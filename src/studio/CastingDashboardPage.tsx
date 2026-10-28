@@ -574,6 +574,7 @@ export function CastingDashboardPage() {
                     )
                   }
                   onOpen={() => setTab('submissions')}
+                  auditionsHref={(role) => `/studio/casting/${data.id}/review?role=${role.id}`}
                 />
 
                 {stats.roles.length > 5 && (
@@ -774,6 +775,7 @@ export function CastingDashboardPage() {
                 )
               }
               onOpen={() => setTab('submissions')}
+              auditionsHref={(role) => `/studio/casting/${data.id}/review?role=${role.id}`}
             />
           )}
 
@@ -992,6 +994,7 @@ function RolesTable({
   onEdit,
   onDelete,
   onOpen,
+  auditionsHref,
 }: {
   roles: RoleRow[]
   perRole: Map<string, CandidateViewRow[]>
@@ -1003,6 +1006,8 @@ function RolesTable({
   onEdit?: (role: RoleRow) => void
   onDelete?: (role: RoleRow) => void
   onOpen: () => void
+  /** Casting → Role → Auditions : la file de ce rôle (Audition Review Queue™). */
+  auditionsHref?: (role: RoleRow) => string
 }) {
   if (roles.length === 0) {
     return <EmptyState compact title="No role matches" />
@@ -1052,9 +1057,16 @@ function RolesTable({
               </div>
 
               <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-muted">
-                <span>
-                  <span className="font-mono font-bold text-ink">{own.length}</span> submissions
-                </span>
+                {auditionsHref ? (
+                  <Link to={auditionsHref(role)} className="inline-flex items-center gap-1 font-semibold text-ink underline-offset-2 hover:underline">
+                    <PlayCircle className="h-3.5 w-3.5" />
+                    <span className="font-mono font-bold">{own.length}</span> auditions
+                  </Link>
+                ) : (
+                  <span>
+                    <span className="font-mono font-bold text-ink">{own.length}</span> submissions
+                  </span>
+                )}
                 <span>
                   <span className="font-mono font-bold text-ink">{shortlist}</span> shortlisted
                 </span>
@@ -1149,7 +1161,22 @@ function RolesTable({
                     {ROLE_TYPE_LABEL[role.role_type]}
                   </Tag>
                 </td>
-                <td className="px-2 py-3 text-[15px] font-semibold text-ink">{own.length}</td>
+                <td className="px-2 py-3 text-[15px] font-semibold text-ink">
+                  {auditionsHref ? (
+                    <Link
+                      to={auditionsHref(role)}
+                      title={`Review the auditions for ${role.name}`}
+                      className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 -ml-2 hover:bg-ink/5"
+                    >
+                      {own.length}
+                      <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-muted">
+                        <PlayCircle className="h-3.5 w-3.5" /> Auditions
+                      </span>
+                    </Link>
+                  ) : (
+                    own.length
+                  )}
+                </td>
                 <td className="px-2 py-3 text-[15px] font-semibold text-ink">{shortlist}</td>
                 <td className="px-2 py-3">
                   <SelectInput
