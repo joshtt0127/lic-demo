@@ -386,6 +386,30 @@ test.describe('Talent Graph™ — la trajectoire inter-productions', () => {
 })
 
 test.describe('Intelligence Feed™ v2 — mémoire × contexte × découverte', () => {
+  test('nouveau pour l’équipe = jamais évalué : postuler ailleurs dans la maison ne compte pas', async () => {
+    const stamp = Date.now() + 47
+    const house = await organization(stamp, 'v2twice')
+    const other = await castingFor(house.orgId, house.ownerId, stamp, 'Other')
+    const now = await castingFor(house.orgId, house.ownerId, stamp, 'Now')
+
+    // Nina postule aux deux castings ; personne ne l'a jamais évaluée.
+    const nina = await createAccount(`e2e.v2.nina.${stamp}@letitcast.dev`, 'talent', 'Nina')
+    await applicationWithTape(other.roleId, nina)
+    const ninaNow = await applicationWithTape(now.roleId, nina)
+
+    // Omar aussi, mais l'équipe a voté sur son autre candidature.
+    const omar = await createAccount(`e2e.v2.omar.${stamp}@letitcast.dev`, 'talent', 'Omar')
+    const omarOther = await applicationWithTape(other.roleId, omar)
+    await admin.from('candidate_reviews').insert({ application_id: omarOther, reviewer_id: house.ownerId, vote: 'maybe' })
+    const omarNow = await applicationWithTape(now.roleId, omar)
+
+    const owner = await signedIn(house.email)
+    const { data: feed } = await owner.rpc('intelligence_feed', { p_casting: now.castingId })
+    const band = (id: string) => feed!.find((r: { application_id: string }) => r.application_id === id).band
+    expect(band(ninaNow)).toBe('discovery')
+    expect(band(omarNow)).not.toBe('discovery')
+  })
+
   test('Discovery = pas encore évalué : ouvrir une tape ne sort pas un talent de Discovery', async () => {
     const stamp = Date.now() + 45
     const mine = await organization(stamp, 'v2opened')
@@ -616,13 +640,14 @@ test.describe('Ce qui est vrai pour tout le monde ne classe personne — attente
     const now = await castingFor(house.orgId, house.ownerId, stamp, 'Now')
     const tenDaysAgo = new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString()
 
-    // Trois talents déjà passés chez nous (donc hors Discovery), sans vote ni
-    // décision : seule l'attente pourrait les départager — et elle les
-    // concerne tous.
+    // Trois talents déjà évalués chez nous (un « maybe » sur un autre casting,
+    // donc hors Discovery), sans vote ni décision ici : seule l'attente
+    // pourrait les départager — et elle les concerne tous.
     const apps: string[] = []
     for (let i = 0; i < 3; i += 1) {
       const talentId = await createAccount(`e2e.wait.${i}.${stamp}@letitcast.dev`, 'talent', `Wes${i}`)
-      await applicationWithTape(earlier.roleId, talentId)
+      const past = await applicationWithTape(earlier.roleId, talentId)
+      await admin.from('candidate_reviews').insert({ application_id: past, reviewer_id: house.ownerId, vote: 'maybe' })
       const app = await applicationWithTape(now.roleId, talentId)
       await admin.from('applications').update({ submitted_at: tenDaysAgo }).eq('id', app)
       apps.push(app)
