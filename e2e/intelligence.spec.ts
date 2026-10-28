@@ -386,6 +386,23 @@ test.describe('Talent Graph™ — la trajectoire inter-productions', () => {
 })
 
 test.describe('Intelligence Feed™ v2 — mémoire × contexte × découverte', () => {
+  test('Discovery = pas encore évalué : ouvrir une tape ne sort pas un talent de Discovery', async () => {
+    const stamp = Date.now() + 45
+    const mine = await organization(stamp, 'v2opened')
+    const talentId = await createAccount(`e2e.v2.opened.${stamp}@letitcast.dev`, 'talent', 'Otto')
+    const casting = await castingFor(mine.orgId, mine.ownerId, stamp, 'Opened')
+    const app = await applicationWithTape(casting.roleId, talentId)
+    // Un producteur ouvre la tape quelques secondes, sans voter ni décider.
+    await admin.from('events').insert({
+      type: 'AUDITION_OPENED', actor_id: mine.ownerId, entity_type: 'application', entity_id: app, org_id: mine.orgId, source: 'e2e',
+    })
+
+    const owner = await signedIn(mine.email)
+    const { data: feed } = await owner.rpc('intelligence_feed', { p_casting: casting.castingId })
+    const row = feed!.find((r: { application_id: string }) => r.application_id === app)
+    expect(row.band).toBe('discovery')
+  })
+
   test('Discovery by design : attendre longtemps ne sort pas un talent neuf de Discovery', async () => {
     const stamp = Date.now() + 40
     const mine = await organization(stamp, 'v2waiting')
