@@ -386,6 +386,27 @@ test.describe('Talent Graph™ — la trajectoire inter-productions', () => {
 })
 
 test.describe('Intelligence Feed™ v2 — mémoire × contexte × découverte', () => {
+  test('Discovery by design : attendre longtemps ne sort pas un talent neuf de Discovery', async () => {
+    const stamp = Date.now() + 40
+    const mine = await organization(stamp, 'v2waiting')
+    const talentId = await createAccount(`e2e.v2.waiting.${stamp}@letitcast.dev`, 'talent', 'Wanda')
+    const casting = await castingFor(mine.orgId, mine.ownerId, stamp, 'Waiting')
+    const app = await applicationWithTape(casting.roleId, talentId)
+    // Dix jours sans que personne ne l'ouvre : bien au-delà du seuil d'attente.
+    const tenDaysAgo = new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString()
+    await admin.from('applications').update({ submitted_at: tenDaysAgo }).eq('id', app)
+
+    const owner = await signedIn(mine.email)
+    const { data: feed, error } = await owner.rpc('intelligence_feed', { p_casting: casting.castingId })
+    expect(error).toBeNull()
+    const row = feed!.find((r: { application_id: string }) => r.application_id === app)
+    expect(row.band).toBe('discovery')
+    const codes = row.reasons.map((reason: { code: string }) => reason.code)
+    expect(codes).toContain('new_to_you')
+    // L'attente reste dite, comme un fait sur l'équipe.
+    expect(codes).toContain('never_opened')
+  })
+
   test('un inconnu recommandé ailleurs remonte, avec le fait qui le dit', async () => {
     const stamp = Date.now() + 20
     const elsewhere = await organization(stamp, 'v2elsewhere')
@@ -585,6 +606,15 @@ test.describe('A pass is not a failure — la mémoire propre à l’équipe', (
       .select('id')
       .single()
     await admin.from('candidate_reviews').insert({ application_id: first!.id, reviewer_id: house.ownerId, vote: 'good' })
+    // Ce que l'équipe a remarqué, avec ses mots : un label positif, un neutre.
+    const { data: labels } = await admin
+      .from('review_labels')
+      .insert([
+        { org_id: house.orgId, name: 'Strong on camera', tone: 'good' },
+        { org_id: house.orgId, name: 'To discuss', tone: 'neutral' },
+      ])
+      .select('id, name')
+    await admin.from('application_labels').insert(labels!.map((label) => ({ application_id: first!.id, label_id: label.id, added_by: house.ownerId })))
     await admin
       .from('applications')
       .update({ status: 'not_selected', decided_at: new Date().toISOString() })
@@ -602,7 +632,14 @@ test.describe('A pass is not a failure — la mémoire propre à l’équipe', (
     const row = feed!.find((r: { application_id: string }) => r.application_id === again!.id)
     expect(row.band).toBe('priority')
     expect(row.reasons).toContainEqual(
-      expect.objectContaining({ code: 'passed_but_noted', castings: 1, good_votes: 1, project: `MasterChef ${stamp}` }),
+      expect.objectContaining({
+        code: 'passed_but_noted',
+        castings: 1,
+        good_votes: 1,
+        project: `MasterChef ${stamp}`,
+        // Seuls les labels positifs sont repris, avec leur nom.
+        label_names: ['Strong on camera'],
+      }),
     )
   })
 
