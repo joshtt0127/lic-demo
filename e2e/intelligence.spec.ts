@@ -591,6 +591,38 @@ test.describe('Ce qui est vrai pour tout le monde ne classe personne', () => {
   })
 })
 
+test.describe('Ce qui est vrai pour tout le monde ne classe personne — attente', () => {
+  test('quand tout le casting attend, l’attente ne promeut personne', async () => {
+    const stamp = Date.now() + 50
+    const house = await organization(stamp, 'wait')
+    const earlier = await castingFor(house.orgId, house.ownerId, stamp, 'Earlier')
+    const now = await castingFor(house.orgId, house.ownerId, stamp, 'Now')
+    const tenDaysAgo = new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString()
+
+    // Trois talents déjà passés chez nous (donc hors Discovery), sans vote ni
+    // décision : seule l'attente pourrait les départager — et elle les
+    // concerne tous.
+    const apps: string[] = []
+    for (let i = 0; i < 3; i += 1) {
+      const talentId = await createAccount(`e2e.wait.${i}.${stamp}@letitcast.dev`, 'talent', `Wes${i}`)
+      await applicationWithTape(earlier.roleId, talentId)
+      const app = await applicationWithTape(now.roleId, talentId)
+      await admin.from('applications').update({ submitted_at: tenDaysAgo }).eq('id', app)
+      apps.push(app)
+    }
+
+    const owner = await signedIn(house.email)
+    const { data: feed } = await owner.rpc('intelligence_feed', { p_casting: now.castingId })
+    const rows = feed!.filter((r: { application_id: string }) => apps.includes(r.application_id))
+    expect(rows).toHaveLength(3)
+    for (const row of rows) {
+      expect(row.band).toBe('all')
+      // L'attente reste dite : elle est vraie.
+      expect(row.reasons.map((r: { code: string }) => r.code)).toContain('overdue')
+    }
+  })
+})
+
 test.describe('A pass is not a failure — la mémoire propre à l’équipe', () => {
   test('un comédien remarqué puis écarté remonte au casting suivant, avec sa raison', async () => {
     const stamp = Date.now() + 40
